@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/CommTest_Qt">
+        <file>PLC_Simulator.ico</file>
+    </qresource>
+</RCC>

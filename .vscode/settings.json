@@ -1,0 +1,19 @@
+{
+    "cmake.configureOnOpen": true,
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.buildBeforeRun": true,  // 运行前自动构建
+    "cmake.parallelJobs": 8,       // 并行构建
+    
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.errorSquiggles": "Enabled",
+    "C_Cpp.formatting": "Default",
+    
+    // 调试相关
+    "debug.console.closeOnEnd": true,  // 调试结束后保持控制台打开
+    "debug.onTaskErrors": "showErrors",
+    "files.associations": {
+        "charconv": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp"
+    } // 任务错误时显示
+}

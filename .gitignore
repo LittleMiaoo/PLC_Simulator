@@ -1,0 +1,13 @@
+# 忽略Bin目录（发布包）
+Bin/
+
+# 忽略build目录（项目配置、构建目录）
+build/
+build-*/
+cmake-build-*/
+
+# 忽略其他常见构建产物
+*.user
+*.user.*
+*.autosave
+CMakeLists.txt.user*
