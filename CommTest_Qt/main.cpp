@@ -3,21 +3,26 @@
 #include <QStyleFactory>
 
 #ifdef _WIN32
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
+#ifdef _DEBUG
+#include "MemoryLeakDetector.h"
+#endif
 #endif
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
+#ifdef _DEBUG
+	// 启用内存泄漏检测
+	MemoryLeakDetector::EnableMemoryLeakChecks();
+	
+	// 如果你知道特定的内存分配编号，可以设置断点
+	 //MemoryLeakDetector::SetBreakAlloc(26543);  
+#endif
+#endif
+
     QApplication app(argc, argv);
 
-    
-
     //app.setStyle(QStyleFactory::create("Fusion"));
-#ifdef _WIN32
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
 
     CommTest_Qt window;
    

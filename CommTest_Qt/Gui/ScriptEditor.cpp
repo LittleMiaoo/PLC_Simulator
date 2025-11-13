@@ -21,6 +21,7 @@
 // class LuaScript {
 // public:
 
+
 ScriptEditor::ScriptEditor(QWidget *parent,LuaScript* pLuaScript)
     : QMainWindow(parent)
     , editor(new QPlainTextEdit(this))
@@ -52,6 +53,19 @@ ScriptEditor::ScriptEditor(QWidget *parent,LuaScript* pLuaScript)
     functionTemplates["SetFloat"] = "SetFloat(\"D100\", 123.45)";
     functionTemplates["SetDouble"] = "SetDouble(\"D100\", 123.45)";
     functionTemplates["SetString"] = "SetString(\"D100\", \"AB\")";
+
+    functionTemplates["GetInt16"] = "GetInt16(\"D100\")";
+    functionTemplates["GetInt32"] = "GetInt32(\"D100\")";
+    functionTemplates["GetFloat"] = "GetFloat(\"D100\")";
+    functionTemplates["GetDouble"] = "GetDouble(\"D100\")";
+    functionTemplates["GetString"] = "GetString(\"D100\")";
+
+    functionTemplates["MoveAbsInt32"] = "MoveAbsInt32(\"D100\", \"D102\", \"D104\")";
+    functionTemplates["MoveAbsFloat"] = "MoveAbsFloat(\"D100\", \"D102\", \"D104\")";
+    functionTemplates["MoveRelativeInt32"] = "MoveRelativeInt32(\"D100\", \"D102\", \"D104\")";
+    functionTemplates["MoveRelativeFloat"] = "MoveRelativeFloat(\"D100\", \"D102\", \"D104\")";
+
+
     
     resize(800, 600);
 }
@@ -161,7 +175,9 @@ void ScriptEditor::saveScript()
     }
     
     QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
     out << editor->toPlainText();
+    file.close();
     
     QMessageBox::information(this, tr("Success"), tr("Script saved successfully."));
 }
@@ -226,7 +242,8 @@ void ScriptEditor::insertFunction(const QString &function)
 void ScriptEditor::closeEvent(QCloseEvent *event)
 {
     // 可以在这里添加保存提示逻辑
-    event->accept();
+    //event->accept();
+    QMainWindow::closeEvent(event);
 }
 
 // LuaHighlighter实现

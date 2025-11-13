@@ -1,8 +1,26 @@
-﻿#ifndef MAIN_WORK_FLOW_H
-#define MAIN_WORK_FLOW_H
+#ifndef MAINWORKFLOW_H
+#define MAINWORKFLOW_H
 
-#include "CommDefine.h"
-#include "LuaScript.h"
+#include <QObject>
+#include <QMutex>
+#include <QVariant>
+
+#include "Comm/CommDefine.h"
+#include "Comm/CommBase.h"
+#include "Comm/Protocol/CommProtocolBase.h"
+#include "Comm/Protocol/CommProMitsubishiQBinary.h"
+#include "Comm/Protocol/CommProKeyencePCLink.h"
+#include "LuaScript/LuaScript.h"
+
+#ifdef _WIN32
+#ifdef _DEBUG
+#include "MemoryLeakDetector.h"
+#endif
+#endif
+
+#include <memory>
+#include <atomic>
+#include <vector>
 
 //lua脚本数量
 #define LUA_SCRIPT_NUM 6
@@ -15,9 +33,10 @@ class MainWorkFlow :public QObject
 public:
 	MainWorkFlow(const MainWorkFlow& WorkFlow) = delete;				//禁用拷贝构造
 	MainWorkFlow& operator= (const MainWorkFlow& WorkFlow) = delete;	//禁用赋值构造
-	virtual ~MainWorkFlow() = default;									//默认析构
+	virtual ~MainWorkFlow();											//析构函数
 
 	static MainWorkFlow* InitialWorkFlow(QObject* pParent = nullptr);	//初始化唯一MainWorkFlow
+	static void ReleaseWorkFlow();										//释放单例实例
 
 	//通信信息相关
 	bool SetCommInfo(CommBase::CommInfoBase* commInfo);
@@ -77,7 +96,7 @@ private:
 	std::atomic_bool m_bDataChanged;
 
 	CommBase* m_pComm;									//通信实例
-	CommBase::CommInfoBase* m_pCommInfo;				//通信信息实例
+	CommBase::CommInfoBase* m_pCommInfo;//通信信息实例（智能指针管理）
 	bool	m_bValidComm;								//通信实例是否有效标志
 	//CommStatus						m_CommStatus;		// 通信状态
 

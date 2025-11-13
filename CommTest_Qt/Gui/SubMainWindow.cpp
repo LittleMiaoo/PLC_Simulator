@@ -1,5 +1,10 @@
-﻿#include "SubMainWindow.h"
+#include "SubMainWindow.h"
 
+#ifdef _WIN32
+#ifdef _DEBUG
+#include "MemoryLeakDetector.h"
+#endif
+#endif
 
 SubMainWindow::SubMainWindow(QWidget* parent)
 	: QDialog(parent) 
@@ -38,4 +43,3 @@ void SubMainWindow::setButtonTexts(const QStringList& texts)
 		}
 	}
 }
-

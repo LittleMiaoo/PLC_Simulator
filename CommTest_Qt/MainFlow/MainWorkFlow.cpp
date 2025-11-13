@@ -1,5 +1,7 @@
 ﻿#include "MainWorkFlow.h"
 
+
+
 //初始化静态实例
 MainWorkFlow* MainWorkFlow::s_pInstance = nullptr;
 QMutex MainWorkFlow::s_mutex;
@@ -15,7 +17,7 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
 	
 	for (int i = 0 ; i < REGISTER_VAL_NUM;i++)
 	{
-		m_RegisterVal[i].store(i*2, std::memory_order_relaxed);
+		m_RegisterVal[i].store(0, std::memory_order_relaxed);
 	}
 
 	m_bDataChanged = false;
@@ -32,16 +34,38 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
 	
 }
 
+// 析构函数：确保所有资源正确释放
+MainWorkFlow::~MainWorkFlow()
+{
+	// 关闭通信
+	if (m_pComm != nullptr)
+	{
+		m_pComm->Close();
+		delete m_pComm;
+		m_pComm = nullptr;
+	}
+	
+	// 释放协议实例
+	if (m_pComProBase != nullptr)
+	{
+		delete m_pComProBase;
+		m_pComProBase = nullptr;
+	}
+	
+	// m_pCommInfo 会自动释放（unique_ptr）
+	// m_vpLuaScript 会自动释放（vector的unique_ptr）
+}
+
 void MainWorkFlow::ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript)
 {
-	//连接lua实例的SetRegisterValInt16
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValInt16, this, [=](int Addr, int16_t nVal) {
+		//连換lua实例的SetRegisterValInt16
+	connect(pLuaScript.get(), &LuaScript::SetRegisterValInt16, this, [this](int Addr, int16_t nVal) {
 		SetRegisterVal(Addr, nVal);
 		emit RegisterDataUpdate();
 	});
 
-	//连接lua实例的SetRegisterValInt32
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValInt32, this, [=](int Addr, int32_t nVal) {
+	//连換lua实例的SetRegisterValInt32
+	connect(pLuaScript.get(), &LuaScript::SetRegisterValInt32, this, [this](int Addr, int32_t nVal) {
 
 		DataTypeConvert dataConvert;
 		dataConvert.u_Int32[0] = nVal;
@@ -50,8 +74,8 @@ void MainWorkFlow::ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript)
 		emit RegisterDataUpdate();
 	});
 
-	//连接lua实例的SetRegisterValFloat
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValFloat, this, [=](int Addr, float nVal) {
+	//连換lua实例的SetRegisterValFloat
+	connect(pLuaScript.get(), &LuaScript::SetRegisterValFloat, this, [this](int Addr, float nVal) {
 
 		DataTypeConvert dataConvert;
 		dataConvert.u_float[0] = nVal;
@@ -61,8 +85,8 @@ void MainWorkFlow::ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript)
 		emit RegisterDataUpdate();
 	});
 
-	//连接lua实例的SetRegisterValDouble
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValDouble, this, [=](int Addr, double nVal) {
+	//连換lua实例的SetRegisterValDouble
+	connect(pLuaScript.get(), &LuaScript::SetRegisterValDouble, this, [this](int Addr, double nVal) {
 		
 		DataTypeConvert dataConvert;
 		dataConvert.u_double = nVal;
@@ -74,8 +98,8 @@ void MainWorkFlow::ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript)
 		emit RegisterDataUpdate();
 	});
 
-	//连接lua实例的SetRegisterValString
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValString, this, [=](int Addr, QString strVal) {
+	//连換lua实例的SetRegisterValString
+	connect(pLuaScript.get(), &LuaScript::SetRegisterValString, this, [this](int Addr, QString strVal) {
 		
 		DataTypeConvert dataConvert;
 		for (int i = 0; i < strVal.length() && i < 2; i++)
@@ -85,6 +109,45 @@ void MainWorkFlow::ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript)
 		SetRegisterVal(Addr, dataConvert.u_Int16[0]);
 
 		emit RegisterDataUpdate();
+	});
+
+	// ===== 连接Get系列信号 =====
+	//连換lua实例的GetRegisterValInt16
+	connect(pLuaScript.get(), &LuaScript::GetRegisterValInt16, this, [this](int Addr, int16_t& nVal) {
+		nVal = GetRegisterVal(Addr);
+	});
+
+	//连換lua实例的GetRegisterValInt32
+	connect(pLuaScript.get(), &LuaScript::GetRegisterValInt32, this, [this](int Addr, int32_t& nVal) {
+		DataTypeConvert dataConvert;
+		dataConvert.u_Int16[0] = GetRegisterVal(Addr);
+		dataConvert.u_Int16[1] = GetRegisterVal(Addr + 1);
+		nVal = dataConvert.u_Int32[0];
+	});
+
+	//连換lua实例的GetRegisterValFloat
+	connect(pLuaScript.get(), &LuaScript::GetRegisterValFloat, this, [this](int Addr, float& fVal) {
+		DataTypeConvert dataConvert;
+		dataConvert.u_Int16[0] = GetRegisterVal(Addr);
+		dataConvert.u_Int16[1] = GetRegisterVal(Addr + 1);
+		fVal = dataConvert.u_float[0];
+	});
+
+	//连換lua实例的GetRegisterValDouble
+	connect(pLuaScript.get(), &LuaScript::GetRegisterValDouble, this, [this](int Addr, double& dVal) {
+		DataTypeConvert dataConvert;
+		dataConvert.u_Int16[0] = GetRegisterVal(Addr);
+		dataConvert.u_Int16[1] = GetRegisterVal(Addr + 1);
+		dataConvert.u_Int16[2] = GetRegisterVal(Addr + 2);
+		dataConvert.u_Int16[3] = GetRegisterVal(Addr + 3);
+		dVal = dataConvert.u_double;
+	});
+
+	//连換lua实例的GetRegisterValString
+	connect(pLuaScript.get(), &LuaScript::GetRegisterValString, this, [this](int Addr, QString& strVal) {
+		DataTypeConvert dataConvert;
+		dataConvert.u_Int16[0] = GetRegisterVal(Addr);
+		strVal = QString("%1%2").arg(QChar(dataConvert.u_chars[0])).arg(QChar(dataConvert.u_chars[1]));
 	});
 }
 
@@ -103,10 +166,23 @@ MainWorkFlow* MainWorkFlow::InitialWorkFlow(QObject* pParent /*= nullptr*/)
 	
 }
 
+//释放单例实例
+void MainWorkFlow::ReleaseWorkFlow()
+{
+	QMutexLocker locker(&s_mutex);
+	
+	if (s_pInstance != nullptr)
+	{
+		delete s_pInstance;
+		s_pInstance = nullptr;
+	}
+}
+
 bool MainWorkFlow::SetCommInfo(CommBase::CommInfoBase* commInfo)
 {
 	if (commInfo == nullptr) return false;
 
+	// 使用unique_ptr管理内存
 	m_pCommInfo = commInfo;
 	return true;
 }
@@ -149,15 +225,15 @@ bool MainWorkFlow::OpenComm()
 
 		//新建信号槽连接
 		{
-			connect(m_pComm, &CommBase::CommLogRecord, this, [=](QString strLog) {
+			connect(m_pComm, &CommBase::CommLogRecord, this, [this](QString strLog) {
 				emit commLogRecord(strLog);
 			});
 
-			connect(m_pComm, &CommBase::dataReceived, this, [=](QString objectInfo,QByteArray strData) {
+			connect(m_pComm, &CommBase::dataReceived, this, [this](QString objectInfo,QByteArray strData) {
 				emit dataReceived(objectInfo,strData);
 			});
 
-			connect(m_pComm, &CommBase::dataSend, this, [=](QString objectInfo, QByteArray strData) {
+			connect(m_pComm, &CommBase::dataSend, this, [this](QString objectInfo, QByteArray strData) {
 				emit dataSend(objectInfo, strData);
 				});
 		}

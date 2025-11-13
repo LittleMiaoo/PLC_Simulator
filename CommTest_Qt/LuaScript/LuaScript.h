@@ -22,6 +22,11 @@ public:
 		m_bLoopValid = bValid;
 	}
 
+	// 获取循环是否有效
+	bool GetLoopValid() const {
+		return m_bLoopValid;
+	}
+
 	bool RunLuaScript(const QString& strLuaFile,QString& errorMsg);
 	bool RunLuaScriptWithEditor(const QString& strLuaContent,QString& errorMsg);
 
@@ -45,12 +50,41 @@ private:
 	static int SetDoubleWrapper(lua_State* L);
     static int SetStringWrapper(lua_State* L);
 
+	//注册到Lua的各种数据类型Get静态封装函数
+	static int GetInt16Wrapper(lua_State* L);
+	static int GetInt32Wrapper(lua_State* L);
+	static int GetFloatWrapper(lua_State* L);
+	static int GetDoubleWrapper(lua_State* L);
+	static int GetStringWrapper(lua_State* L);
+
+	//注册到Lua的循环状态判断函数
+	static int IsLoopValidWrapper(lua_State* L);
+
+	//注册到Lua的平台控制函数
+	static int MoveAbsInt32Wrapper(lua_State* L);
+	static int MoveAbsFloatWrapper(lua_State* L);
+	static int MoveRelativeInt32Wrapper(lua_State* L);
+	static int MoveRelativeFloatWrapper(lua_State* L);
+
 	//各种数据类型的实际执行函数
 	void SetInt16(int nIndex, int16_t nValue);
 	void SetInt32(int nIndex, int32_t nValue);
 	void SetFloat(int nIndex, float fValue);
 	void SetDouble(int nIndex, double dValue);
 	void SetString(int nIndex, QString strValue);
+
+	//获取寄存器数据函数
+	int16_t GetInt16(int nIndex);
+	int32_t GetInt32(int nIndex);
+	float GetFloat(int nIndex);
+	double GetDouble(int nIndex);
+	QString GetString(int nIndex);
+
+	//平台控制函数实际执行
+	void MoveAbsInt32(int nXIndex, int nYIndex, int nAngleIndex);
+	void MoveAbsFloat(int nXIndex, int nYIndex, int nAngleIndex);
+	void MoveRelativeInt32(int nXIndex, int nYIndex, int nAngleIndex);
+	void MoveRelativeFloat(int nXIndex, int nYIndex, int nAngleIndex);
 
 	//验证Lua传入的地址字符串是否有效并解析成地址
 	static bool ParseRegisterAddr(const char* strAddr, int& nAddr,int nMinVal = 0,int nMaxVal = 100000);
@@ -63,7 +97,10 @@ public:
 	static bool CheckLuaScript(const QString& strLuaFile,QString& strErrorInfo);	//检查脚本是否正常
 	static QStringList getRegisteredFunctions() {
         // 这应该返回实际注册到Lua状态机的函数列表
-        return QStringList() << "SetInt16" << "SetInt32" << "SetFloat" << "SetDouble" << "SetString";
+        return QStringList() << "SetInt16" << "SetInt32" << "SetFloat" << "SetDouble" << "SetString"
+                            << "GetInt16" << "GetInt32" << "GetFloat" << "GetDouble" << "GetString"
+                            << "IsLoopValid"
+                            << "MoveAbsInt32" << "MoveAbsFloat" << "MoveRelativeInt32" << "MoveRelativeFloat";
     }
     
     // static QString getFunctionTemplate(const QString &functionName) {
@@ -86,6 +123,19 @@ signals:
     void SetRegisterValFloat(int nIndex, float fValue);
     void SetRegisterValDouble(int nIndex, double dValue);
     void SetRegisterValString(int nIndex, QString strValue);
+
+	// 获取寄存器数据信号
+	void GetRegisterValInt16(int nIndex, int16_t& nValue);
+	void GetRegisterValInt32(int nIndex, int32_t& nValue);
+	void GetRegisterValFloat(int nIndex, float& fValue);
+	void GetRegisterValDouble(int nIndex, double& dValue);
+	void GetRegisterValString(int nIndex, QString& strValue);
+
+	// 平台控制信号
+	void MovePlatformAbsInt32(int32_t nX, int32_t nY, int32_t nAngle);
+	void MovePlatformAbsFloat(double dX, double dY, double dAngle);
+	void MovePlatformRelativeInt32(int32_t nX, int32_t nY, int32_t nAngle);
+	void MovePlatformRelativeFloat(double dX, double dY, double dAngle);
 	
 
 };

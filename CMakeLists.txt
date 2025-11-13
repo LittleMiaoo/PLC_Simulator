@@ -1,7 +1,7 @@
-﻿cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16)
 project(CommTestSolution VERSION 1.0.0 LANGUAGES CXX) 
 
-# 只保留 Debug 和 Release 配置,默认情况下有4个配置 Release, Debug, MinSizeRel, RelWithDebInfo
+# 只保留 Debug 和 Release 配置
 if(CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
     set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING 
@@ -13,10 +13,12 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 设置输出目录（保持与原项目一致的结构）
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Temp/${PROJECT_NAME}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Temp/${PROJECT_NAME}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Temp/${PROJECT_NAME}/bin)
+
+# 设置输出目录（使用生成器表达式区分配置）
+set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/Temp/${PROJECT_NAME})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR}/lib/$<CONFIG>)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR}/lib/$<CONFIG>)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}/bin/$<CONFIG>)
 
 # 查找Qt包 - 使用与VS项目相同的版本
 set(QT_VERSION 6)

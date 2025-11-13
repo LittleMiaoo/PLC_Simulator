@@ -1,4 +1,4 @@
-#ifndef COMMTEST_QT_H
+﻿#ifndef COMMTEST_QT_H
 #define COMMTEST_QT_H
 
 #include "ui_CommTest_Qt.h"
@@ -16,6 +16,8 @@
 #include <QThread>
 #include <QButtonGroup>
 #include <QMessageBox>
+#include <QMenu>
+#include <QAction>
 
 #define REGISTER_TABLE_COLUMN_COUNT 10
 #define REGISTER_TABLE_ROW_COUNT	21
@@ -41,6 +43,25 @@ private:
 
 	void InitialLuaScript();
 
+	// 辅助函数：根据脚本索引打开编辑器
+	void OpenScriptEditor(int scriptIndex);
+
+	// 平台控制相关槽函数
+	void OnMovePlatformAbsInt32(int32_t x, int32_t y, int32_t angle);
+	void OnMovePlatformAbsFloat(double x, double y, double angle);
+	void OnMovePlatformRelativeInt32(int32_t x, int32_t y, int32_t angle);
+	void OnMovePlatformRelativeFloat(double x, double y, double angle);
+
+	// 辅助函数：从控件获取幂次值并计算除数
+	double GetDivisorFromPowerEdit(QLineEdit* edit, double defaultPower = 0.0);
+
+	// 轴位置写入相关槽函数
+	void OnWriteAxisDoubleWord();
+	void OnWriteAxisFloat();
+
+	// 菜单栏相关槽函数
+	void OnShowAboutDialog();
+
 	void InitRegisterTable();
 	void UpdateTableInfo(int nStart,bool bInitialize = false);
 
@@ -49,8 +70,8 @@ private:
 	Ui::CommTest_QtClass* ui;
 
 	std::unique_ptr<SubMainWindow> m_subWindow; // 小窗口实例
-    SimulationPlatform* m_simulationPlatform;   // 模拟平台窗口实例
-
+    //std::unique_ptr<SimulationPlatform> m_simulationPlatform;   // 模拟平台窗口实例
+	SimulationPlatform* m_simulationPlatform;
 private:
 
 	MainWorkFlow* m_pWorkFlow;
@@ -72,6 +93,11 @@ private:
 
 	//定义vector存储当前表格能显示的数据
     std::vector<DataTypeConvert> m_vecRegisterVal;
+
+	//存储当前打开的脚本编辑器指针（单实例）
+	ScriptEditor* m_pCurrentScriptEditor;
+	//当前编辑器关联的脚本索引
+	int m_nCurrentScriptIndex;
 
 	//定义从MainWorkFlow中获取寄存器数据的函数
     void GetRegisterVals(int nStart);

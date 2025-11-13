@@ -1,7 +1,7 @@
 ﻿#project(CommTest_Qt LANGUAGES CXX)
 
 # 设置目标名称（Debug版本加'd'后缀，与原项目一致）
-set(TARGET_NAME "CommTest_Qt")
+set(TARGET_NAME "PLC_Simulator")
 
 # 按原项目过滤器结构组织文件
 set(SOURCE_FILES
@@ -115,7 +115,7 @@ add_executable(${TARGET_NAME}
 
 # 设置目标属性
 set_target_properties(${TARGET_NAME} PROPERTIES
-    OUTPUT_NAME "CommTest_Qt$<$<CONFIG:Debug>:d>"
+    OUTPUT_NAME "PLC_Simulator$<$<CONFIG:Debug>:d>"
     WIN32_EXECUTABLE TRUE
 )
 

@@ -14,6 +14,8 @@
     "files.associations": {
         "charconv": "cpp",
         "xlocmon": "cpp",
-        "xlocnum": "cpp"
+        "xlocnum": "cpp",
+        "filesystem": "cpp",
+        "xstring": "cpp"
     } // 任务错误时显示
 }

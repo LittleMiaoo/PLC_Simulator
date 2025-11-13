@@ -83,6 +83,40 @@ SimulationPlatform::SimulationPlatform(QWidget *parent)
     m_scale = m_ScreenWidth / m_Ratio; // 默认缩放比例 2像素/mm
 }
 
+// 平台控制公共接口实现
+void SimulationPlatform::SetRealTimePlatformAbs(double x, double y, double angle)
+{
+    // 设置绝对位置
+    realTimePlatformXEdit->setText(QString::number(x, 'f', 2));
+    realTimePlatformYEdit->setText(QString::number(y, 'f', 2));
+    realTimePlatformAngleEdit->setText(QString::number(angle, 'f', 2));
+    
+    // 手动触发更新
+    updateRealTimePlatform();
+}
+
+void SimulationPlatform::SetRealTimePlatformRelative(double x, double y, double angle)
+{
+    // 在当前位置基础上增加偏移
+    double newX = realTimePlatform.x + x;
+    double newY = realTimePlatform.y + y;
+    double newAngle = realTimePlatform.angle + angle;
+    
+    realTimePlatformXEdit->setText(QString::number(newX, 'f', 2));
+    realTimePlatformYEdit->setText(QString::number(newY, 'f', 2));
+    realTimePlatformAngleEdit->setText(QString::number(newAngle, 'f', 2));
+    
+    // 手动触发更新
+    updateRealTimePlatform();
+}
+
+void SimulationPlatform::GetRealTimePlatformData(double& x, double& y, double& angle) const
+{
+    x = realTimePlatform.x;
+    y = realTimePlatform.y;
+    angle = realTimePlatform.angle;
+}
+
 void SimulationPlatform::setupUI()
 {
     // 创建主布局
@@ -99,87 +133,87 @@ void SimulationPlatform::setupUI()
     QHBoxLayout* controlLayout = new QHBoxLayout(controlGroup);
     
     // 创建控件
-    basePlatformXEdit = new QLineEdit();
-    basePlatformYEdit = new QLineEdit();
-    basePlatformAngleEdit = new QLineEdit();
-    showBasePlatformCheckBox = new QCheckBox("显示");
+    basePlatformXEdit = new QLineEdit(this);
+    basePlatformYEdit = new QLineEdit(this);
+    basePlatformAngleEdit = new QLineEdit(this);
+    showBasePlatformCheckBox = new QCheckBox("显示", this);
     showBasePlatformCheckBox->setChecked(true);
     
-    realTimePlatformXEdit = new QLineEdit();
-    realTimePlatformYEdit = new QLineEdit();
+    realTimePlatformXEdit = new QLineEdit(this);
+    realTimePlatformYEdit = new QLineEdit(this);
     realTimePlatformAngleEdit = new QLineEdit();
-    showRealTimePlatformCheckBox = new QCheckBox("显示");
+    showRealTimePlatformCheckBox = new QCheckBox("显示", this);
     showRealTimePlatformCheckBox->setChecked(true);
     
-    mark1XEdit = new QLineEdit();
-    mark1YEdit = new QLineEdit();
-    mark1AngleEdit = new QLineEdit();
-    mark1FollowBaseCheckBox = new QCheckBox("跟随目标平台");
+    mark1XEdit = new QLineEdit(this);
+    mark1YEdit = new QLineEdit(this);
+    mark1AngleEdit = new QLineEdit(this);
+    mark1FollowBaseCheckBox = new QCheckBox("跟随目标平台", this);
     mark1FollowBaseCheckBox->setChecked(true);
-    ShowMark1CheckBox = new QCheckBox("显示");
+    ShowMark1CheckBox = new QCheckBox("显示", this);
     ShowMark1CheckBox->setChecked(true);
 
-    mark2XEdit = new QLineEdit();
-    mark2YEdit = new QLineEdit();
-    mark2AngleEdit = new QLineEdit();
-    mark2FollowRealTimeCheckBox = new QCheckBox("跟随对象平台");
+    mark2XEdit = new QLineEdit(this);
+    mark2YEdit = new QLineEdit(this);
+    mark2AngleEdit = new QLineEdit(this);
+    mark2FollowRealTimeCheckBox = new QCheckBox("跟随对象平台", this);
     mark2FollowRealTimeCheckBox->setChecked(true);
     ShowMark2CheckBox = new QCheckBox("显示");
     ShowMark2CheckBox->setChecked(true);
     
     // 基准平台控制组
-    QGroupBox *baseGroup = new QGroupBox("目标平台");
+    QGroupBox *baseGroup = new QGroupBox("目标平台", this);
     QGridLayout *baseLayout = new QGridLayout(baseGroup);
-    baseLayout->addWidget(new QLabel("X (mm):"), 0, 0);
+    baseLayout->addWidget(new QLabel("X (mm):", this), 0, 0);
     baseLayout->addWidget(basePlatformXEdit, 0, 1);
-    baseLayout->addWidget(new QLabel("Y (mm):"), 1, 0);
+    baseLayout->addWidget(new QLabel("Y (mm):", this), 1, 0);
     baseLayout->addWidget(basePlatformYEdit, 1, 1);
-    baseLayout->addWidget(new QLabel("Angle (deg):"), 2, 0);
+    baseLayout->addWidget(new QLabel("Angle (deg):", this), 2, 0);
     baseLayout->addWidget(basePlatformAngleEdit, 2, 1);
     baseLayout->addWidget(showBasePlatformCheckBox, 3, 0, 1, 2);
     
     // 实时平台控制组
-    QGroupBox *realTimeGroup = new QGroupBox("对象平台");
+    QGroupBox *realTimeGroup = new QGroupBox("对象平台", this);
     QGridLayout *realTimeLayout = new QGridLayout(realTimeGroup);
-    realTimeLayout->addWidget(new QLabel("X (mm):"), 0, 0);
+    realTimeLayout->addWidget(new QLabel("X (mm):", this), 0, 0);
     realTimeLayout->addWidget(realTimePlatformXEdit, 0, 1);
-    realTimeLayout->addWidget(new QLabel("Y (mm):"), 1, 0);
+    realTimeLayout->addWidget(new QLabel("Y (mm):", this), 1, 0);
     realTimeLayout->addWidget(realTimePlatformYEdit, 1, 1);
-    realTimeLayout->addWidget(new QLabel("Angle (deg):"), 2, 0);
+    realTimeLayout->addWidget(new QLabel("Angle (deg):", this), 2, 0);
     realTimeLayout->addWidget(realTimePlatformAngleEdit, 2, 1);
     realTimeLayout->addWidget(showRealTimePlatformCheckBox, 3, 0, 1, 2);
     
     // Mark1控制组
-    QGroupBox *mark1Group = new QGroupBox("目标");
+    QGroupBox *mark1Group = new QGroupBox("目标", this);
     QGridLayout *mark1Layout = new QGridLayout(mark1Group);
-    mark1Layout->addWidget(new QLabel("X (mm):"), 0, 0);
+    mark1Layout->addWidget(new QLabel("X (mm):", this), 0, 0);
     mark1Layout->addWidget(mark1XEdit, 0, 1);
-    mark1Layout->addWidget(new QLabel("Y (mm):"), 1, 0);
+    mark1Layout->addWidget(new QLabel("Y (mm):", this), 1, 0);
     mark1Layout->addWidget(mark1YEdit, 1, 1);
-    mark1Layout->addWidget(new QLabel("Angle (deg):"), 2, 0);
+    mark1Layout->addWidget(new QLabel("Angle (deg):", this), 2, 0);
     mark1Layout->addWidget(mark1AngleEdit, 2, 1);
     mark1Layout->addWidget(mark1FollowBaseCheckBox, 3, 0);
     mark1Layout->addWidget(ShowMark1CheckBox, 3, 1);
     
     // Mark2控制组
-    QGroupBox *mark2Group = new QGroupBox("对象");
+    QGroupBox *mark2Group = new QGroupBox("对象", this);
     QGridLayout *mark2Layout = new QGridLayout(mark2Group);
-    mark2Layout->addWidget(new QLabel("X (mm):"), 0, 0);
+    mark2Layout->addWidget(new QLabel("X (mm):", this), 0, 0);
     mark2Layout->addWidget(mark2XEdit, 0, 1);
-    mark2Layout->addWidget(new QLabel("Y (mm):"), 1, 0);
+    mark2Layout->addWidget(new QLabel("Y (mm):", this), 1, 0);
     mark2Layout->addWidget(mark2YEdit, 1, 1);
-    mark2Layout->addWidget(new QLabel("Angle (deg):"), 2, 0);
+    mark2Layout->addWidget(new QLabel("Angle (deg):", this), 2, 0);
     mark2Layout->addWidget(mark2AngleEdit, 2, 1);
     mark2Layout->addWidget(mark2FollowRealTimeCheckBox, 3, 0);
     mark2Layout->addWidget(ShowMark2CheckBox, 3, 1);
     
     //Mark中心间距、屏幕缩放系数
-    markCenterDistanceEdit = new QLineEdit();
-    ScreenRatio = new QLineEdit();
-    ShowPlatformUL = new QRadioButton("左上显示");
-    ShowPlatformUR = new QRadioButton("右上显示");
-    ShowPlatformDL = new QRadioButton("左下显示");
-    ShowPlatformDR = new QRadioButton("右下显示");
+    markCenterDistanceEdit = new QLineEdit(this);
+    ScreenRatio = new QLineEdit(this);
+    ShowPlatformUL = new QRadioButton("左上显示", this);
+    ShowPlatformUR = new QRadioButton("右上显示", this);
+    ShowPlatformDL = new QRadioButton("左下显示", this);
+    ShowPlatformDR = new QRadioButton("右下显示", this);
     QButtonGroup* group1 = new QButtonGroup(this);
     group1->addButton(ShowPlatformUL);
     group1->addButton(ShowPlatformUR);
@@ -187,11 +221,11 @@ void SimulationPlatform::setupUI()
     group1->addButton(ShowPlatformDR);
     ShowPlatformUL->setChecked(true);
 
-    QGroupBox *otherGroup = new QGroupBox("Setting");
+    QGroupBox *otherGroup = new QGroupBox("Setting", this);
     QGridLayout *otherLayout = new QGridLayout(otherGroup);
-    otherLayout->addWidget(new QLabel("产品尺寸:"), 0, 0);
+    otherLayout->addWidget(new QLabel("产品尺寸:", this), 0, 0);
     otherLayout->addWidget(markCenterDistanceEdit, 0, 1);
-    otherLayout->addWidget(new QLabel("缩放比(px/mm):"), 1, 0);
+    otherLayout->addWidget(new QLabel("缩放比(px/mm):", this), 1, 0);
     otherLayout->addWidget(ScreenRatio, 1, 1);
     otherLayout->addWidget(ShowPlatformUL, 2, 0);
     otherLayout->addWidget(ShowPlatformUR, 2, 1);
@@ -231,7 +265,7 @@ void SimulationPlatform::setupUI()
 
 void SimulationPlatform::setupValidators()
 {
-    QDoubleValidator *validator = new QDoubleValidator();
+    QDoubleValidator *validator = new QDoubleValidator(this);
     validator->setDecimals(2);
     
     basePlatformXEdit->setValidator(validator);
