@@ -27,11 +27,11 @@ enum class CmdType //指令类型
 enum class RegisterDataType
 {
 	eDataTypeUnkown = -1,
-	eDataTypeChar8,
 	eDataTypeInt16,
 	eDataTypeInt32,
 	eDataTypeFloat,
 	eDataTypeDouble,
+	eDataTypeChar8,
 };
 
 typedef union tagDataTypeConvert //20250606	wm	数据转换的联合体,直接将相同内存中的数据按照需求转换成不同的数据格式

@@ -1,4 +1,4 @@
-﻿#ifndef SUBWINDOW_H
+#ifndef SUBWINDOW_H
 #define SUBWINDOW_H
 
 #include <QDialog>
@@ -9,16 +9,17 @@
 class SubMainWindow :
     public QDialog
 {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	explicit SubMainWindow(QWidget* parent = nullptr);
+    explicit SubMainWindow(QWidget* parent = nullptr);
 
 	// 设置6个按钮的文本（从主窗口LineEdit获取）
 	void setButtonTexts(const QStringList& texts);
 
 signals:
-	// 通知主窗口显示的信号
-	void showMainWindow();
+    // 通知主窗口显示的信号
+    void showMainWindow();
+    void executeLuaScript(int buttonId);
 
 protected:
 	// 重写关闭事件：直接关闭小窗时退出程序
@@ -28,8 +29,15 @@ protected:
 	}
 
 private:
-	QPushButton* btn[6]; // 6个按钮
-	QPushButton* btnExit; // 退出小窗按钮
+    QPushButton* btn[6]; // 6个按钮
+    QPushButton* btnExit; // 退出小窗按钮
+private slots:
+    void onButton1Clicked();
+    void onButton2Clicked();
+    void onButton3Clicked();
+    void onButton4Clicked();
+    void onButton5Clicked();
+    void onButton6Clicked();
 };
 
 #endif // SUBWINDOW_H

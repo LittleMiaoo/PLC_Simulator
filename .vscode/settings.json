@@ -10,12 +10,5 @@
     
     // 调试相关
     "debug.console.closeOnEnd": true,  // 调试结束后保持控制台打开
-    "debug.onTaskErrors": "showErrors",
-    "files.associations": {
-        "charconv": "cpp",
-        "xlocmon": "cpp",
-        "xlocnum": "cpp",
-        "filesystem": "cpp",
-        "xstring": "cpp"
-    } // 任务错误时显示
+    "debug.onTaskErrors": "showErrors"  // 任务错误时显示
 }

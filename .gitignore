@@ -11,3 +11,4 @@ cmake-build-*/
 *.user.*
 *.autosave
 CMakeLists.txt.user*
+*.zip

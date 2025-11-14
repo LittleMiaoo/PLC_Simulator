@@ -5,27 +5,14 @@
             "name": "Debug CommTest_Qt (Windows)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/Bin/x64/CommTest_Qtd.exe",
+            "program": "${workspaceFolder}/Bin/x64/PLC_Simulatord.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "console": "internalConsole",
             "preLaunchTask": "build",
-            "visualizerFile": "c:\\Users\\wang\\AppData\\Roaming\\Qoder\\User\\workspaceStorage\\b1f91479caa87ad767888b25d0f24c78\\tonka3000.qtvsctools\\qt.natvis.xml"
-        },
-        {
-            "name": "Release CommTest_Qt (Windows)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/Bin/x64/CommTest_Qt.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "console": "internalConsole",
-            "preLaunchTask": "build-release",
-            "visualizerFile": "c:\\Users\\wang\\AppData\\Roaming\\Qoder\\User\\workspaceStorage\\b1f91479caa87ad767888b25d0f24c78\\tonka3000.qtvsctools\\qt.natvis.xml"
+            "visualizerFile": "c:\\Users\\wang\\AppData\\Roaming\\Code\\User\\workspaceStorage\\b1f91479caa87ad767888b25d0f24c78\\tonka3000.qtvsctools\\qt.natvis.xml"
         }
     ]
 }

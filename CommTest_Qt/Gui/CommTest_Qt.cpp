@@ -15,6 +15,9 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	m_subWindow = nullptr;
 	
 	m_simulationPlatform = nullptr;
+	// 初始化配置管理器
+	m_configManager = std::make_unique<ConfigManager>(this);
+	
 	// 初始化脚本编辑器指针
 	m_pCurrentScriptEditor = nullptr;
 	m_nCurrentScriptIndex = -1;
@@ -23,7 +26,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	m_nIntStat = 0;
 	//初始化m_vecRegisterVal
 	int dataCellCount = REGISTER_TABLE_ROW_COUNT * (REGISTER_TABLE_COLUMN_COUNT / 2);
-	int convertCount = (dataCellCount + 3) / 4;  // 向上取整到4的倍数
+	int convertCount = (dataCellCount + 3) / 4;  // 向上取整到五4的倍数
 
 	m_vecRegisterVal.resize(convertCount);
 
@@ -43,9 +46,68 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 
 	//更新表格显示
 	UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt(),true);
-
-	//int* thisint = new int(1);
-
+	
+	// 加载之前保存的配置
+	InitialAllConfigs();
+	// if (m_configManager)
+	// {
+	// 	m_configManager->LoadAllConfigs();
+		
+	// 	//加载通信信息
+	// 	CommBase::CommInfoBase* commInfo = nullptr;
+	// 	if (m_configManager->LoadCommInfo(commInfo))
+	// 	{
+	// 		if (commInfo != nullptr && commInfo->GetCommType() == CommBase::CommType::eSocket)
+	// 		{
+	// 			CommSocket::SocketCommInfo* socketInfo = dynamic_cast<CommSocket::SocketCommInfo*>(commInfo);
+	// 			ui->edit_IP->setText(socketInfo->m_strSocketIPAddress);
+	// 			ui->edit_Port->setText(socketInfo->m_nSocketPort == 0 ? "" : QString::number(socketInfo->m_nSocketPort));
+	// 		}
+	// 	}
+		
+	// 	// 应用加载的配置到UI
+	// 	// 加载脚本名称
+	// 	QStringList scriptNames;
+	// 	if (m_configManager->LoadScriptNames(scriptNames) && scriptNames.size() == 6)
+	// 	{
+	// 		ui->edit_ScriptName_1->setText(scriptNames[0]);
+	// 		ui->edit_ScriptName_2->setText(scriptNames[1]);
+	// 		ui->edit_ScriptName_3->setText(scriptNames[2]);
+	// 		ui->edit_ScriptName_4->setText(scriptNames[3]);
+	// 		ui->edit_ScriptName_5->setText(scriptNames[4]);
+	// 		ui->edit_ScriptName_6->setText(scriptNames[5]);
+	// 	}
+		
+	// 	// 加载协议类型
+	// 	int protocolType = -1;
+	// 	if (m_configManager->LoadProtocolType(protocolType) && protocolType >= 0)
+	// 	{
+	// 		//ui->cmbBox_ProtocolType->setCurrentIndex(protocolType);
+	// 		//根据protocolType遍历ui->cmbBox_ProtocolType查找对应索引并设置
+	// 		for (int i = 0; i <  ui->cmbBox_ProtocolType->count(); ++i)
+	// 		{
+	// 			QVariant var = ui->cmbBox_ProtocolType->itemData(i);
+	// 			if (var.isValid() && var.canConvert<ProtocolType>())
+	// 			{
+	// 				ProtocolType type = var.value<ProtocolType>();
+	// 				if (static_cast<int>(type) == protocolType)
+	// 				{
+	// 					ui->cmbBox_ProtocolType->setCurrentIndex(i);
+	// 					CreateCurrentProtocol();
+	// 					break;
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+		
+	// 	// 加载模拟平台参数
+	// 	double markCenterDistance = 0.0, screenRatio = 0.0;
+	// 	if (m_configManager->LoadSimulationPlatformParams(markCenterDistance, screenRatio))
+	// 	{
+	// 		m_simulationPlatform->SetMarkCenterDistance(markCenterDistance);
+	// 		m_simulationPlatform->SetScreenRatio(screenRatio);
+	// 	}
+	// }
 }
  
 CommTest_Qt::~CommTest_Qt()
@@ -62,6 +124,69 @@ CommTest_Qt::~CommTest_Qt()
 	MainWorkFlow::ReleaseWorkFlow();
 	
 	delete ui;
+}
+
+void CommTest_Qt::InitialAllConfigs()
+{
+		// 加载之前保存的配置
+	if (m_configManager)
+	{
+		m_configManager->LoadAllConfigs();
+		
+		//加载通信信息
+		CommBase::CommInfoBase* commInfo = nullptr;
+		if (m_configManager->LoadCommInfo(commInfo))
+		{
+			if (commInfo != nullptr && commInfo->GetCommType() == CommBase::CommType::eSocket)
+			{
+				CommSocket::SocketCommInfo* socketInfo = dynamic_cast<CommSocket::SocketCommInfo*>(commInfo);
+				ui->edit_IP->setText(socketInfo->m_strSocketIPAddress);
+				ui->edit_Port->setText(socketInfo->m_nSocketPort == 0 ? "" : QString::number(socketInfo->m_nSocketPort));
+			}
+		}
+		
+		// 应用加载的配置到UI
+		// 加载脚本名称
+		QStringList scriptNames;
+		if (m_configManager->LoadScriptNames(scriptNames) && scriptNames.size() == 6)
+		{
+			ui->edit_ScriptName_1->setText(scriptNames[0]);
+			ui->edit_ScriptName_2->setText(scriptNames[1]);
+			ui->edit_ScriptName_3->setText(scriptNames[2]);
+			ui->edit_ScriptName_4->setText(scriptNames[3]);
+			ui->edit_ScriptName_5->setText(scriptNames[4]);
+			ui->edit_ScriptName_6->setText(scriptNames[5]);
+		}
+		
+		// 加载协议类型
+		int protocolType = -1;
+		if (m_configManager->LoadProtocolType(protocolType) && protocolType >= 0)
+		{
+			//ui->cmbBox_ProtocolType->setCurrentIndex(protocolType);
+			//根据protocolType遍历ui->cmbBox_ProtocolType查找对应索引并设置
+			for (int i = 0; i <  ui->cmbBox_ProtocolType->count(); ++i)
+			{
+				QVariant var = ui->cmbBox_ProtocolType->itemData(i);
+				if (var.isValid() && var.canConvert<ProtocolType>())
+				{
+					ProtocolType type = var.value<ProtocolType>();
+					if (static_cast<int>(type) == protocolType)
+					{
+						ui->cmbBox_ProtocolType->setCurrentIndex(i);
+						CreateCurrentProtocol();
+						break;
+					}
+				}
+			}
+		}
+		
+		// 加载模拟平台参数
+		double markCenterDistance = 0.0, screenRatio = 0.0;
+		if (m_configManager->LoadSimulationPlatformParams(markCenterDistance, screenRatio))
+		{
+			m_simulationPlatform->SetSimulationPlatformParams(markCenterDistance, screenRatio);
+		}
+	}
 }
 
 void CommTest_Qt::InitializeMember()
@@ -103,11 +228,11 @@ void CommTest_Qt::InitializeMember()
 	//ui->cmbBox_DataType 数据类型显示转换
 	{
 		QMap<RegisterDataType, QString> DataType;
-		DataType[RegisterDataType::eDataTypeChar8] = "字符";
         DataType[RegisterDataType::eDataTypeInt16] = "单字";
         DataType[RegisterDataType::eDataTypeInt32] = "双字";
         DataType[RegisterDataType::eDataTypeFloat] = "单精度";
         DataType[RegisterDataType::eDataTypeDouble] = "双精度";
+		DataType[RegisterDataType::eDataTypeChar8] = "字符";
 
 		//绑定到comboBox
         for (auto it = DataType.begin(); it != DataType.end(); ++it)
@@ -176,8 +301,33 @@ void CommTest_Qt::InitialSignalConnect()
 	QAction* aboutAction = helpMenu->addAction("关于(&A)");
 	connect(aboutAction, &QAction::triggered, this, &CommTest_Qt::OnShowAboutDialog);
 
-	//20251024	wm	 连接小窗口的显示主窗口信号到主窗口的show()槽
-	connect(m_subWindow.get(), &SubMainWindow::showMainWindow, this, &CommTest_Qt::show);
+    //20251024	wm	 连接小窗口的显示主窗口信号到主窗口的show()槽
+    connect(m_subWindow.get(), &SubMainWindow::showMainWindow, this, &CommTest_Qt::show);
+    connect(m_subWindow.get(), &SubMainWindow::executeLuaScript, this, [=](int buttonId) {
+        if (m_pWorkFlow == nullptr) return;
+        int idx = buttonId - 1;
+        QString strLuaPath = QCoreApplication::applicationDirPath();
+		strLuaPath += "/Config/LuaScript/";
+		strLuaPath += "LuaFile1.lua";
+        QFile f(strLuaPath);
+        if (!f.exists()) {
+            QMessageBox::critical(this, "Lua执行错误", QString("脚本不存在: %1").arg(strLuaPath));
+            ui->text_CommLog->append(QString("脚本不存在: %1").arg(strLuaPath));
+            return;
+        }
+        try {
+            if (!m_pWorkFlow->RunLuaScript(idx, strLuaPath)) {
+                QMessageBox::critical(this, "Lua执行错误", QString("执行失败: %1").arg(strLuaPath));
+                ui->text_CommLog->append(QString("执行Lua脚本失败: %1").arg(strLuaPath));
+            }
+        } catch (const std::exception& e) {
+            QMessageBox::critical(this, "Lua执行异常", QString("%1").arg(e.what()));
+            ui->text_CommLog->append(QString("Lua执行异常: %1").arg(e.what()));
+        } catch (...) {
+            QMessageBox::critical(this, "Lua执行异常", "未知异常");
+            ui->text_CommLog->append("Lua执行异常: 未知异常");
+        }
+    });
 
 	// 连接显示/隐藏模拟平台窗口按钮
 	connect(ui->Btn_ShowPlatform, &QPushButton::clicked, this, [=]() {
@@ -283,7 +433,14 @@ void CommTest_Qt::InitialSignalConnect()
 	}
 
 	//20251102	wm	切换协议
-	connect(ui->cmbBox_ProtocolType, &QComboBox::currentIndexChanged, this, &CommTest_Qt::CreateCurrentProtocol);
+	connect(ui->cmbBox_ProtocolType, &QComboBox::currentIndexChanged, this, [this](int index) {
+		// 创建协议并保存协议类型
+		CreateCurrentProtocol();
+		if (m_configManager && index >= 0) {
+			ProtocolType selectedType = ui->cmbBox_ProtocolType->currentData().value<ProtocolType>();
+			m_configManager->SaveProtocolType(static_cast<int>(selectedType));
+		}
+	});
 
 	//20251031	wm	点击打开连接按钮
 	connect(ui->Btn_Create, &QPushButton::clicked, this, [=] {
@@ -319,6 +476,9 @@ void CommTest_Qt::InitialSignalConnect()
 				ui->text_CommLog->append("打开连接失败!");
 				return;
 			}
+
+			m_configManager->SaveCommInfo(m_CurInfo.get());
+
 			//m_bIsCommValid = true;
 
 			ui->Btn_Create->setText("关闭链接");
@@ -406,10 +566,40 @@ void CommTest_Qt::InitialSignalConnect()
 		});
 	}
 
+	// 脚本名称编辑框自动保存事件
+	if (m_configManager)
+	{
+		auto saveScriptNames = [this]() {
+			QStringList names;
+			names << ui->edit_ScriptName_1->text()
+				  << ui->edit_ScriptName_2->text()
+				  << ui->edit_ScriptName_3->text()
+				  << ui->edit_ScriptName_4->text()
+				  << ui->edit_ScriptName_5->text()
+				  << ui->edit_ScriptName_6->text();
+			m_configManager->SaveScriptNames(names);
+		};
+		
+		connect(ui->edit_ScriptName_1, &QLineEdit::textChanged, this, saveScriptNames);
+		connect(ui->edit_ScriptName_2, &QLineEdit::textChanged, this, saveScriptNames);
+		connect(ui->edit_ScriptName_3, &QLineEdit::textChanged, this, saveScriptNames);
+		connect(ui->edit_ScriptName_4, &QLineEdit::textChanged, this, saveScriptNames);
+		connect(ui->edit_ScriptName_5, &QLineEdit::textChanged, this, saveScriptNames);
+		connect(ui->edit_ScriptName_6, &QLineEdit::textChanged, this, saveScriptNames);
+	}
+
+	//初始化SimulationPlatform自动保存参数
+	connect(m_simulationPlatform, &SimulationPlatform::parametersChanged, this, [=](double markCenterDistance, double screenRatio) {
+		if (m_configManager)
+		{
+			m_configManager->SaveSimulationPlatformParams(markCenterDistance, screenRatio);
+		}
+	});
+
+
+
 	//初始化lua脚本相关信号槽
 	InitialLuaScript();
-
-
 }
 
 void CommTest_Qt::InitialLuaScript()
@@ -1285,12 +1475,17 @@ void CommTest_Qt::DisplayRegisterVals()
 	const int colCount = ui->table_RegisterData->columnCount(); // 列数
 	
 	//遍历表格的奇数列,先将数据列清空
+	QTableWidgetItem* item = nullptr;
     for (int col = 1; col < colCount; col += 2) //遍历奇数列
     {
         for (int row = 0; row < rowCount; row++)
         {
-            ui->table_RegisterData->item(row, col)->setText("");
-			item->setFlags(item->flags() & ~Qt::ItemIsEditable); // 设为只读
+			item = ui->table_RegisterData->item(row, col);
+			if (item)
+			{
+				item->setText("");
+				item->setFlags(item->flags() & ~Qt::ItemIsEditable); // 设为只读
+			}
         }
     }
 

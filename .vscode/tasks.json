@@ -2,7 +2,52 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "CMake: Configure (Debug)",
+            "label": "build",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--config",
+                "Debug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "build: Release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build",
+                "--config",
+                "Release"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "cmake configure",
             "type": "shell",
             "command": "cmake",
             "args": [
@@ -21,11 +66,10 @@
             },
             "options": {
                 "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": []
+            }
         },
         {
-            "label": "CMake: Configure (Release)",
+            "label": "cmake configure: Release",
             "type": "shell",
             "command": "cmake",
             "args": [
@@ -44,164 +88,7 @@
             },
             "options": {
                 "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "CMake: Build (Debug)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Debug"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": ["CMake: Configure (Debug)"],
-            "problemMatcher": ["$msCompile"]
-        },
-        {
-            "label": "CMake: Build (Release)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Release"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": ["CMake: Configure (Release)"],
-            "problemMatcher": ["$msCompile"]
-        },
-        {
-            "label": "CMake: Clean Build Directory",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build",
-                "--target",
-                "clean"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "CMake: Rebuild (Debug)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Debug",
-                "--clean-first"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": ["CMake: Configure (Debug)"],
-            "problemMatcher": ["$msCompile"]
-        },
-        {
-            "label": "CMake: Rebuild (Release)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Release",
-                "--clean-first"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": ["CMake: Configure (Release)"],
-            "problemMatcher": ["$msCompile"]
-        },
-        {
-            "label": "build-release",
-            "group": "build",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Release"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": "CMake: Configure (Release)",
-            "problemMatcher": []
-        },
-        {
-            "label": "build",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build",
-                "--config",
-                "Debug"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": "CMake: Configure (Debug)",
-            "problemMatcher": []
+            }
         }
     ]
 }

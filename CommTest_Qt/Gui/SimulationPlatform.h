@@ -31,13 +31,17 @@ class CanvasWidget;
 class SimulationPlatform : public QWidget
 {
     Q_OBJECT
-
+signals:
+    void parametersChanged(double markCenterDistance, double screenRatio);
 public:
     explicit SimulationPlatform(QWidget *parent = nullptr);
 
     // 平台控制公共接口
     void SetRealTimePlatformAbs(double x, double y, double angle);  // 绝对位置移动
     void SetRealTimePlatformRelative(double x, double y, double angle);  // 相对位置移动
+
+    //设置参数
+    void SetSimulationPlatformParams(double markCenterDistance, double screenRatio);
     
     // 获取实时平台数据
     void GetRealTimePlatformData(double& x, double& y, double& angle) const;

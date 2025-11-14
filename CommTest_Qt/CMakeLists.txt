@@ -1,7 +1,7 @@
-﻿#project(CommTest_Qt LANGUAGES CXX)
+﻿project(CommTest_Qt LANGUAGES CXX)
 
 # 设置目标名称（Debug版本加'd'后缀，与原项目一致）
-set(TARGET_NAME "PLC_Simulator")
+set(TARGET_NAME "CommTest_Qt")
 
 # 按原项目过滤器结构组织文件
 set(SOURCE_FILES
@@ -85,6 +85,15 @@ set(LUA_HEADERS
     LuaScript/LuaScript.h
 )
 
+# Config 模块
+set(CONFIG_SOURCES
+    Config/ConfigManager.cpp
+)
+
+set(CONFIG_HEADERS
+    Config/ConfigManager.h
+)
+
 # 合并所有文件
 set(SOURCES
     ${SOURCE_FILES}
@@ -94,6 +103,7 @@ set(SOURCES
     ${GUI_SOURCES}
     ${MAINFLOW_SOURCES}
     ${LUA_SOURCES}
+    ${CONFIG_SOURCES}
 )
 
 set(HEADERS
@@ -103,6 +113,7 @@ set(HEADERS
     ${GUI_HEADERS}
     ${MAINFLOW_HEADERS}
     ${LUA_HEADERS}
+    ${CONFIG_HEADERS}
 )
 
 # 创建可执行目标
@@ -135,6 +146,7 @@ source_group("Comm\\\\Protocol" FILES ${COMM_PROTOCOL_SOURCES} ${COMM_PROTOCOL_H
 source_group("Gui" FILES ${GUI_SOURCES} ${GUI_HEADERS})
 source_group("MainFlow" FILES ${MAINFLOW_SOURCES} ${MAINFLOW_HEADERS})
 source_group("LuaScript" FILES ${LUA_SOURCES} ${LUA_HEADERS})
+source_group("Config" FILES ${CONFIG_SOURCES} ${CONFIG_HEADERS})
 
 endif()
 
@@ -159,6 +171,7 @@ target_include_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm/Protocol
     ${CMAKE_CURRENT_SOURCE_DIR}/MainFlow
     ${CMAKE_CURRENT_SOURCE_DIR}/LuaScript
+    ${CMAKE_CURRENT_SOURCE_DIR}/Config
     ${CMAKE_SOURCE_DIR}/Lua/Include
 )
 
@@ -167,9 +180,7 @@ target_link_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Lua/Lib
 )
 
-target_link_libraries(${TARGET_NAME} PRIVATE
-    ScriptRunner.lib
-)
+target_link_libraries(${TARGET_NAME} PRIVATE ScriptRunner.lib)
 
 # 设置编译选项（与原项目保持一致）
 target_compile_options(${TARGET_NAME} PRIVATE
@@ -188,6 +199,13 @@ target_link_options(${TARGET_NAME} PRIVATE
     $<$<CONFIG:Debug>:/DEBUG>
     $<$<CONFIG:Release>:/OPT:REF /OPT:ICF>
 )
+
+if(MSVC)
+set_target_properties(${TARGET_NAME} PROPERTIES
+    VS_DEBUGGER_COMMAND "${CMAKE_SOURCE_DIR}/Bin/x64/$<TARGET_FILE_NAME:${TARGET_NAME}>"
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/Bin/x64"
+)
+endif()
 
 # 后期构建步骤：复制到Bin目录
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
