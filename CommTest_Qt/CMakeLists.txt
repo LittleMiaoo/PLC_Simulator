@@ -84,7 +84,6 @@ set(LUA_SOURCES
 set(LUA_HEADERS
     LuaScript/LuaScript.h
 )
-
 # Config 模块
 set(CONFIG_SOURCES
     Config/ConfigManager.cpp
@@ -93,7 +92,6 @@ set(CONFIG_SOURCES
 set(CONFIG_HEADERS
     Config/ConfigManager.h
 )
-
 # 合并所有文件
 set(SOURCES
     ${SOURCE_FILES}
@@ -113,7 +111,6 @@ set(HEADERS
     ${GUI_HEADERS}
     ${MAINFLOW_HEADERS}
     ${LUA_HEADERS}
-    ${CONFIG_HEADERS}
 )
 
 # 创建可执行目标
@@ -146,7 +143,6 @@ source_group("Comm\\\\Protocol" FILES ${COMM_PROTOCOL_SOURCES} ${COMM_PROTOCOL_H
 source_group("Gui" FILES ${GUI_SOURCES} ${GUI_HEADERS})
 source_group("MainFlow" FILES ${MAINFLOW_SOURCES} ${MAINFLOW_HEADERS})
 source_group("LuaScript" FILES ${LUA_SOURCES} ${LUA_HEADERS})
-source_group("Config" FILES ${CONFIG_SOURCES} ${CONFIG_HEADERS})
 
 endif()
 
@@ -171,7 +167,6 @@ target_include_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm/Protocol
     ${CMAKE_CURRENT_SOURCE_DIR}/MainFlow
     ${CMAKE_CURRENT_SOURCE_DIR}/LuaScript
-    ${CMAKE_CURRENT_SOURCE_DIR}/Config
     ${CMAKE_SOURCE_DIR}/Lua/Include
 )
 

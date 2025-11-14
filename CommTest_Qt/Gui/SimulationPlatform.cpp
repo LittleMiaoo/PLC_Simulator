@@ -95,18 +95,6 @@ void SimulationPlatform::SetRealTimePlatformAbs(double x, double y, double angle
     updateRealTimePlatform();
 }
 
-void SimulationPlatform::SetSimulationPlatformParams(double markCenterDistance, double screenRatio)
-{
-    m_markSpacing = markCenterDistance;
-    markCenterDistanceEdit->setText(QString::number(markCenterDistance, 'f', 2));
-    m_Ratio = screenRatio;
-    ScreenRatio->setText(QString::number(screenRatio, 'f', 2));
-    m_scale = m_ScreenWidth / m_Ratio;
-    updateOriginAndScale();
-    
-    updateMark1();
-    updateMark2();
-}
 void SimulationPlatform::SetRealTimePlatformRelative(double x, double y, double angle)
 {
     // 在当前位置基础上增加偏移
@@ -120,7 +108,6 @@ void SimulationPlatform::SetRealTimePlatformRelative(double x, double y, double 
     
     // 手动触发更新
     updateRealTimePlatform();
-
 }
 
 void SimulationPlatform::GetRealTimePlatformData(double& x, double& y, double& angle) const
@@ -130,6 +117,14 @@ void SimulationPlatform::GetRealTimePlatformData(double& x, double& y, double& a
     angle = realTimePlatform.angle;
 }
 
+void SimulationPlatform::SetSimulationPlatformParams(double distance,double ratio)
+{
+    m_markSpacing = distance;
+    m_Ratio = ratio;
+    m_scale = m_ScreenWidth / m_Ratio; // 更新缩放比例
+    emit parametersChanged(m_markSpacing, m_Ratio);
+    update(); // 触发重绘
+}
 void SimulationPlatform::setupUI()
 {
     // 创建主布局
@@ -337,14 +332,12 @@ void SimulationPlatform::setupConnections()
     connect(markCenterDistanceEdit, &QLineEdit::editingFinished, this, [this]() {
         m_markSpacing = markCenterDistanceEdit->text().toDouble();
         canvas->update();
-        emit parametersChanged(m_markSpacing, m_Ratio);
     });
 
     connect(ScreenRatio, &QLineEdit::editingFinished, this, [this]() {
         m_Ratio = ScreenRatio->text().toDouble();
         m_scale = m_ScreenWidth / m_Ratio;
         canvas->update();
-        emit parametersChanged(m_markSpacing, m_Ratio);
     });
 
    connect(ShowPlatformUL->group(), &QButtonGroup::buttonToggled, this, [=](QAbstractButton* button, bool checked) {

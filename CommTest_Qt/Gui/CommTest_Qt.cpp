@@ -15,9 +15,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	m_subWindow = nullptr;
 	
 	m_simulationPlatform = nullptr;
-	// 初始化配置管理器
-	m_configManager = std::make_unique<ConfigManager>(this);
-	
+	m_configManager = nullptr;
 	// 初始化脚本编辑器指针
 	m_pCurrentScriptEditor = nullptr;
 	m_nCurrentScriptIndex = -1;
@@ -26,7 +24,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	m_nIntStat = 0;
 	//初始化m_vecRegisterVal
 	int dataCellCount = REGISTER_TABLE_ROW_COUNT * (REGISTER_TABLE_COLUMN_COUNT / 2);
-	int convertCount = (dataCellCount + 3) / 4;  // 向上取整到五4的倍数
+	int convertCount = (dataCellCount + 3) / 4;  // 向上取整到4的倍数
 
 	m_vecRegisterVal.resize(convertCount);
 
@@ -38,6 +36,10 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	//初始化信号槽连接
 	InitialSignalConnect();
 	
+	InitialAllConfigs();
+	//初始化界面样式
+	InitialGuiStyle();
+	
 	//初始化表格显示
 	InitRegisterTable();
 
@@ -46,72 +48,15 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 
 	//更新表格显示
 	UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt(),true);
-	
-	// 加载之前保存的配置
-	InitialAllConfigs();
-	// if (m_configManager)
-	// {
-	// 	m_configManager->LoadAllConfigs();
-		
-	// 	//加载通信信息
-	// 	CommBase::CommInfoBase* commInfo = nullptr;
-	// 	if (m_configManager->LoadCommInfo(commInfo))
-	// 	{
-	// 		if (commInfo != nullptr && commInfo->GetCommType() == CommBase::CommType::eSocket)
-	// 		{
-	// 			CommSocket::SocketCommInfo* socketInfo = dynamic_cast<CommSocket::SocketCommInfo*>(commInfo);
-	// 			ui->edit_IP->setText(socketInfo->m_strSocketIPAddress);
-	// 			ui->edit_Port->setText(socketInfo->m_nSocketPort == 0 ? "" : QString::number(socketInfo->m_nSocketPort));
-	// 		}
-	// 	}
-		
-	// 	// 应用加载的配置到UI
-	// 	// 加载脚本名称
-	// 	QStringList scriptNames;
-	// 	if (m_configManager->LoadScriptNames(scriptNames) && scriptNames.size() == 6)
-	// 	{
-	// 		ui->edit_ScriptName_1->setText(scriptNames[0]);
-	// 		ui->edit_ScriptName_2->setText(scriptNames[1]);
-	// 		ui->edit_ScriptName_3->setText(scriptNames[2]);
-	// 		ui->edit_ScriptName_4->setText(scriptNames[3]);
-	// 		ui->edit_ScriptName_5->setText(scriptNames[4]);
-	// 		ui->edit_ScriptName_6->setText(scriptNames[5]);
-	// 	}
-		
-	// 	// 加载协议类型
-	// 	int protocolType = -1;
-	// 	if (m_configManager->LoadProtocolType(protocolType) && protocolType >= 0)
-	// 	{
-	// 		//ui->cmbBox_ProtocolType->setCurrentIndex(protocolType);
-	// 		//根据protocolType遍历ui->cmbBox_ProtocolType查找对应索引并设置
-	// 		for (int i = 0; i <  ui->cmbBox_ProtocolType->count(); ++i)
-	// 		{
-	// 			QVariant var = ui->cmbBox_ProtocolType->itemData(i);
-	// 			if (var.isValid() && var.canConvert<ProtocolType>())
-	// 			{
-	// 				ProtocolType type = var.value<ProtocolType>();
-	// 				if (static_cast<int>(type) == protocolType)
-	// 				{
-	// 					ui->cmbBox_ProtocolType->setCurrentIndex(i);
-	// 					CreateCurrentProtocol();
-	// 					break;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-		
-	// 	// 加载模拟平台参数
-	// 	double markCenterDistance = 0.0, screenRatio = 0.0;
-	// 	if (m_configManager->LoadSimulationPlatformParams(markCenterDistance, screenRatio))
-	// 	{
-	// 		m_simulationPlatform->SetMarkCenterDistance(markCenterDistance);
-	// 		m_simulationPlatform->SetScreenRatio(screenRatio);
-	// 	}
-	// }
+
+	//int* thisint = new int(1);
+
 }
  
 CommTest_Qt::~CommTest_Qt()
 {
+
+
 	// 先关闭并释放模拟平台
 	if (m_simulationPlatform != nullptr)
 	{
@@ -128,7 +73,8 @@ CommTest_Qt::~CommTest_Qt()
 
 void CommTest_Qt::InitialAllConfigs()
 {
-		// 加载之前保存的配置
+	m_configManager = new ConfigManager(this);
+	// 加载之前保存的配置
 	if (m_configManager)
 	{
 		m_configManager->LoadAllConfigs();
@@ -189,6 +135,7 @@ void CommTest_Qt::InitialAllConfigs()
 	}
 }
 
+
 void CommTest_Qt::InitializeMember()
 {
 	if (m_pWorkFlow == nullptr)
@@ -228,17 +175,19 @@ void CommTest_Qt::InitializeMember()
 	//ui->cmbBox_DataType 数据类型显示转换
 	{
 		QMap<RegisterDataType, QString> DataType;
+		DataType[RegisterDataType::eDataTypeChar8] = "字符";
         DataType[RegisterDataType::eDataTypeInt16] = "单字";
         DataType[RegisterDataType::eDataTypeInt32] = "双字";
         DataType[RegisterDataType::eDataTypeFloat] = "单精度";
         DataType[RegisterDataType::eDataTypeDouble] = "双精度";
-		DataType[RegisterDataType::eDataTypeChar8] = "字符";
 
 		//绑定到comboBox
         for (auto it = DataType.begin(); it != DataType.end(); ++it)
 		{
 			ui->cmbBox_DataType->addItem(it.value(), QVariant::fromValue(it.key()));
 		}
+
+		ui->cmbBox_DataType->setCurrentIndex(0);
 	}
 
 	//数据格式显示相关
@@ -422,13 +371,32 @@ void CommTest_Qt::InitialSignalConnect()
 		QAbstractItemDelegate* delegate = ui->table_RegisterData->itemDelegate();
 
 
-		connect(delegate, &QAbstractItemDelegate::closeEditor, this, [this]() {
-			QTableWidgetItem* currentItem = ui->table_RegisterData->currentItem();
-			//判断指针有效
-            if (currentItem)
-            {
-                UpdateRegisterVals(currentItem);
-            }
+		//连接表格单元格输入完成信号槽
+		// connect(delegate, &QAbstractItemDelegate::closeEditor, this, [this](QWidget* editor, QAbstractItemDelegate::EndEditHint hint) {
+		// 	QTableWidgetItem* currentItem = ui->table_RegisterData->currentItem();
+		// 	//当前单元格的行列号
+		// 	int row = currentItem->row();
+		// 	int column = currentItem->column();
+		// 	qDebug() << "当前单元格行列号:" << row << "," << column;
+		// 	//判断指针有效
+        //     if (currentItem)
+        //     {
+        //         UpdateRegisterVals(currentItem);
+        //     }
+		// });
+		connect(delegate, &QAbstractItemDelegate::commitData, this, [this](QWidget* editor) {
+			// 这个信号在数据提交时触发，可以获取到正确的单元格
+			QModelIndex currentIndex = ui->table_RegisterData->currentIndex();
+			 //static int commitCount = 0;
+			//commitCount++;
+			//qDebug() << "commitData 第" << commitCount << "次触发";
+			//qDebug() << "编辑器:" << editor;
+			//qDebug() << "提交数据的单元格:" << currentIndex.row() << "," << currentIndex.column();
+			QTableWidgetItem* currentItem = ui->table_RegisterData->item(currentIndex.row(), currentIndex.column());
+			if(currentItem != nullptr)
+			{
+				UpdateRegisterVals(currentItem);
+			}
 		});
 	}
 
@@ -476,10 +444,9 @@ void CommTest_Qt::InitialSignalConnect()
 				ui->text_CommLog->append("打开连接失败!");
 				return;
 			}
-
+			//m_bIsCommValid = true;
 			m_configManager->SaveCommInfo(m_CurInfo.get());
 
-			//m_bIsCommValid = true;
 
 			ui->Btn_Create->setText("关闭链接");
 			ui->edit_IP->setEnabled(false);
@@ -566,7 +533,7 @@ void CommTest_Qt::InitialSignalConnect()
 		});
 	}
 
-	// 脚本名称编辑框自动保存事件
+		// 脚本名称编辑框自动保存事件
 	if (m_configManager)
 	{
 		auto saveScriptNames = [this]() {
@@ -596,10 +563,10 @@ void CommTest_Qt::InitialSignalConnect()
 		}
 	});
 
-
-
 	//初始化lua脚本相关信号槽
 	InitialLuaScript();
+
+
 }
 
 void CommTest_Qt::InitialLuaScript()
@@ -913,7 +880,8 @@ void CommTest_Qt::InitRegisterTable()
 		strItemInfo = " ";
 		Item = new QTableWidgetItem(strItemInfo); 
 		ui->table_RegisterData->setVerticalHeaderItem(i, Item); //设置垂直表头单元格的Item
-
+		//禁用单元格tab
+		//ui->table_RegisterData->setTabKeyNavigation(false);
 	}
 
 	for (int row = 0; row < REGISTER_TABLE_ROW_COUNT; ++row)
@@ -1080,12 +1048,13 @@ void CommTest_Qt::UpdateRegisterVals(QTableWidgetItem* pItem)
 	case RegisterDataType::eDataTypeChar8:
 	{
 		int nCurChar = 0;
-		while (nCurChar < 2 && pItem->text().length() > 0)
+		while (nCurChar < 2 && pItem->text().length() > nCurChar)
 		{
 			
 			//将每个字符转化为一个unicode并存储到对应的m_vecRegisterVal的uchars数组中
 			int ncharIndex = ndataIndex % 8 + nCurChar;
-			m_vecRegisterVal[nRegiseterValIndex].u_chars[ncharIndex] = pItem->text().at(nCurChar).toLatin1();
+			char nchar = pItem->text().at(nCurChar).toLatin1();
+			m_vecRegisterVal[nRegiseterValIndex].u_chars[ncharIndex] = nchar;
 			nCurChar++;
 		}
 
@@ -1168,14 +1137,15 @@ bool CommTest_Qt::CheckInput(QTableWidgetItem* pItem)
 	QVariant data = ui->cmbBox_DataType->itemData(nCurIndex);
 
 	QString text = pItem->text().trimmed();
-	// 空字符串直接返回true，允许清空
-// 	if (text.isEmpty()) 
-// 	{
-// 		return true;
-// 	}
+
+
+	//跳过偶数列的单元格输入判定
+	if (pItem->column() % 2 == 0) return true;
 
 	//根据data类型判断
 	RegisterDataType type = data.value<RegisterDataType>();
+
+	 QSignalBlocker blocker(ui->table_RegisterData->itemDelegate());
 
 	//判断当前是否选择了16进制显示
 	if (m_nIntStat == 1 && (type == RegisterDataType::eDataTypeInt16 ||
@@ -1194,98 +1164,13 @@ bool CommTest_Qt::CheckInput(QTableWidgetItem* pItem)
 	break;
 	case RegisterDataType::eDataTypeInt32:
 		return CheckInput_int(pItem, text, INT32_MIN, INT32_MAX);
-// 	{
-// 		QString text = pItem->text().trimmed();
-// 		QRegularExpression regExp("^(-?[0-9]\\d+|[0-9]\\d*)$");	//负数、正数、0
-// 		QRegularExpressionMatch match = regExp.match(text);
-// 
-// 		if (!match.hasMatch() && !text.isEmpty())
-// 		{
-// 			pItem->setText("0");
-// 		}
-// 		else
-// 		{
-// 			QRegularExpression regExp("^(-?[0]\\d+)$");	//前导0的整数
-// 			QRegularExpressionMatch match = regExp.match(text);
-// 
-// 			//如果带前导0再次处理
-// 			if (match.hasMatch())
-// 			{
-// 				int tmp = text.toInt();
-// 
-// 				//校验整数是否在int32_t范围内
-// 				if (tmp > INT32_MAX || tmp < INT32_MIN)
-// 				{
-// 					pItem->setText("0");
-// 				}
-// 				else
-// 				{
-// 					pItem->setText(QString("%1").arg(tmp));
-// 				}
-// 			}
-// 		}
-// 	}
 	break;
 	case RegisterDataType::eDataTypeFloat:
 		return CheckInput_float(pItem, text, -FLT_MAX, FLT_MAX);
-// 	{
-// 		//校验输入的字符串是否符合浮点数格式
-// 		QString text = pItem->text().trimmed();
-// 		QRegularExpression regExp("^(-?[0-9]\\d+|[0-9]\\d*)\\.?([0-9]\\d*)$");
-// 		QRegularExpressionMatch match = regExp.match(text);
-// 		if (!match.hasMatch() && !text.isEmpty())
-// 		{
-// 			pItem->setText("0.0");
-// 		}
-// 		else
-// 		{
-// 			//二次校验是否带前导0
-// 			QRegularExpression regExp("^(-?[0]\\d+)\\.?([0-9]\\d*)$");
-// 			QRegularExpressionMatch match = regExp.match(text);
-// 			if (match.hasMatch())
-// 			{
-// 				float tmp = text.toFloat();
-// 				if (tmp > FLT_MAX || tmp < -FLT_MAX)
-// 					pItem->setText("0.0");
-// 				else
-// 				{
-// 					pItem->setText(QString("%1").arg(tmp));
-// 				}
-// 			}
-// 
-// 		}
-// 	}
 	break;
 	case RegisterDataType::eDataTypeDouble:
 		return CheckInput_float(pItem, text, -DBL_MAX, DBL_MAX);
-// 	{
-// 		//校验输入的数字是否符合double格式
-// 		QString text = pItem->text().trimmed();
-// 		QRegularExpression regExp("^(-?[0-9]\\d+|[0-9]\\d*)\\.?([0-9]\\d*)$");
-// 		QRegularExpressionMatch match = regExp.match(text);
-// 		if (!match.hasMatch() && !text.isEmpty())
-// 		{
-// 			pItem->setText("0.0");
-// 		}
-// 		else
-// 		{
-// 			//二次校验是否带前导0
-// 			QRegularExpression regExp("^(-?[0]\\d+)\\.?([0-9]\\d*)$");
-// 			QRegularExpressionMatch match = regExp.match(text);
-// 			if (match.hasMatch())
-// 			{
-// 				double tmp = text.toDouble();
-// 				if (tmp > DBL_MAX || tmp < -DBL_MAX)
-// 					pItem->setText("0.0");
-// 				else
-// 				{
-// 					pItem->setText(QString("%1").arg(tmp));
-// 				}
-// 			}
-// 		}
-// 	}
 	break;
-
 	default: return false;
 	}
 
@@ -1497,114 +1382,18 @@ void CommTest_Qt::DisplayRegisterVals()
     {
         case RegisterDataType::eDataTypeChar8:
 			DisplayRegisterVals_Char8();
-// 		{
-//  			for (int col = 1; col < colCount; col += 2) //遍历奇数列
-//  			{
-//  				int group = col / 2;
-//  				int nIndex = 0;
-//  				for (int row = 0; row < rowCount; row++)
-//  				{
-//  					ndataIndex = row + group * rowCount;
-//  					nRegiseterValIndex = ndataIndex / 4;
-//  
-//  					//QString strInfo = QString::fromLatin1(reinterpret_cast<const char*>(m_vecRegisterVal[nRegiseterValIndex].u_chars), 2);
-//  					QString strInfo = QString("%1%2")
-//  						.arg(QChar(m_vecRegisterVal[nRegiseterValIndex].u_chars[nIndex++]))
-//                          .arg(QChar(m_vecRegisterVal[nRegiseterValIndex].u_chars[nIndex++]));
-//  					if (nIndex > 7)
-//  					{
-//  						nIndex = 0;
-//  					}
-//  
-//  					ui->table_RegisterData->item(row, col)->setText(strInfo);
-//  				}
-//  			}
-// 		}
 		break;
 		case RegisterDataType::eDataTypeInt16:
             DisplayRegisterVals_Int16();
-// 		{
-// 			for (int col = 1; col < colCount; col += 2) //遍历奇数列
-// 			{
-// 				int group = col / 2;
-// 				int nIndex = 0;
-// 				for (int row = 0; row < rowCount; row++)
-// 				{
-// 					ndataIndex = row + group * rowCount;
-// 					nRegiseterValIndex = ndataIndex / 4;
-// 
-// 					QString strInfo = QString("%1").arg(m_vecRegisterVal[nRegiseterValIndex].u_Int16[nIndex++]);
-// 					if (nIndex > 3)
-// 					{
-// 						nIndex = 0;
-// 					}
-// 					ui->table_RegisterData->item(row, col)->setText(strInfo);
-// 				}
-// 			}
-// 		}
 		break;
 		case RegisterDataType::eDataTypeInt32:
             DisplayRegisterVals_Int32();
-// 		{
-// 			for (int col = 1; col < colCount; col += 2) //遍历奇数列
-// 			{
-// 				int group = col / 2;
-// 				int nIndex = 0;
-// 				for (int row = 0; row < rowCount; row += 2)
-// 				{
-// 					ndataIndex = row + group * rowCount;
-// 					nRegiseterValIndex = ndataIndex / 4;
-// 
-// 					QString strInfo = QString("%1").arg(m_vecRegisterVal[nRegiseterValIndex].u_Int32[nIndex++]);
-// 					if (nIndex > 1)
-// 					{
-// 						nIndex = 0;
-// 					}
-// 					ui->table_RegisterData->item(row, col)->setText(strInfo);
-// 				}
-// 			}
-// 		}
 		break;
 		case RegisterDataType::eDataTypeFloat:
             DisplayRegisterVals_Float();
-// 		{
-// 			for (int col = 1; col < colCount; col += 2) //遍历奇数列
-// 			{
-// 				int group = col / 2;
-// 				int nIndex = 0;
-// 				for (int row = 0; row < rowCount; row += 2)
-// 				{
-// 					ndataIndex = row + group * rowCount;
-// 					nRegiseterValIndex = ndataIndex / 4;
-// 
-// 					QString strInfo = QString("%1").arg(m_vecRegisterVal[nRegiseterValIndex].u_float[nIndex++]);
-// 					if (nIndex > 1)
-// 					{
-// 						nIndex = 0;
-// 					}
-// 					ui->table_RegisterData->item(row, col)->setText(strInfo);
-// 				}
-// 			}
-// 		}
 		break;
 		case RegisterDataType::eDataTypeDouble:
             DisplayRegisterVals_Double();
-// 		{
-// 			for (int col = 1; col < colCount; col += 2) //遍历奇数列
-// 			{
-// 				int group = col / 2;
-// 
-// 				for (int row = 0; row < rowCount; row += 4)
-// 				{
-// 					ndataIndex = row + group * rowCount;
-// 					nRegiseterValIndex = ndataIndex / 4;
-// 
-// 					QString strInfo = QString("%1").arg(m_vecRegisterVal[nRegiseterValIndex].u_double);
-// 
-// 					ui->table_RegisterData->item(row, col)->setText(strInfo);
-// 				}
-// 			}
-// 		}
 		break;
     }
 
@@ -1783,47 +1572,6 @@ void CommTest_Qt::DisplayRegisterVals_Float()
 			}
 		}
 	}
-
-// 	for (int col = 1; col < colCount; col += 2)
-// 	{
-// 		int group = col / 2;
-// 		int nIndex = 0;
-// 		int currentRegisterIndex = -1;
-// 		DataTypeConvert* currentData = nullptr;
-// 
-// 		for (int row = 0; row < rowCount; row += 2)
-// 		{
-// 			int ndataIndex = row + group * rowCount;
-// 			int nRegisterValIndex = ndataIndex / 4;
-// 
-// 			// 只在需要时更新当前数据指针
-// 			if (nRegisterValIndex != currentRegisterIndex)
-// 			{
-// 				if (nRegisterValIndex < m_vecRegisterVal.size())
-// 				{
-// 					currentData = &m_vecRegisterVal[nRegisterValIndex];
-// 					currentRegisterIndex = nRegisterValIndex;
-// 					nIndex = 0;
-// 				}
-// 				else
-// 				{
-// 					currentData = nullptr;
-// 				}
-// 			}
-// 
-// 			if (currentData && nIndex < 2)
-// 			{
-// 				QString strInfo = QString("%1")
-// 					.arg(currentData->u_float[nIndex++]);
-// 
-// 				ui->table_RegisterData->item(row, col)->setText(strInfo);
-// 			}
-// 			else
-// 			{
-// 				ui->table_RegisterData->item(row, col)->setText("");
-// 			}
-// 		}
-// 	}
 }
 
 void CommTest_Qt::DisplayRegisterVals_Double()
@@ -2079,4 +1827,228 @@ void CommTest_Qt::OnShowAboutDialog()
 	aboutBox.setStandardButtons(QMessageBox::Ok);
 	
 	aboutBox.exec();
+}
+
+void CommTest_Qt::InitialGuiStyle()
+{
+	// 设置应用程序浅色系主题
+	QPalette darkPalette;
+	
+	// 设置窗口和面板背景色为浅色
+	darkPalette.setColor(QPalette::Window, QColor(245, 245, 245));           // 浅灰白色背景
+	darkPalette.setColor(QPalette::WindowText, QColor(33, 33, 33));         // 深灰色文字
+	darkPalette.setColor(QPalette::Base, QColor(255, 255, 255));            // 白色输入框背景
+	darkPalette.setColor(QPalette::AlternateBase, QColor(245, 245, 245));   // 交替背景色
+	darkPalette.setColor(QPalette::ToolTipBase, QColor(255, 255, 255));     // 提示框背景
+	darkPalette.setColor(QPalette::ToolTipText, QColor(33, 33, 33));        // 提示框文字
+	darkPalette.setColor(QPalette::Text, QColor(33, 33, 33));               // 文本颜色
+	darkPalette.setColor(QPalette::Button, QColor(240, 240, 240));          // 按钮背景色
+	darkPalette.setColor(QPalette::ButtonText, QColor(33, 33, 33));         // 按钮文字
+	darkPalette.setColor(QPalette::BrightText, QColor(255, 255, 255));      // 亮色文字
+	darkPalette.setColor(QPalette::Highlight, QColor(76, 163, 224));        // 高亮色（蓝色）
+	darkPalette.setColor(QPalette::HighlightedText, QColor(255, 255, 255));  // 高亮文字
+	darkPalette.setColor(QPalette::Disabled, QPalette::WindowText, QColor(128, 128, 128));  // 禁用文字
+	darkPalette.setColor(QPalette::Disabled, QPalette::ButtonText, QColor(128, 128, 128));  // 禁用按钮文字
+	
+	// 应用调色板
+	QApplication::setPalette(darkPalette);
+	
+	// 定义通用的按钮样式表 - 带圆角、阴影和悬停效果
+	const QString buttonStyleSheet = 
+		"QPushButton {"
+		"    background-color: #F0F0F0;"
+		"    color: #212121;"
+		"    border: 1px solid #CCCCCC;"
+		"    border-radius: 6px;"
+		"    padding: 6px 12px;"
+		"    font-weight: 500;"
+		"    font-size: 11pt;"
+		"    outline: none;"
+		"}"
+		"QPushButton:hover {"
+		"    background-color: #E8E8E8;"
+		"    border: 1px solid #4CA3E0;"
+		"}"
+		"QPushButton:pressed {"
+		"    background-color: #D0D0D0;"
+		"    border: 1px solid #2E7BA8;"
+		"}"
+		"QPushButton:disabled {"
+		"    background-color: #E0E0E0;"
+		"    color: #808080;"
+		"    border: 1px solid #DDDDDD;"
+		"}"
+		"";
+	
+	// 应用按钮样式到所有主要按钮
+	if (ui->Btn_Create != nullptr) ui->Btn_Create->setStyleSheet(buttonStyleSheet);
+	if (ui->Btn_HideMainWindow != nullptr) ui->Btn_HideMainWindow->setStyleSheet(buttonStyleSheet);
+	if (ui->Btn_ShowPlatform != nullptr) ui->Btn_ShowPlatform->setStyleSheet(buttonStyleSheet);
+	if (ui->Btn_ClearRegister != nullptr) ui->Btn_ClearRegister->setStyleSheet(buttonStyleSheet);
+	if (ui->Btn_ClearCommLog != nullptr) ui->Btn_ClearCommLog->setStyleSheet(buttonStyleSheet);
+	if (ui->Btn_WriteAxisDoubleWord != nullptr) ui->Btn_WriteAxisDoubleWord->setStyleSheet(buttonStyleSheet);
+	if (ui->Btn_WriteAxisFloat != nullptr) ui->Btn_WriteAxisFloat->setStyleSheet(buttonStyleSheet);
+	
+	// 应用样式到Lua脚本相关的按钮
+	for (int i = 1; i <= 6; ++i)
+	{
+		QPushButton* executeBtn = this->findChild<QPushButton*>(QString("Btn_Execute_%1").arg(i));
+		QPushButton* editBtn = this->findChild<QPushButton*>(QString("Btn_Edit_%1").arg(i));
+		
+		if (executeBtn != nullptr) {
+			executeBtn->setStyleSheet(buttonStyleSheet);
+		}
+		if (editBtn != nullptr) {
+			editBtn->setStyleSheet(buttonStyleSheet);
+		}
+	}
+	
+	// 定义输入框和组合框的样式表
+	const QString inputStyleSheet = 
+		"QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {"
+		"    background-color: #FFFFFF;"
+		"    color: #212121;"
+		"    border: 1px solid #CCCCCC;"
+		"    border-radius: 4px;"
+		"    padding: 4px 6px;"
+		"    font-size: 10pt;"
+		"}"
+		"QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {"
+		"    border: 2px solid #4CA3E0;"
+		"    background-color: #FFFEF5;"
+		"}"
+		"QComboBox::drop-down {"
+		"    border: none;"
+		"}"
+		"QComboBox::down-arrow {"
+		"    image: url(:/qt/etc/images/down_arrow.png);"
+		"}"
+		"";
+	
+	// 应用输入框样式
+	if (ui->edit_IP != nullptr) ui->edit_IP->setStyleSheet(inputStyleSheet);
+	if (ui->edit_Port != nullptr) ui->edit_Port->setStyleSheet(inputStyleSheet);
+	if (ui->edit_RegisterAddr != nullptr) ui->edit_RegisterAddr->setStyleSheet(inputStyleSheet);
+	if (ui->edit_Unit_XY != nullptr) ui->edit_Unit_XY->setStyleSheet(inputStyleSheet);
+	if (ui->edit_Unit_D != nullptr) ui->edit_Unit_D->setStyleSheet(inputStyleSheet);
+	if (ui->edit_AxisPosRegisterAddr != nullptr) ui->edit_AxisPosRegisterAddr->setStyleSheet(inputStyleSheet);
+	
+	for (int i = 1; i <= 6; ++i)
+	{
+		QLineEdit* scriptNameEdit = this->findChild<QLineEdit*>(QString("edit_ScriptName_%1").arg(i));
+		if (scriptNameEdit != nullptr) {
+			scriptNameEdit->setStyleSheet(inputStyleSheet);
+		}
+	}
+	
+	// 应用组合框样式
+	//if (ui->cmbBox_ProtocolType != nullptr) ui->cmbBox_ProtocolType->setStyleSheet(inputStyleSheet);
+	//if (ui->cmbBox_DataType != nullptr) ui->cmbBox_DataType->setStyleSheet(inputStyleSheet);
+	
+	// 定义文本编辑框和表格的样式表
+	const QString textEditStyleSheet = 
+		"QTextEdit, QPlainTextEdit {"
+		"    background-color: #FFFFFF;"
+		"    color: #212121;"
+		"    border: 1px solid #CCCCCC;"
+		"    border-radius: 4px;"
+		"    padding: 4px;"
+		"    font-family: 'Courier New', monospace;"
+		"    font-size: 10pt;"
+		"}"
+		"";
+	
+	if (ui->text_CommLog != nullptr) ui->text_CommLog->setStyleSheet(textEditStyleSheet);
+	//日志控件只读
+	ui->text_CommLog->setReadOnly(true);
+	
+	// 定义表格样式
+	const QString tableStyleSheet = 
+		"QTableWidget {"
+		"    background-color: #FFFFFF;"
+		"    alternate-background-color: #F5F5F5;"
+		"    gridline-color: #DDDDDD;"
+		"    border: 1px solid #CCCCCC;"
+		"    border-radius: 4px;"
+		"}"
+		"QTableWidget::item {"
+		"    padding: 2px;"
+		"    color: #212121;"
+		"}"
+		"QTableWidget::item:selected {"
+		"    background-color: #4CA3E0;"
+		"    color: #FFFFFF;"
+		"}"
+		"QHeaderView::section {"
+		"    background-color: #F0F0F0;"
+		"    color: #212121;"
+		"    padding: 4px;"
+		"    border: 1px solid #CCCCCC;"
+		"    border-radius: 0px;"
+		"}"
+		"";
+	
+	if (ui->table_RegisterData != nullptr) ui->table_RegisterData->setStyleSheet(tableStyleSheet);
+
+	
+	// 定义复选框和单选按钮的样式表
+	const QString checkboxStyleSheet = 
+		"QCheckBox, QRadioButton {"
+		"    color: #212121;"
+		"    spacing: 6px;"
+		"    font-size: 10pt;"
+		"}"
+		"QCheckBox::indicator, QRadioButton::indicator {"
+		"    width: 16px;"
+		"    height: 16px;"
+		"    border: 1px solid #CCCCCC;"
+		"    border-radius: 3px;"
+		"    background-color: #FFFFFF;"
+		"}"
+		"QCheckBox::indicator:checked, QRadioButton::indicator:checked {"
+		"    background-color: #4CA3E0;"
+		"    border: 1px solid #2E7BA8;"
+		"}"
+		"QCheckBox::indicator:hover, QRadioButton::indicator:hover {"
+		"    border: 1px solid #4CA3E0;"
+		"}"
+		"";
+	
+	// 应用复选框样式到所有复选框
+	for (int i = 1; i <= 6; ++i)
+	{
+		QCheckBox* loopCheckBox = this->findChild<QCheckBox*>(QString("ChkBox_LoopEnable_%1").arg(i));
+		if (loopCheckBox != nullptr) {
+			loopCheckBox->setStyleSheet(checkboxStyleSheet);
+		}
+	}
+	
+	// 应用单选按钮样式
+	if (ui->Radio_Data_DEC != nullptr) ui->Radio_Data_DEC->setStyleSheet(checkboxStyleSheet);
+	if (ui->Radio_Data_HEX != nullptr) ui->Radio_Data_HEX->setStyleSheet(checkboxStyleSheet);
+	if (ui->Radio_Log_Ascii != nullptr) ui->Radio_Log_Ascii->setStyleSheet(checkboxStyleSheet);
+	if (ui->Radio_Log_HEX != nullptr) ui->Radio_Log_HEX->setStyleSheet(checkboxStyleSheet);
+	
+	// 设置菜单栏样式
+	const QString menuBarStyleSheet = 
+		"QMenuBar {"
+		"    background-color: #F0F0F0;"
+		"    color: #212121;"
+		"    border-bottom: 1px solid #CCCCCC;"
+		"}"
+		"QMenuBar::item:selected {"
+		"    background-color: #E8E8E8;"
+		"}"
+		"QMenu {"
+		"    background-color: #FFFFFF;"
+		"    color: #212121;"
+		"    border: 1px solid #CCCCCC;"
+		"}"
+		"QMenu::item:selected {"
+		"    background-color: #4CA3E0;"
+		"    color: #FFFFFF;"
+		"}"
+		"";
+	
+	if (ui->menuBar != nullptr) ui->menuBar->setStyleSheet(menuBarStyleSheet);
 }

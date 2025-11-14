@@ -1,14 +1,21 @@
-# 忽略Bin目录（发布包）
-Bin/
-
-# 忽略build目录（项目配置、构建目录）
-build/
-build-*/
-cmake-build-*/
-
-# 忽略其他常见构建产物
+/build/
+/Bin/
+/Temp/
+/.vscode/
+/.qoder/
+/*.zip
+/CMakeCache.txt
+/CMakeFiles/
+*.obj
+*.pdb
+*.ilk
+*.ipch
+*.tlog
+*.log
 *.user
-*.user.*
-*.autosave
-CMakeLists.txt.user*
-*.zip
+*.cache
+*.recipe
+*.lastbuildstate
+*.exe
+/markdown-img/
+VS2022项目迁移CMake.md

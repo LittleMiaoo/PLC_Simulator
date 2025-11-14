@@ -187,7 +187,8 @@ bool ConfigManager::ParseCommInfoFromJson(const QJsonObject& jsonObj, CommBase::
     
     if (commType == "Socket")
     {
-        CommSocket::SocketCommInfo* socketInfo = new CommSocket::SocketCommInfo();
+        std::unique_ptr<CommSocket::SocketCommInfo> socketInfo = std::make_unique<CommSocket::SocketCommInfo>();
+        //CommSocket::SocketCommInfo* socketInfo = new CommSocket::SocketCommInfo();
         
         socketInfo->m_strCommStop = jsonObj["comm_stop"].toString();
         socketInfo->m_strCmdStop = jsonObj["cmd_stop"].toString();
@@ -196,7 +197,7 @@ bool ConfigManager::ParseCommInfoFromJson(const QJsonObject& jsonObj, CommBase::
         socketInfo->m_nSocketPort = jsonObj["port"].toInt();
         socketInfo->m_nSocketListenNum = jsonObj["listen_num"].toInt();
         
-        commInfo = socketInfo;
+        commInfo = socketInfo.release();
         return true;
     }
     

@@ -1,4 +1,4 @@
-﻿#ifndef COMMTEST_QT_H
+#ifndef COMMTEST_QT_H
 #define COMMTEST_QT_H
 
 #include "ui_CommTest_Qt.h"
@@ -69,13 +69,15 @@ private:
 	void InitialLineEditValidator();    //20251024  wm  输入框输入内容限制初始化
 
 	void InitialAllConfigs();
+	
+	void InitialGuiStyle();             // 添加界面样式设置函数
 
 	Ui::CommTest_QtClass* ui;
 
 	std::unique_ptr<SubMainWindow> m_subWindow; // 小窗口实例
     //std::unique_ptr<SimulationPlatform> m_simulationPlatform;   // 模拟平台窗口实例
 	SimulationPlatform* m_simulationPlatform;
-	std::unique_ptr<ConfigManager> m_configManager; // 配置管理器实例
+	ConfigManager* m_configManager;
 private:
 
 	MainWorkFlow* m_pWorkFlow;
