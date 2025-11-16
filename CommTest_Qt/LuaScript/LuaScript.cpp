@@ -112,6 +112,11 @@ bool LuaScript::RegisterLuaFunc()
 	lua_pushcclosure(m_pLua, IsLoopValidWrapper, 1);
 	lua_setglobal(m_pLua, "IsLoopValid");
 
+	//注册sleep
+	lua_pushlightuserdata(m_pLua, this);
+	lua_pushcclosure(m_pLua, SleepWrapper, 1);
+	lua_setglobal(m_pLua, "sleep");
+
 	// 注册平台控制函数
 	lua_pushlightuserdata(m_pLua, this);
 	lua_pushcclosure(m_pLua, MoveAbsInt32Wrapper, 1);
@@ -446,6 +451,24 @@ int LuaScript::IsLoopValidWrapper(lua_State* L)
 	return 1;
 }
 
+int LuaScript::SleepWrapper(lua_State* L)
+{
+	LuaScript* pThis = static_cast<LuaScript*>(lua_touserdata(L, lua_upvalueindex(1)));
+
+	// 获取参数
+	if (!lua_isnumber(L, 1)) {
+		return luaL_error(L, "Argument #1 (milliseconds) must be a number");
+	}
+	int milliseconds = lua_tointeger(L, 1);
+
+	/*QThread::msleep(milliseconds);*/
+	QEventLoop loop;
+	QTimer::singleShot(milliseconds, &loop, &QEventLoop::quit);
+	loop.exec();
+	return 0;
+}
+
+
 // ===== 平台控制函数实现 =====
 int LuaScript::MoveAbsInt32Wrapper(lua_State* L)
 {
@@ -723,6 +746,8 @@ void LuaScript::InitialCompileLuaState()
 		lua_pushcfunction(g_LuaCompileState,LamdaFuncReturn1);
 		lua_setglobal(g_LuaCompileState, "IsLoopValid");
 
+		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_setglobal(g_LuaCompileState, "sleep");
 		//注册平台控制函数
 		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
 		lua_setglobal(g_LuaCompileState, "MoveAbsInt32");

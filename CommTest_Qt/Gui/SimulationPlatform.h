@@ -40,6 +40,8 @@ public:
     // 平台控制公共接口
     void SetRealTimePlatformAbs(double x, double y, double angle);  // 绝对位置移动
     void SetRealTimePlatformRelative(double x, double y, double angle);  // 相对位置移动
+
+    //void SetSimulationPlatformParams(double distance,double ratio);
     
     // 获取实时平台数据
     void GetRealTimePlatformData(double& x, double& y, double& angle) const;

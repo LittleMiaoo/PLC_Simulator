@@ -15,7 +15,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	m_subWindow = nullptr;
 	
 	m_simulationPlatform = nullptr;
-	m_configManager = nullptr;
+	m_configManager = new ConfigManager(this);
 	// 初始化脚本编辑器指针
 	m_pCurrentScriptEditor = nullptr;
 	m_nCurrentScriptIndex = -1;
@@ -32,11 +32,12 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	InitializeMember();
 	
 	//m_pWorkFlow->CreateCommProtocol(ProtocolType::eProRegMitsubishiQBinary);
+	InitialAllConfigs();
 
 	//初始化信号槽连接
 	InitialSignalConnect();
 	
-	InitialAllConfigs();
+
 	//初始化界面样式
 	InitialGuiStyle();
 	
@@ -73,7 +74,7 @@ CommTest_Qt::~CommTest_Qt()
 
 void CommTest_Qt::InitialAllConfigs()
 {
-	m_configManager = new ConfigManager(this);
+	
 	// 加载之前保存的配置
 	if (m_configManager)
 	{
@@ -486,7 +487,13 @@ void CommTest_Qt::InitialSignalConnect()
 	});
 
 	//20251101	wm	修改显示寄存器数据类型
-    connect(ui->cmbBox_DataType, &QComboBox::currentIndexChanged, this, &CommTest_Qt::DisplayRegisterVals);
+    connect(ui->cmbBox_DataType, &QComboBox::currentIndexChanged, this, [=]{
+		//禁用寄存器表格修改信号
+   		ui->table_RegisterData->blockSignals(true);
+		UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
+		ui->table_RegisterData->blockSignals(false);
+
+	});
 
 	//20251101	wm	主控类持有的通信实例信号转发
 	if (m_pWorkFlow != nullptr)
@@ -579,10 +586,11 @@ void CommTest_Qt::InitialLuaScript()
 		QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
 		strLuaPath += "LuaFile1.lua";
-		if (!m_pWorkFlow->RunLuaScript(0,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		// if (!m_pWorkFlow->RunLuaScript(0,strLuaPath))
+		// {
+		// 	ui->text_CommLog->append("执行Lua脚本失败!");
+		// }
+		emit executeLuaScript(0,strLuaPath);
 	});
 
 	connect(ui->Btn_Edit_1,&QPushButton::clicked, this, [=] {
@@ -910,26 +918,6 @@ void CommTest_Qt::InitRegisterTable()
 
 void CommTest_Qt::UpdateTableInfo(int nStart,bool bInitialize /* = false */)
 {
-
-// 	ui->table_RegisterData->setStyleSheet(
-// 		"QTableWidget {"
-// 		"   background-color: rgb(255, 255, 255); /* 默认行背景色 */"
-// 		"   alternate-background-color: rgb(240, 240, 240); /* 交替行背景色 */"
-// 		"   gridline-color: rgb(200, 200, 200); /* 网格线颜色 */"
-// 		"}"
-// 		// 单元格未选中状态：继承行的背景色（无需额外设置，保持默认）
-// 		"QTableWidget::item {"
-// 		"   color: black; /* 文字色（默认） */"
-// 		"   border: none; /* 去掉单元格默认边框，避免与网格线冲突 */"
-// 		"}"
-// 		// 单元格选中状态：强制与未选中状态一致（核心）
-// 		"QTableWidget::item:selected {"
-// 		"   background-color: transparent; /* 透明背景，显示所在行的原始背景（白色/浅灰） */"
-// 		"   color: black; /* 文字色不变 */"
-// 		"   outline: none; /* 去掉选中时的焦点边框（可选，更彻底隐藏选中痕迹） */"
-// 		"}"
-// 	);
-
 	const int rowCount = ui->table_RegisterData->rowCount();    // 行数
 	const int colCount = ui->table_RegisterData->columnCount(); // 列数
 	const int step = rowCount;									// 列组间隔步长
@@ -1351,8 +1339,8 @@ void CommTest_Qt::DisplayRegisterVals()
 	int nCurIndex = ui->cmbBox_DataType->currentIndex();
 	if (nCurIndex < 0) return ;
 
-	//禁用寄存器表格修改信号
-    ui->table_RegisterData->blockSignals(true);
+
+	ui->table_RegisterData->blockSignals(true);
 
 	QVariant data = ui->cmbBox_DataType->itemData(nCurIndex);
 
@@ -1374,6 +1362,7 @@ void CommTest_Qt::DisplayRegisterVals()
         }
     }
 
+	ui->table_RegisterData->blockSignals(false);
 
 	int ndataIndex = -1;
 	int nRegiseterValIndex = -1;
@@ -1396,8 +1385,6 @@ void CommTest_Qt::DisplayRegisterVals()
             DisplayRegisterVals_Double();
 		break;
     }
-
-    ui->table_RegisterData->blockSignals(false);
 }
 
 void CommTest_Qt::DisplayRegisterVals_Char8()

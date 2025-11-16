@@ -30,7 +30,9 @@ QT_END_NAMESPACE
 class CommTest_Qt : public QMainWindow
 {
 	Q_OBJECT
-
+signals:
+//执行lua脚本
+	void executeLuaScript(int buttonId,QString luaPath);
 public:
 	CommTest_Qt(QWidget* parent = nullptr);
 	~CommTest_Qt();

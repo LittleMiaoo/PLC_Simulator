@@ -1,4 +1,4 @@
-#ifndef MAINWORKFLOW_H
+﻿#ifndef MAINWORKFLOW_H
 #define MAINWORKFLOW_H
 
 #include <QObject>
@@ -11,6 +11,8 @@
 #include "Comm/Protocol/CommProMitsubishiQBinary.h"
 #include "Comm/Protocol/CommProKeyencePCLink.h"
 #include "LuaScript/LuaScript.h"
+
+
 
 #ifdef _WIN32
 #ifdef _DEBUG

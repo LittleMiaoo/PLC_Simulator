@@ -332,12 +332,14 @@ void SimulationPlatform::setupConnections()
     connect(markCenterDistanceEdit, &QLineEdit::editingFinished, this, [this]() {
         m_markSpacing = markCenterDistanceEdit->text().toDouble();
         canvas->update();
+        emit parametersChanged(m_markSpacing, m_Ratio);
     });
 
     connect(ScreenRatio, &QLineEdit::editingFinished, this, [this]() {
         m_Ratio = ScreenRatio->text().toDouble();
         m_scale = m_ScreenWidth / m_Ratio;
         canvas->update();
+        emit parametersChanged(m_markSpacing, m_Ratio);
     });
 
    connect(ShowPlatformUL->group(), &QButtonGroup::buttonToggled, this, [=](QAbstractButton* button, bool checked) {

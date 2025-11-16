@@ -65,6 +65,8 @@ ScriptEditor::ScriptEditor(QWidget *parent,LuaScript* pLuaScript)
     functionTemplates["MoveRelativeInt32"] = "MoveRelativeInt32(\"D100\", \"D102\", \"D104\")";
     functionTemplates["MoveRelativeFloat"] = "MoveRelativeFloat(\"D100\", \"D102\", \"D104\")";
 
+    functionTemplates["IsLoopValid"] = "IsLoopValid()";
+    functionTemplates["sleep"] = "sleep(500)";
 
     
     resize(800, 600);

@@ -1,5 +1,5 @@
 ﻿#include "MainWorkFlow.h"
-
+#include "CommTest_Qt.h"
 
 
 //初始化静态实例
@@ -31,6 +31,24 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
 
 		ConnectLuaSignalSlot(pLuaScript);
 	}
+
+	//QObject指针pParent强制转换CommTest_Qt指针
+	if (pParent != nullptr)
+	{
+		CommTest_Qt* pCommTest = qobject_cast<CommTest_Qt*>(pParent);
+		if(pCommTest != nullptr)
+		{
+			//连接执行脚本的信号
+			connect(pCommTest,&CommTest_Qt::executeLuaScript,this,[=](int nLuaIndex, QString strLuaFile){
+				if(RunLuaScript(nLuaIndex, strLuaFile))
+				{
+					emit RegisterDataUpdate();
+				}
+			});
+		}
+	}
+	
+
 	
 }
 

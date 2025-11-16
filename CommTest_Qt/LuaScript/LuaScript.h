@@ -2,6 +2,9 @@
 #define LUASCRIPT_H
 
 #include <QObject>
+#include <QThread>
+#include <QTimer>
+#include <QEventLoop>
 #include "Lua.hpp"
 
 class LuaScript :public QObject
@@ -59,6 +62,7 @@ private:
 
 	//注册到Lua的循环状态判断函数
 	static int IsLoopValidWrapper(lua_State* L);
+	static int SleepWrapper(lua_State* L);
 
 	//注册到Lua的平台控制函数
 	static int MoveAbsInt32Wrapper(lua_State* L);
@@ -99,7 +103,7 @@ public:
         // 这应该返回实际注册到Lua状态机的函数列表
         return QStringList() << "SetInt16" << "SetInt32" << "SetFloat" << "SetDouble" << "SetString"
                             << "GetInt16" << "GetInt32" << "GetFloat" << "GetDouble" << "GetString"
-                            << "IsLoopValid"
+                            << "IsLoopValid"<< "sleep"
                             << "MoveAbsInt32" << "MoveAbsFloat" << "MoveRelativeInt32" << "MoveRelativeFloat";
     }
     
