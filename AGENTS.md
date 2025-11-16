@@ -1,63 +1,115 @@
 # AGENTS
 
-本仓库是一个基于 Qt 6 的 PLC 模拟器与通信测试项目，采用 CMake 组织构建，目标名为 `PLC_Simulator`（Debug 版输出名为 `PLC_Simulatord`）。文档按“Agent（模块/职责单元）”视角，概述关键组件、职责边界、交互关系与构建信息。
+本仓库是一个基于 Qt 6 的 PLC 模拟器与通信测试项目，采用 CMake 构建。按“Agent（模块/职责单元）”视角，更新各模块职责、协作流程、接口规范与典型场景，确保与当前实现一致。
 
 ## 构建 Agent
-- 顶层工程：`CMakeLists.txt` 设置项目名 `CommTestSolution`、C++17、并行编译、VS 启动项目与 Qt 自动处理，添加子目录 `CommTest_Qt`（根/CMakeLists.txt:1–50）。
-- 目标与依赖：子工程生成可执行 `PLC_Simulator`，链接 `Qt6::Core/Gui/Widgets/Network/SerialPort` 与外部 `ScriptRunner.lib`，包含 Lua 头文件目录（CommTest_Qt/CMakeLists.txt:108–172, 152–173）。
-- 资源与表单：启用 `AUTOMOC/AUTOUIC/AUTORCC`，资源文件与 `.ui` 表单随目标一起编译（CommTest_Qt/CMakeLists.txt:111–114）。
-- 输出与发布：后期构建拷贝到 `Bin/x64/`，与 Qt 运行时及插件目录并置（CommTest_Qt/CMakeLists.txt:192–198；根目录 `Bin/x64/...`）。
+- 顶层工程：`CommTestSolution` 管理 C++17、并行编译与 Qt 自动处理，添加子目录 `CommTest_Qt`（`CMakeLists.txt:1–50`）。
+- 目标与依赖：子工程目标名 `CommTest_Qt`，输出名 `PLC_Simulator`（Debug 追加 `d`），链接 `Qt6::Core/Gui/Widgets/Network/SerialPort` 与 `ScriptRunner.lib`，包含 `Lua/Include`（`CommTest_Qt/CMakeLists.txt:108–173`）。
+- 部署与调试：构建后拷贝至 `Bin/x64/`；MSVC 调试器指向发布目录中的产物（`CommTest_Qt/CMakeLists.txt:185–196` 及新增 VS 调试属性）。
 
 ## 应用 Agent（UI 主程序）
-- 入口：`main.cpp:11` 创建 `QApplication`，实例化并显示 `CommTest_Qt` 主窗口，Windows Debug 集成内存泄漏检测（CommTest_Qt/main.cpp:11–31）。
-- 主窗体：`Gui/CommTest_Qt.h` 管理脚本编辑器、子窗口、模拟平台、寄存器表格与协议选择，负责信号连接、脚本初始化与寄存器显示/校验（CommTest_Qt/Gui/CommTest_Qt.h:29–145）。
+- 职责：主界面管理寄存器显示、协议选择、脚本编辑与平台可视化；负责连接信号、初始化脚本、触发执行（`Gui/CommTest_Qt.h:29–145`）。
+- 接口：
+  - `CreateCurrentProtocol()` 选择并创建协议（`Gui/CommTest_Qt.cpp:818–829`）。
+  - `OpenScriptEditor(int)` 打开并管理脚本编辑器（`Gui/CommTest_Qt.cpp:596–701`）。
+  - 平台控制槽函数系列（`Gui/CommTest_Qt.cpp:1691–1751`）。
+- 协作：接收子窗口 `executeLuaScript(int)` 并调用 `MainWorkFlow::RunLuaScript(idx,path)`，异常弹窗与日志记录（`Gui/CommTest_Qt.cpp:179–205`）。
 
 ## 工作流 Agent（核心协调）
-- 单例：`MainFlow/MainWorkFlow.h` 通过 `InitialWorkFlow/ReleaseWorkFlow` 管理唯一实例与线程安全（MainFlow/MainWorkFlow.h:38–86）。
-- 职责：
-  - 通信信息设置与通信打开/关闭（MainWorkFlow/MainWorkFlow.h:42–49）。
-  - 协议创建与数据处理入口 `WorkProcess`，解析指令并完成寄存器读写、发送回复（MainWorkFlow/MainWorkFlow.h:51–79）。
-  - 寄存器存储与访问，使用 `std::atomic_int16_t` 向量维护 100000 个寄存器（MainWorkFlow/MainWorkFlow.h:60–69, 95–104）。
-  - Lua 脚本管理与信号槽连接（MainWorkFlow/MainWorkFlow.h:66–93）。
+- 职责：统一管理通信实例、协议解析、寄存器数据与脚本执行；提供线程池处理入口 `ProcessRequest(const QByteArray&, QByteArray&)`（`MainFlow/MainWorkFlow.cpp:379`；`MainFlow/MainWorkFlow.h:59`）。
+- 接口：
+  - 通信：`OpenComm/CloseComm/IsCommOpen/SetCommInfo`（`MainFlow/MainWorkFlow.h:42–49`）。
+  - 协议：`CreateCommProtocol(ProtocolType)`（`MainFlow/MainWorkFlow.h:51–55`）。
+  - 寄存器：`GetRegisterNum/GetRegisterVal/SetRegisterVal/ResetAllRegisters`（`MainFlow/MainWorkFlow.h:60–64, 95–104`）。
+  - 脚本：`RunLuaScript/GetLuaScript`（`MainFlow/MainWorkFlow.h:66–69`）。
+- 信号：`commLogRecord/dataReceived/dataSend/RegisterDataUpdate`（`MainFlow/MainWorkFlow.h:105–113`）。
 
 ## 通信 Agent
-- 抽象层：`Comm/CommBase.h` 定义通信类型与状态、基础信号（日志/收发）以及统一接口（Open/Close/IsOpen/SendData）（CommTest_Qt/Comm/CommBase.h:4–58）。
-- Socket 实现：`Comm/Socket/CommSocket.h` 支持服务端与客户端模式，管理连接、请求队列与超时定时器；提供 `Open/Close/SendData/IsOpen` 具体实现（CommTest_Qt/Comm/Socket/CommSocket.h:14–108）。
-- 扩展点：串口等其他通信方式可按 `CommBase` 约定扩展，当前未提供具体实现文件夹但保留类型枚举（CommTest_Qt/Comm/CommBase.h:16–21）。
+- 抽象层：`CommBase` 提供统一接口与信号；`CommInfoBase` 描述通信参数（`Comm/CommBase.h:4–58`）。
+- Socket 实现：`CommSocket` 支持服务端/客户端，管理连接与请求队列、超时（`Comm/Socket/CommSocket.h:14–108`）。
+- 接口规范：
+  - `Open(CommInfoBase*)/Close()/IsOpen()/SendData(const QByteArray&)`。
+  - 注入处理器：`SetRequestProcessor(std::function<bool(const QByteArray&, QByteArray&)>)`（`Comm/CommBase.h:73`）。
+  - 队列与线程池：每端点独立队列串行、端点间并行；`QThreadPool` 执行体在 `CommBase::ProcessNextForEndpoint` 内定义（`Comm/CommBase.cpp:33–75`）。
 
 ## 协议 Agent
-- 抽象层：`Comm/Protocol/CommProtocolBase.h` 统一指令枚举、寄存器数据类型、收发处理流程；声明读/写寄存器解析与回复打包的纯虚接口（CommTest_Qt/Comm/Protocol/CommProtocolBase.h:5–103）。
-- 三菱 MC 3E（Binary）：`CommProMitsubishiQBinary` 负责校验与解析/打包读写寄存器指令（CommTest_Qt/Comm/Protocol/CommProMitsubishiQBinary.h:20–53）。
-- 基恩士 PC-Link：`CommProKeyencePCLink` 提供读写寄存器指令解析与回复打包（CommTest_Qt/Comm/Protocol/CommProKeyencePCLink.h:20–36）。
-- 选择与创建：由工作流根据 `ProtocolType` 创建具体协议实例并在 `WorkProcess` 中使用（MainFlow/MainWorkFlow.h:51–55, 103–104）。
+- 抽象层：`CommProtocolBase` 统一读写指令解析与回复打包；处理方向 `ProcessType`（`Comm/Protocol/CommProtocolBase.h:5–103`）。
+- 实现：
+  - 三菱 MC 3E（二进制）：`CommProMitsubishiQBinary`（`Comm/Protocol/CommProMitsubishiQBinary.h:20–53`）。
+  - 基恩士 PC-Link：`CommProKeyencePCLink`（`Comm/Protocol/CommProKeyencePCLink.h:20–36`）。
+- 接口规范：
+  - `AnalyzeCmdInfo/AnalyzeReadReg/AnalyzeWriteReg/Packing*` 均以 `QByteArray` 作为载体。
 
 ## Lua Agent（脚本扩展）
-- 封装类：`LuaScript` 管理 `lua_State`，注册寄存器读写、平台控制与循环状态等函数，并提供文件/编辑器脚本执行（CommTest_Qt/LuaScript/LuaScript.h:7–141）。
-- 依赖：头文件来自 `Lua/Include`，链接 `Lua/Lib/ScriptRunner.lib` 与同目录 `ScriptRunner.dll`（CommTest_Qt/CMakeLists.txt:152–173；根/Lua/Include, Lua/Lib）。
-- 集成：工作流持有并连接多个 `LuaScript` 实例，主窗体提供脚本编辑器与调用入口（MainFlow/MainWorkFlow.h:87–93；Gui/CommTest_Qt.h:44–48, 97–101）。
+- 职责：封装 `lua_State`，注册寄存器读写与平台控制函数；提供文件/编辑器脚本执行（`LuaScript/LuaScript.h:7–141`）。
+- 接口规范：
+  - 运行：`RunLuaScript(file,err)/RunLuaScriptWithEditor(content,err)`；循环控制 `SetLoopValid(bool)`；函数列表查询 `getRegisteredFunctions()`。
+  - 平台控制信号：四种移动方式（Abs/Relative × Int32/Float），供主界面处理（`LuaScript.h:134–139`）。
+- 依赖：`Lua/Include` 头、`Lua/Lib/ScriptRunner.{lib,dll}`（`CommTest_Qt/CMakeLists.txt:152–173`）。
 
-## GUI Agent（界面与交互）
-- 主窗体：`CommTest_Qt` 负责寄存器表格显示、输入校验、协议选择和脚本编辑等（CommTest_Qt/Gui/CommTest_Qt.h:65–145）。
-- 子窗口：`SubMainWindow` 提供辅助 UI（CommTest_Qt/Gui/SubMainWindow.h）。
-- 模拟平台：`SimulationPlatform` 绘制坐标系/平台/Mark，暴露绝对/相对移动与数据获取接口，用于脚本或 UI 控制的可视化（CommTest_Qt/Gui/SimulationPlatform.h:31–130）。
-- 脚本编辑器：`ScriptEditor` 与 Lua 集成，支持从 UI 打开与执行脚本（CommTest_Qt/Gui/ScriptEditor.h）。
+## GUI Agent（子窗口与平台）
+- 子窗口：`SubMainWindow` 提供 6 个按钮，发射 `executeLuaScript(int)` 以触发脚本（`Gui/SubMainWindow.h:20,34–39；Gui/SubMainWindow.cpp:34–40,47–76`）。
+- 模拟平台：`SimulationPlatform` 渲染坐标系/平台/Mark 并提供位置控制接口（`Gui/SimulationPlatform.h:31–130`）。
+- 脚本编辑器：`ScriptEditor` 文件加载、编辑、保存与内容读取（`Gui/ScriptEditor.h`）。
 
-## 资源 Agent
-- 资源集合：`Resource_Files/CommTest_Qt.qrc` 管理图标与界面资源；`CommTest_Qt.rc` 配置 Windows 资源与应用图标（CommTest_Qt/Resource_Files/*）。
+## 协作流程图
+```mermaid
+sequenceDiagram
+    participant Sub as SubMainWindow
+    participant UI as CommTest_Qt
+    participant WF as MainWorkFlow
+    participant LUA as LuaScript
+    participant PLAT as SimulationPlatform
 
-## 运行时交互总览
-- 数据接收：通信层触发 `CommBase::dataReceived` 信号（CommTest_Qt/Comm/CommBase.h:10）。
-- 工作流处理：`MainWorkFlow::WorkProcess` 解析为读/写指令并调用具体协议实现（MainFlow/MainWorkFlow.h:54–79）。
-- 寄存器更新：工作流维护寄存器并发出 `RegisterDataUpdate`，UI 侧刷新表格（MainFlow/MainWorkFlow.h:110–113；Gui/CommTest_Qt.h:65–140）。
-- 数据发送：工作流通过通信层发送回复，触发 `CommBase::dataSend`（CommTest_Qt/Comm/CommBase.h:11）。
-- 脚本与平台：Lua 函数读写寄存器、控制 `SimulationPlatform` 的位置与角度，形成闭环模拟（LuaScript.h:64–88；Gui/CommTest_Qt.h:50–54, 74）。
+    Sub->>UI: executeLuaScript(buttonId)
+    UI->>WF: RunLuaScript(idx, scriptPath)
+    WF->>LUA: 调用运行接口
+    LUA-->>PLAT: MovePlatform*(...) 信号
+    UI->>PLAT: OnMovePlatform*(...) 槽
+    WF-->>UI: RegisterDataUpdate
+    UI->>UI: DisplayRegisterVals()
+```
 
-## 关键外部依赖
-- Qt 6：`Core/Gui/Widgets/Network/SerialPort`，已通过 `find_package` 引入（根/CMakeLists.txt:24–31；CommTest_Qt/CMakeLists.txt:141–148）。
-- Lua/ScriptRunner：头文件与静态库路径由工程提供（CommTest_Qt/CMakeLists.txt:152–173；根/Lua/*）。
-- Windows 子系统：链接选项指定 `SUBSYSTEM:WINDOWS`，Debug 打开 `/DEBUG`（CommTest_Qt/CMakeLists.txt:185–190）。
+```mermaid
+sequenceDiagram
+    participant NET as Socket
+    participant COMM as CommBase
+    participant TP as QThreadPool
+    participant WF as MainWorkFlow
+    participant PRO as Protocol
 
-## 产物与运行
-- 构建后可执行拷贝至 `Bin/x64/`，依赖 Qt DLL 与插件目录同级；Debug 版输出名含 `d` 后缀。
-- 在 VS 中将启动项目设为 `CommTest_Qt`（根/CMakeLists.txt:46–48），或使用 CMake 配置生成 Visual Studio 方案后启动 `PLC_Simulator`。
+    NET->>COMM: readyRead() / readAll()
+    COMM->>COMM: AddToRequestQueue(clientId,data)
+    COMM->>TP: start(Task{m_requestProcessor})
+    TP->>WF: ProcessRequest(rec, reply)
+    WF->>PRO: 解析/打包
+    WF-->>COMM: reply
+    COMM-->>NET: write(reply)
+```
+
+## 典型使用场景示例
+- 子窗触发脚本
+  - 子窗按钮 1–6 发射 `executeLuaScript(int)`；主界面根据 `buttonId` 选择 `script{Id}.lua` 并执行对应 Lua 实例；异常弹窗提示与日志记录（`Gui/CommTest_Qt.cpp:179–205`）。
+- 收发数据处理
+  - 通信层接收数据并入队 → 线程池运行注入的处理器（`MainWorkFlow::ProcessRequest`）→ 更新寄存器/打包回复 → 经通信层回发（`CommBase.cpp:33–75；MainWorkFlow.cpp:379`）。
+- 平台可视化与寄存器写入
+  - Lua 触发平台移动；主界面根据单位幂次转换坐标到双字/浮点寄存器并写入（`Gui/CommTest_Qt.cpp:1754–1858`）。
+
+## 接口规范补充
+- 返回值与错误处理：所有 `RunLuaScript/OpenComm/CloseComm` 等返回 `bool` 表示成功；失败时需记录日志并对 UI 进行提示。
+- 数据类型与边界：寄存器索引范围校验与 UI 输入合法性检查（`Gui/CommTest_Qt.cpp:971–1271`）。
+- 路径约定：默认脚本目录为 `applicationDirPath()/Config/LuaScript/`；子窗按钮对应 `script1.lua`–`script6.lua`。
+ - 通信处理器注入时机：在主界面初始化通信后通过 `SetRequestProcessor` 注入，引用 `MainWorkFlow::ProcessRequest`（`Gui/CommTest_Qt.cpp:452–455`）。
+
+## 附：组件关系示意
+```mermaid
+flowchart LR
+    SubMainWindow -- executeLuaScript --> CommTest_Qt
+    CommTest_Qt -- RunLuaScript --> MainWorkFlow
+    MainWorkFlow -- uses --> CommBase
+    MainWorkFlow -- uses --> CommProtocolBase
+    MainWorkFlow -- owns --> LuaScript
+    LuaScript -- signals --> SimulationPlatform
+    MainWorkFlow -- signals --> CommTest_Qt
+```
 

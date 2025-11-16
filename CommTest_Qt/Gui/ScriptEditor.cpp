@@ -252,6 +252,14 @@ void ScriptEditor::closeEvent(QCloseEvent *event)
 LuaHighlighter::LuaHighlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)
 {
+    //调整高亮规则顺序
+    //1.关键字
+    //2.字符串(关键字字符串'"and"'也应该是字符颜色)
+    //3.注释(所有内容都可以被注释、显示注释颜色)
+    //① '--and':显示绿色
+    //②'--"and"':绿色
+    //③'--SetInt16':绿色
+
     HighlightingRule rule;
 
     // 关键字格式（蓝色）
@@ -272,6 +280,16 @@ LuaHighlighter::LuaHighlighter(QTextDocument *parent)
         highlightingRules.append(rule);
     }
 
+     // 字符串格式
+    quotationFormat.setForeground(Qt::darkRed);
+    rule.pattern = QRegularExpression("\".*\"");
+    rule.format = quotationFormat;
+    highlightingRules.append(rule);
+    
+    rule.pattern = QRegularExpression("'.*'");
+    rule.format = quotationFormat;
+    highlightingRules.append(rule);
+
     // 函数格式（橙色）
     functionFormat.setForeground(QColor(255, 165, 0)); // 橙色
     functionFormat.setFontWeight(QFont::Bold);
@@ -285,16 +303,6 @@ LuaHighlighter::LuaHighlighter(QTextDocument *parent)
     // 多行注释格式
     commentStartExpression = QRegularExpression("--\\[\\[");
     commentEndExpression = QRegularExpression("\\]\\]");
-
-    // 字符串格式
-    quotationFormat.setForeground(Qt::darkRed);
-    rule.pattern = QRegularExpression("\".*\"");
-    rule.format = quotationFormat;
-    highlightingRules.append(rule);
-    
-    rule.pattern = QRegularExpression("'.*'");
-    rule.format = quotationFormat;
-    highlightingRules.append(rule);
 }
 
 void LuaHighlighter::setCustomFunctions(const QStringList &functions)
@@ -304,7 +312,8 @@ void LuaHighlighter::setCustomFunctions(const QStringList &functions)
         HighlightingRule rule;
         rule.pattern = QRegularExpression("\\b" + function + "\\b");
         rule.format = functionFormat;
-        highlightingRules.append(rule);
+        //highlightingRules.append(rule);
+        highlightingRules.insert(0,rule); // 将自定义函数规则插入到规则列表的开头
     }
 }
 

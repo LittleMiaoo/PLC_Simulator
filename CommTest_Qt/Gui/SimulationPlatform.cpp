@@ -122,6 +122,10 @@ void SimulationPlatform::SetSimulationPlatformParams(double distance,double rati
     m_markSpacing = distance;
     m_Ratio = ratio;
     m_scale = m_ScreenWidth / m_Ratio; // 更新缩放比例
+
+    markCenterDistanceEdit->setText(QString::number(m_markSpacing));
+    ScreenRatio->setText(QString::number(m_Ratio));
+    
     emit parametersChanged(m_markSpacing, m_Ratio);
     update(); // 触发重绘
 }

@@ -9,13 +9,13 @@ CommBase::CommBase(QObject* pParent)
 	m_requestTimeout = 1000;
 }
 
-void CommBase::AddToRequestQueue(const QString& endpointId, const QByteArray& data)
+void CommBase::AddToRequestQueue(const QString& endpointId,QByteArray&& data)
 {
 	{
 		QMutexLocker locker(&m_queueMutex);
 		PendingRequest request;
 		request.endpointId = endpointId;
-		request.requestData = data;
+		request.requestData = std::move(data);
 		request.timestamp = QDateTime::currentDateTime();
 		request.isProcessing = false;
 		request.requiresResponse = true;
@@ -48,6 +48,8 @@ void CommBase::ProcessNextForEndpoint(const QString& endpointId)
 		QString id;
 		QByteArray rec;
 		Task(CommBase* s, const QString& i, const QByteArray& r) : self(s), id(i), rec(r) {}
+		//move代替拷贝.提高性能
+		Task(CommBase* s, QString&& i, QByteArray&& r) : self(s), id(std::move(i)), rec(std::move(r)) {}
 
 		void run() override {
 			if (!self->m_requestProcessor) {
@@ -62,7 +64,7 @@ void CommBase::ProcessNextForEndpoint(const QString& endpointId)
 			QMetaObject::invokeMethod(self, "OnTaskFinished", Qt::QueuedConnection, Q_ARG(QString, id));
 		}
 	};
-	Task* t = new Task(this, endpointId, request.requestData);
+	Task* t = new Task(this, std::move(request.endpointId), std::move(request.requestData));	//使用右值引用move版本, 提高性能
 	t->setAutoDelete(true);
 	m_threadPool->start(t);
 }

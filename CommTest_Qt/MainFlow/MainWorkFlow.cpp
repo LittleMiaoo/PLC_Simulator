@@ -327,54 +327,54 @@ bool MainWorkFlow::CreateCommProtocol(ProtocolType ProType)
 	return true;
 }
 
-void MainWorkFlow::WorkProcess(QByteArray& RecInfo)
-{
-	if (RecInfo  == "") return;
-
-	CmdType CurrentCmd = CmdType::eCmdUnkown;
-
-	//1. 先解析接收到的内容是否符合当前通信协议格式
-	if (!WorkProcess_AnalyzeReceiveInfo(RecInfo, CurrentCmd))
-		return;
-
-	QByteArray strSend;
-
-	int nCurAddr = 0;
-	int nDataNum = 0;
-
-	//2. 解析当前指令的详细信息
-	switch (CurrentCmd)
-	{
-	case CmdType::eCmdWriteReg:
-
-		if (!WorkProcess_WriteReg(RecInfo, strSend, nCurAddr, nDataNum))
-		{
-			return;
-		}
-		break;
-	case CmdType::eCmdReadReg:
-		if (!WorkProcess_ReadReg(RecInfo, strSend, nCurAddr, nDataNum))
-		{
-			return;
-		}
-		break;
-	default:
-		return;
-		break;
-	}
-
-	//3. 若是写入指令需要发送一个更新GUI表格显示的信号
-	if (m_bDataChanged)
-	{
-		emit RegisterDataUpdate();
-		m_bDataChanged = false;
-	}
-
-
-	//4. 回复客户端消息
-	WorkProcess_SendCommInfo(strSend);
-
-}
+// void MainWorkFlow::WorkProcess(QByteArray& RecInfo)
+// {
+// 	if (RecInfo  == "") return;
+// 
+// 	CmdType CurrentCmd = CmdType::eCmdUnkown;
+// 
+// 	//1. 先解析接收到的内容是否符合当前通信协议格式
+// 	if (!WorkProcess_AnalyzeReceiveInfo(RecInfo, CurrentCmd))
+// 		return;
+// 
+// 	QByteArray strSend;
+// 
+// 	int nCurAddr = 0;
+// 	int nDataNum = 0;
+// 
+// 	//2. 解析当前指令的详细信息
+// 	switch (CurrentCmd)
+// 	{
+// 	case CmdType::eCmdWriteReg:
+// 
+// 		if (!WorkProcess_WriteReg(RecInfo, strSend, nCurAddr, nDataNum))
+// 		{
+// 			return;
+// 		}
+// 		break;
+// 	case CmdType::eCmdReadReg:
+// 		if (!WorkProcess_ReadReg(RecInfo, strSend, nCurAddr, nDataNum))
+// 		{
+// 			return;
+// 		}
+// 		break;
+// 	default:
+// 		return;
+// 		break;
+// 	}
+// 
+// 	//3. 若是写入指令需要发送一个更新GUI表格显示的信号
+// 	if (m_bDataChanged)
+// 	{
+// 		emit RegisterDataUpdate();
+// 		m_bDataChanged = false;
+// 	}
+// 
+// 
+// 	//4. 回复客户端消息
+// 	WorkProcess_SendCommInfo(strSend);
+// 
+// }
 
 bool MainWorkFlow::ProcessRequest(const QByteArray& RecInfo, QByteArray& Reply)
 {
@@ -573,113 +573,113 @@ LuaScript* MainWorkFlow::GetLuaScript(int nIndex)
 	return m_vpLuaScript[nIndex].get();
 }
 
-bool MainWorkFlow::WorkProcess_AnalyzeReceiveInfo(QByteArray& strRecevie,CmdType& CurCmdType)
-{
-	if (m_pComProBase == nullptr)	return false;
-
-	//2. 解析数据
-	if (!m_pComProBase->AnalyzeCmdInfo(strRecevie, CurCmdType))
-	{
-// 		if (m_pComm != nullptr)
+// bool MainWorkFlow::WorkProcess_AnalyzeReceiveInfo(QByteArray& strRecevie,CmdType& CurCmdType)
+// {
+// 	if (m_pComProBase == nullptr)	return false;
+// 
+// 	//2. 解析数据
+// 	if (!m_pComProBase->AnalyzeCmdInfo(strRecevie, CurCmdType))
+// 	{
+// // 		if (m_pComm != nullptr)
+// // 		{
+// // 			m_pComm->SendData("");
+// // 		}
+// 		return false;
+// 	}
+// 
+// 	return true;
+// }
+// 
+// bool MainWorkFlow::WorkProcess_WriteReg(const QByteArray& strRecevie, QByteArray& strSend, int& nAddress, int& nDataNum)
+// {
+// 	//2.20250612	wm	解析客户端信息
+// 	if (m_pComProBase == nullptr)	return false;
+// 
+// 	long nCmdRegAddr = 0;
+// 	int nCmdRedNum = 0;
+// 
+// 	std::vector<int16_t> vnCmdWriteData;
+// 
+// 	if (!m_pComProBase->AnalyzeWriteReg(strRecevie, nCmdRegAddr, nCmdRedNum, vnCmdWriteData))
+// 	{
+// 		return false;
+// 	}
+// 
+// 	nAddress = nCmdRegAddr;
+// 	nDataNum = nCmdRedNum;
+// 	//3.20250612	wm	根据客户端信息进行相应处理，写入数据值
+// 	for (int i = 0; i < nCmdRedNum; i++)
+// 	{
+// 		int nPLCAddr = nCmdRegAddr + i;
+// 		if (nPLCAddr > m_RegisterVal.size())
 // 		{
-// 			m_pComm->SendData("");
+// 			break;
 // 		}
-		return false;
-	}
-
-	return true;
-}
-
-bool MainWorkFlow::WorkProcess_WriteReg(const QByteArray& strRecevie, QByteArray& strSend, int& nAddress, int& nDataNum)
-{
-	//2.20250612	wm	解析客户端信息
-	if (m_pComProBase == nullptr)	return false;
-
-	long nCmdRegAddr = 0;
-	int nCmdRedNum = 0;
-
-	std::vector<int16_t> vnCmdWriteData;
-
-	if (!m_pComProBase->AnalyzeWriteReg(strRecevie, nCmdRegAddr, nCmdRedNum, vnCmdWriteData))
-	{
-		return false;
-	}
-
-	nAddress = nCmdRegAddr;
-	nDataNum = nCmdRedNum;
-	//3.20250612	wm	根据客户端信息进行相应处理，写入数据值
-	for (int i = 0; i < nCmdRedNum; i++)
-	{
-		int nPLCAddr = nCmdRegAddr + i;
-		if (nPLCAddr > m_RegisterVal.size())
-		{
-			break;
-		}
-		int nPreData = m_RegisterVal.at(nPLCAddr).load();
-
-		m_RegisterVal.at(nPLCAddr).store(vnCmdWriteData.at(i));
-
-		if (nPreData != vnCmdWriteData.at(i))
-		{
-			m_bDataChanged = true;
-		}
-	}
-
-
-	//4.20250612	wm	打包回复给客户端的信息
-	if (!m_pComProBase->PackReportWriteRegInfo(strSend))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-bool MainWorkFlow::WorkProcess_ReadReg(const QByteArray& strRecevie, QByteArray& strSend, int& nAddress, int& nDataNum)
-{
-	//2.20250612	wm	解析客户端信息
-	if (m_pComProBase == nullptr)	return false;
-
-	long nCmdRegAddr = 0;
-	int nCmdRedNum = 0;
-
-	if (!m_pComProBase->AnalyzeReadReg(strRecevie, nCmdRegAddr, nCmdRedNum))
-	{
-		return false;
-	}
-
-	nAddress = nCmdRegAddr;
-	nDataNum = nCmdRedNum;
-	//3.20250612	wm	根据客户端信息进行相应处理,读取数据值
-	std::vector<int16_t> vnCmdData;
-	vnCmdData.resize(nCmdRedNum);
-
-	for (int i = 0; i < nCmdRedNum; i++)
-	{
-		int nPLCAddr = nCmdRegAddr + i;
-		if (nPLCAddr > m_RegisterVal.size())
-		{
-			break;
-		}
-
-		vnCmdData.at(i) = m_RegisterVal.at(nPLCAddr).load();
-	}
-
-	//4.20250612	wm	打包回复给客户端的信息
-	if (!m_pComProBase->PackReportReadRegInfo(strSend, nCmdRegAddr, nCmdRedNum, vnCmdData))
-	{
-		return false;
-	}
-
-
-	return true;
-}
-
-bool MainWorkFlow::WorkProcess_SendCommInfo(const QByteArray& strSend)
-{
-	if (m_pComm == nullptr)	return false;
-
-	if (!m_pComm->SendData(strSend)) return false;
-
-	return true;
-}
+// 		int nPreData = m_RegisterVal.at(nPLCAddr).load();
+// 
+// 		m_RegisterVal.at(nPLCAddr).store(vnCmdWriteData.at(i));
+// 
+// 		if (nPreData != vnCmdWriteData.at(i))
+// 		{
+// 			m_bDataChanged = true;
+// 		}
+// 	}
+// 
+// 
+// 	//4.20250612	wm	打包回复给客户端的信息
+// 	if (!m_pComProBase->PackReportWriteRegInfo(strSend))
+// 	{
+// 		return false;
+// 	}
+// 
+// 	return true;
+// }
+// 
+// bool MainWorkFlow::WorkProcess_ReadReg(const QByteArray& strRecevie, QByteArray& strSend, int& nAddress, int& nDataNum)
+// {
+// 	//2.20250612	wm	解析客户端信息
+// 	if (m_pComProBase == nullptr)	return false;
+// 
+// 	long nCmdRegAddr = 0;
+// 	int nCmdRedNum = 0;
+// 
+// 	if (!m_pComProBase->AnalyzeReadReg(strRecevie, nCmdRegAddr, nCmdRedNum))
+// 	{
+// 		return false;
+// 	}
+// 
+// 	nAddress = nCmdRegAddr;
+// 	nDataNum = nCmdRedNum;
+// 	//3.20250612	wm	根据客户端信息进行相应处理,读取数据值
+// 	std::vector<int16_t> vnCmdData;
+// 	vnCmdData.resize(nCmdRedNum);
+// 
+// 	for (int i = 0; i < nCmdRedNum; i++)
+// 	{
+// 		int nPLCAddr = nCmdRegAddr + i;
+// 		if (nPLCAddr > m_RegisterVal.size())
+// 		{
+// 			break;
+// 		}
+// 
+// 		vnCmdData.at(i) = m_RegisterVal.at(nPLCAddr).load();
+// 	}
+// 
+// 	//4.20250612	wm	打包回复给客户端的信息
+// 	if (!m_pComProBase->PackReportReadRegInfo(strSend, nCmdRegAddr, nCmdRedNum, vnCmdData))
+// 	{
+// 		return false;
+// 	}
+// 
+// 
+// 	return true;
+// }
+// 
+// bool MainWorkFlow::WorkProcess_SendCommInfo(const QByteArray& strSend)
+// {
+// 	if (m_pComm == nullptr)	return false;
+// 
+// 	if (!m_pComm->SendData(strSend)) return false;
+// 
+// 	return true;
+// }

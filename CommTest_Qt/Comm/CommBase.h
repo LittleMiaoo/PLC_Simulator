@@ -23,6 +23,7 @@ signals:
 	void dataReceived(const QString& objectInfo,const QByteArray& data); //接收到数据的信号
 	void dataSend(const QString& objectInfo, const QByteArray& data);	 //发送数据信号
 
+	void dataSendRequest(const QString& endpointId, const QByteArray& data);	//发送请求信号
 public:
 
 	//20251030	wm	通信类型
@@ -79,13 +80,13 @@ protected:
 		bool requiresResponse;
 		int timeoutMs;
 	};
-	void AddToRequestQueue(const QString& endpointId, const QByteArray& data);
+	void AddToRequestQueue(const QString& endpointId,/* const QByteArray& data*/QByteArray&& data);	// 添加请求.传参改为右值引用, 避免拷贝
 	void ProcessNextForEndpoint(const QString& endpointId);
 	virtual bool SendDataToEndpoint(const QString& endpointId, const QByteArray& data) = 0;
 	Q_INVOKABLE void OnTaskFinished(QString endpointId);
 protected:
-	QMap<QString, QQueue<PendingRequest>> m_endpointQueues;
-	QSet<QString> m_endpointProcessing;
+	QMap<QString, QQueue<PendingRequest>> m_endpointQueues; //每个客户端对应一个队列, 队列中存放的是待处理的请求
+	QSet<QString> m_endpointProcessing;	//正在处理的客户端
 	QMutex m_queueMutex;
 	QThreadPool* m_threadPool;
 	int m_requestTimeout;

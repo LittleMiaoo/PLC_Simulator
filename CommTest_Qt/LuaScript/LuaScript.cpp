@@ -743,7 +743,7 @@ void LuaScript::InitialCompileLuaState()
 		lua_setglobal(g_LuaCompileState, "GetString");
 
 		//注册循环状态函数
-		lua_pushcfunction(g_LuaCompileState,LamdaFuncReturn1);
+		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
 		lua_setglobal(g_LuaCompileState, "IsLoopValid");
 
 		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
