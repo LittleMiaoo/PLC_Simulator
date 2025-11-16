@@ -34,8 +34,10 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	//m_pWorkFlow->CreateCommProtocol(ProtocolType::eProRegMitsubishiQBinary);
 	InitialAllConfigs();
 
-	//初始化信号槽连接
-	InitialSignalConnect();
+    //初始化信号槽连接
+    InitialSignalConnect();
+    m_bShouldFlash = true;
+    ui->table_RegisterData->installEventFilter(this);
 	
 
 	//初始化界面样式
@@ -216,11 +218,12 @@ void CommTest_Qt::InitializeMember()
 				{
 					m_nIntStat = 1;
 				}
-				ui->table_RegisterData->blockSignals(true);	//修改数据进制时临时断开表格信号,以禁用闪烁提示
+				if (m_bShouldFlash) m_bShouldFlash = false;
+				const QSignalBlocker blocker(ui->table_RegisterData);
 
 				UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
 
-                ui->table_RegisterData->blockSignals(false);
+				m_bShouldFlash = true;
 			}
 			});
 
@@ -315,6 +318,7 @@ void CommTest_Qt::InitialSignalConnect()
 		//20251024	wm	表格闪烁提示槽函数
 		connect(ui->table_RegisterData, &QTableWidget::itemChanged, this, [=](QTableWidgetItem* item) {
 			if (!item) return;
+			if (!m_bShouldFlash) return;
 
 			//忽略奇数列的变化(地址列)
 			if (item->column() % 2 == 0)	return;
@@ -366,7 +370,7 @@ void CommTest_Qt::InitialSignalConnect()
 
 			m_animationTimers[item] = restoreTimer;
 
-			restoreTimer->start(100);	//20251024	wm	启动定时器，500ms后执行
+			restoreTimer->start(400);	//20251024	wm	启动定时器，500ms后执行
 		});
 
 		QAbstractItemDelegate* delegate = ui->table_RegisterData->itemDelegate();
@@ -466,8 +470,9 @@ void CommTest_Qt::InitialSignalConnect()
 	//20251102	wm	点击清除寄存器按钮
 	connect(ui->Btn_ClearRegister, &QPushButton::clicked, this, [=] {
 		if (m_pWorkFlow == nullptr)	return;
-
+		if (m_bShouldFlash) m_bShouldFlash = false;
 		m_pWorkFlow->ResetAllRegisters(0);
+		m_bShouldFlash = true;
 	});
 
 	//20251102	wm	点击清除日志
@@ -486,20 +491,21 @@ void CommTest_Qt::InitialSignalConnect()
 		//从MainWorkFlow中获取寄存器数据并存入m_vecRegisterVals
 		GetRegisterVals(nAddr);
 
-		ui->table_RegisterData->blockSignals(true);	//20251024	wm	修改寄存器地址时临时断开表格信号,以禁用闪烁提示
+		if (m_bShouldFlash) m_bShouldFlash = false;
+		const QSignalBlocker blocker(ui->table_RegisterData);
 
 		UpdateTableInfo(nAddr);
 
-		ui->table_RegisterData->blockSignals(false);
+		m_bShouldFlash = true;
 
 	});
 
 	//20251101	wm	修改显示寄存器数据类型
-    connect(ui->cmbBox_DataType, &QComboBox::currentIndexChanged, this, [=]{
-		//禁用寄存器表格修改信号
-   		ui->table_RegisterData->blockSignals(true);
+	connect(ui->cmbBox_DataType, &QComboBox::currentIndexChanged, this, [=]{
+		if (m_bShouldFlash) m_bShouldFlash = false;
+		const QSignalBlocker blocker(ui->table_RegisterData);
 		UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
-		ui->table_RegisterData->blockSignals(false);
+		m_bShouldFlash = true;
 
 	});
 
@@ -1356,7 +1362,8 @@ void CommTest_Qt::DisplayRegisterVals()
 	if (nCurIndex < 0) return ;
 
 
-	ui->table_RegisterData->blockSignals(true);
+	//ui->table_RegisterData->blockSignals(true);
+	m_bShouldFlash = false;
 
 	QVariant data = ui->cmbBox_DataType->itemData(nCurIndex);
 
@@ -1378,7 +1385,8 @@ void CommTest_Qt::DisplayRegisterVals()
         }
     }
 
-	ui->table_RegisterData->blockSignals(false);
+	//ui->table_RegisterData->blockSignals(false);
+	m_bShouldFlash = true;
 
 	int ndataIndex = -1;
 	int nRegiseterValIndex = -1;
@@ -2054,4 +2062,13 @@ void CommTest_Qt::InitialGuiStyle()
 		"";
 	
 	if (ui->menuBar != nullptr) ui->menuBar->setStyleSheet(menuBarStyleSheet);
+}
+
+bool CommTest_Qt::eventFilter(QObject* watched, QEvent* event)
+{
+	if (watched == ui->table_RegisterData)
+	{
+		return QMainWindow::eventFilter(watched, event);
+	}
+	return QMainWindow::eventFilter(watched, event);
 }

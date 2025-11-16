@@ -29,7 +29,7 @@ QT_END_NAMESPACE
 
 class CommTest_Qt : public QMainWindow
 {
-	Q_OBJECT
+    Q_OBJECT
 signals:
 //执行lua脚本
 	void executeLuaScript(int buttonId,QString luaPath);
@@ -74,11 +74,14 @@ private:
 	
 	void InitialGuiStyle();             // 添加界面样式设置函数
 
-	Ui::CommTest_QtClass* ui;
+    Ui::CommTest_QtClass* ui;
 
 	std::unique_ptr<SubMainWindow> m_subWindow; // 小窗口实例
     //std::unique_ptr<SimulationPlatform> m_simulationPlatform;   // 模拟平台窗口实例
-	SimulationPlatform* m_simulationPlatform;
+    SimulationPlatform* m_simulationPlatform;
+    bool m_bShouldFlash; // 是否允许触发表格闪烁效果
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 	ConfigManager* m_configManager;
 private:
 
