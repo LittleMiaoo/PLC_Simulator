@@ -1,4 +1,6 @@
-﻿#include "CommSocket.h"
+#include "CommSocket.h"
+#include <QThread>
+#include <QEventLoop>
 
 CommSocket::CommSocket(QObject* pParent) : CommBase(pParent)
 {
@@ -6,38 +8,15 @@ CommSocket::CommSocket(QObject* pParent) : CommBase(pParent)
 	m_Server = nullptr;
 	m_Client = nullptr;
 	m_ClientMap.clear();
-	m_processingRequest = false;
-
 	m_requestTimeout = 1000;
-	m_timeoutTimer = new QTimer(this);
-	m_timeoutTimer->setSingleShot(true);
-	connect(m_timeoutTimer, &QTimer::timeout, this, [=] {
-
-		QMutexLocker locker(&m_queueMutex);
-
-		if (m_processingRequest && !m_requestQueue.isEmpty()) {
-			PendingRequest& currentRequest = m_requestQueue.head();
-			if (currentRequest.isProcessing) {
-				emit CommLogRecord(QString("[%1]:请求超时").arg(currentRequest.clientId));
-
-				// 移除超时的请求
-				m_requestQueue.dequeue();
-				m_processingRequest = false;
-				m_currentClientId.clear();
-			}
-		}
-
-		locker.unlock();
-
-		// 处理下一个请求
-		ProcessNextRequest();
-
-		});
+	m_threadPool = new QThreadPool(this);
+	m_threadPool->setMaxThreadCount(QThread::idealThreadCount());
 
 }
 
 CommSocket::~CommSocket()
 {
+	qDebug() << "CommSocket::~CommSocket()";
 }
 
 bool CommSocket::initializeServer()
@@ -200,137 +179,44 @@ bool CommSocket::Open(CommInfoBase* commInfo)
 
 bool CommSocket::Close()
 {
-	// 清空请求队列
 	{
 		QMutexLocker locker(&m_queueMutex);
-		m_requestQueue.clear();
-		m_processingRequest = false;
-		m_currentClientId.clear();
+		m_endpointQueues.clear();
+		m_endpointProcessing.clear();
 	}
-
 	Cleanup();
-
 	return true;
 }
 
 bool CommSocket::SendData(const QByteArray& strData)
 {
-	if (!m_bConnected) return false;
-	
-	QString strCurClientId;
-
-	//缩小互斥锁的作用范围
-	{
-		QMutexLocker locker(&m_queueMutex);
-
-		// 如果没有正在处理的请求，直接返回失败
-		if (m_requestQueue.isEmpty() || !m_processingRequest) 
-		{
-			return false;
-		}
-
-		// 获取当前正在处理的请求
-		PendingRequest& currentRequest = m_requestQueue.head();
-		if (!currentRequest.isProcessing) 
-		{
-			return false;
-		}
-		strCurClientId = currentRequest.clientId;
-
-		// 标记请求处理完成
-		m_requestQueue.dequeue();
-		m_processingRequest = false;
-		m_currentClientId.clear();
-
-	}
-	
-	// 停止超时定时器
-	m_timeoutTimer->stop();
-
-
-	// 查找对应的客户端
-	QTcpSocket* targetClient = m_ClientMap.value(strCurClientId, nullptr);
-
-	if (!targetClient || targetClient->state() != QAbstractSocket::ConnectedState)
-	{
-		QTimer::singleShot(0, this, &CommSocket::ProcessNextRequest);
-		return false;
-	}
-
-	// 发送数据
-	qint64 bytesWritten = targetClient->write(strData);
-	if (bytesWritten == -1) 
-	{
-		QTimer::singleShot(0, this, &CommSocket::ProcessNextRequest);
-		return false;
-	}
-
-	emit dataSend(QString("Send:[%1]:").arg(strCurClientId), strData);
-
-
-
-	// 处理下一个请求
-	QTimer::singleShot(0, this, &CommSocket::ProcessNextRequest);
-
-	return true;
+	return false;
 }
 
-void CommSocket::AddToRequestQueue(const QString& clientId, const QByteArray& data)
+ 
+
+bool CommSocket::SendDataToEndpoint(const QString& clientId, const QByteArray& strData)
 {
-	//缩小互斥锁的作用范围
-	{
-		QMutexLocker locker(&m_queueMutex);
-
-		PendingRequest request;
-		request.clientId = clientId;
-		request.requestData = data;
-
-		request.timestamp = QDateTime::currentDateTime();
-		request.isProcessing = false;
-		request.requiresResponse = true; // 默认需要回复
-		request.timeoutMs = m_requestTimeout;
-
-		m_requestQueue.enqueue(request);
-	}
-	
-	// 如果没有正在处理的请求，立即处理
-	if (!m_processingRequest) {
-		QTimer::singleShot(0, this, &CommSocket::ProcessNextRequest);
-	}
-}
-
-void CommSocket::ProcessNextRequest()
-{
-	// 如果已经在处理请求或者队列为空，直接返回
-	if (m_processingRequest || m_requestQueue.isEmpty()) {
-		return;
+    if (!m_bConnected) return false;
+    QTcpSocket* targetClient = m_ClientMap.value(clientId, nullptr);
+    if (!targetClient || targetClient->state() != QAbstractSocket::ConnectedState)
+    {
+        return false;
+    }
+    qint64 bytesWritten = targetClient->write(strData);
+    if (bytesWritten == -1)
+    {
+        return false;
+    }
+	if (!targetClient->flush()) {
+		qDebug() << "Flush failed for client:" << clientId;
 	}
 
-	QString strobjectInfo;
-	QByteArray strDataRec;
-	bool requiresResponse = true;
+// 	qDebug() << "Sent" << bytesWritten << "bytes to client:" << clientId
+// 		<< "Data:" << strData; 
 
-	//缩小互斥锁的作用范围
-	{
-		QMutexLocker locker(&m_queueMutex);
-		// 取出下一个请求
-		PendingRequest& request = m_requestQueue.head();
-		request.isProcessing = true;
-		m_processingRequest = true;
-		m_currentClientId = request.clientId;
-		requiresResponse = request.requiresResponse;
-
-		strDataRec = request.requestData;
-		
-		strobjectInfo = QString("Rece:[%1]:").arg(request.clientId);
-	}
-
-	if (requiresResponse) 
-	{
-		m_timeoutTimer->start(m_requestTimeout);
-	}
-
-	emit dataReceived(strobjectInfo,strDataRec);
+    emit dataSend(QString("Send:[%1]:").arg(clientId), strData);
+    return true;
 }
 
 

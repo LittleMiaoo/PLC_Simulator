@@ -1,8 +1,10 @@
-﻿#ifndef MAINWORKFLOW_H
+#ifndef MAINWORKFLOW_H
 #define MAINWORKFLOW_H
 
 #include <QObject>
 #include <QMutex>
+#include <QThreadPool>
+#include <memory>
 #include <QVariant>
 
 #include "Comm/CommDefine.h"
@@ -54,6 +56,7 @@ public:
 
 	//主要工作函数.当接收到数据时,通过该函数进行流程处理
 	void	WorkProcess(QByteArray& RecInfo);	
+	bool	ProcessRequest(const QByteArray& RecInfo, QByteArray& Reply);
 
 	
 	CommBase* GetCommBase();
@@ -66,12 +69,13 @@ public:
 
 	//执行lua脚本
 	bool RunLuaScript(int nLuaIndex,const QString& strLuaFile);
+	bool RunLuaScriptAsync(int nLuaIndex,const QString& strLuaFile);
 
 	LuaScript* GetLuaScript(int nIndex);
 	 
 
 //解析指令的详细信息
-private:
+private:	
 	bool	WorkProcess_AnalyzeReceiveInfo(QByteArray& strRecevie,CmdType& CurCmdType);
 
 	bool	WorkProcess_WriteReg(const QByteArray& strRecevie, QByteArray& strSend, int& nAddress, int& nDataNum);
@@ -88,6 +92,8 @@ private:
 //Lua脚本相关
 private:
 	std::vector<std::unique_ptr<LuaScript>> m_vpLuaScript;
+    std::vector<std::unique_ptr<QMutex>> m_vLuaMutex;
+	QThreadPool* m_luaThreadPool;
 
 	//链接lua信号槽
 	void ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript);
@@ -103,6 +109,7 @@ private:
 	//CommStatus						m_CommStatus;		// 通信状态
 
 	CommProtocolBase* m_pComProBase;					//通信协议实例
+    QMutex m_protocolMutex;
 signals:
 	//通信实例的信号转发
 	void commLogRecord(QString strLogInfo);

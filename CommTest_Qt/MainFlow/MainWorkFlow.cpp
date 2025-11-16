@@ -7,7 +7,7 @@ MainWorkFlow* MainWorkFlow::s_pInstance = nullptr;
 QMutex MainWorkFlow::s_mutex;
 
 MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
-	: QObject(pParent), m_RegisterVal(REGISTER_VAL_NUM)
+    : QObject(pParent), m_RegisterVal(REGISTER_VAL_NUM)
 {
 	m_pComm = nullptr;
 	m_pCommInfo = nullptr;
@@ -23,30 +23,19 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
 	m_bDataChanged = false;
 
 	//m_pLuaScript = nullptr;
-	//循环初始化所有的lua虚拟机
-	m_vpLuaScript.resize(LUA_SCRIPT_NUM);
-	for (auto& pLuaScript: m_vpLuaScript)
-	{
-		pLuaScript = std::unique_ptr<LuaScript>(LuaScript::InitialLuaScript());
+    m_vpLuaScript.resize(LUA_SCRIPT_NUM);
+    m_vLuaMutex.resize(LUA_SCRIPT_NUM);
+    for (int i = 0; i < LUA_SCRIPT_NUM; ++i)
+    {
+        m_vpLuaScript[i] = std::unique_ptr<LuaScript>(LuaScript::InitialLuaScript());
+        ConnectLuaSignalSlot(m_vpLuaScript[i]);
+        m_vLuaMutex[i] = std::make_unique<QMutex>();
+    }
 
-		ConnectLuaSignalSlot(pLuaScript);
-	}
+    m_luaThreadPool = new QThreadPool(this);
+    m_luaThreadPool->setMaxThreadCount(QThread::idealThreadCount());
 
-	//QObject指针pParent强制转换CommTest_Qt指针
-	if (pParent != nullptr)
-	{
-		CommTest_Qt* pCommTest = qobject_cast<CommTest_Qt*>(pParent);
-		if(pCommTest != nullptr)
-		{
-			//连接执行脚本的信号
-			connect(pCommTest,&CommTest_Qt::executeLuaScript,this,[=](int nLuaIndex, QString strLuaFile){
-				if(RunLuaScript(nLuaIndex, strLuaFile))
-				{
-					emit RegisterDataUpdate();
-				}
-			});
-		}
-	}
+
 	
 
 	
@@ -387,6 +376,120 @@ void MainWorkFlow::WorkProcess(QByteArray& RecInfo)
 
 }
 
+bool MainWorkFlow::ProcessRequest(const QByteArray& RecInfo, QByteArray& Reply)
+{
+    if (RecInfo == "") return false;
+
+    if (m_pComProBase == nullptr) return false;
+
+	std::unique_ptr<CommProtocolBase> pro;
+   // CommProtocolBase* pro = nullptr;
+    if (dynamic_cast<CommProMitsubishiQBinary*>(m_pComProBase) != nullptr)
+    {
+        pro = std::make_unique<CommProMitsubishiQBinary>(nullptr);
+    }
+    else if (dynamic_cast<CommProKeyencePCLink*>(m_pComProBase) != nullptr)
+    {
+		pro = std::make_unique<CommProKeyencePCLink>(nullptr);
+    }
+    else
+    {
+        return false;
+    }
+
+    CmdType CurrentCmd = CmdType::eCmdUnkown;
+    if (!pro->AnalyzeCmdInfo(RecInfo, CurrentCmd))
+    {
+        //delete pro;
+        return false;
+    }
+
+    int nCurAddr = 0;
+    int nDataNum = 0;
+
+    switch (CurrentCmd)
+    {
+    case CmdType::eCmdWriteReg:
+    {
+        long nCmdRegAddr = 0;
+        int nCmdRedNum = 0;
+        std::vector<int16_t> vnCmdWriteData;
+        if (!pro->AnalyzeWriteReg(RecInfo, nCmdRegAddr, nCmdRedNum, vnCmdWriteData))
+        {
+           // delete pro;
+            return false;
+        }
+        nCurAddr = nCmdRegAddr;
+        nDataNum = nCmdRedNum;
+        for (int i = 0; i < nCmdRedNum; i++)
+        {
+            int nPLCAddr = nCmdRegAddr + i;
+            if (nPLCAddr > m_RegisterVal.size())
+            {
+                break;
+            }
+            int nPreData = m_RegisterVal.at(nPLCAddr).load();
+            m_RegisterVal.at(nPLCAddr).store(vnCmdWriteData.at(i));
+            if (nPreData != vnCmdWriteData.at(i))
+            {
+                m_bDataChanged = true;
+            }
+        }
+        QByteArray strSend;
+        if (!pro->PackReportWriteRegInfo(strSend))
+        {
+            //delete pro;
+            return false;
+        }
+        Reply = strSend;
+    }
+    break;
+    case CmdType::eCmdReadReg:
+    {
+        long nCmdRegAddr = 0;
+        int nCmdRedNum = 0;
+        if (!pro->AnalyzeReadReg(RecInfo, nCmdRegAddr, nCmdRedNum))
+        {
+          //  delete pro;
+            return false;
+        }
+        nCurAddr = nCmdRegAddr;
+        nDataNum = nCmdRedNum;
+        std::vector<int16_t> vnCmdData;
+        vnCmdData.resize(nCmdRedNum);
+        for (int i = 0; i < nCmdRedNum; i++)
+        {
+            int nPLCAddr = nCmdRegAddr + i;
+            if (nPLCAddr > m_RegisterVal.size())
+            {
+                break;
+            }
+            vnCmdData.at(i) = m_RegisterVal.at(nPLCAddr).load();
+        }
+        QByteArray strSend;
+        if (!pro->PackReportReadRegInfo(strSend, nCmdRegAddr, nCmdRedNum, vnCmdData))
+        {
+          //  delete pro;
+            return false;
+        }
+        Reply = strSend;
+    }
+    break;
+    default:
+       // delete pro;
+        return false;
+    }
+
+    if (m_bDataChanged)
+    {
+        emit RegisterDataUpdate();
+        m_bDataChanged = false;
+    }
+
+  //  delete pro;
+    return true;
+}
+
 CommBase* MainWorkFlow::GetCommBase()
 {
 	if (m_pComm != nullptr)
@@ -432,13 +535,34 @@ bool MainWorkFlow::ResetAllRegisters(int16_t nsetVal)
 
 bool MainWorkFlow::RunLuaScript(int nLuaIndex, const QString &strLuaFile)
 {
-	//序号合法检查
-	if (nLuaIndex < 0 || nLuaIndex >= LUA_SCRIPT_NUM) return false;
-	if (m_vpLuaScript[nLuaIndex] == nullptr) return false;
+    return RunLuaScriptAsync(nLuaIndex, strLuaFile);
+}
 
-	QString strErrorMsg;
-	if (!m_vpLuaScript[nLuaIndex]->RunLuaScript(strLuaFile,strErrorMsg)) return false;
-
+bool MainWorkFlow::RunLuaScriptAsync(int nLuaIndex, const QString &strLuaFile)
+{
+    if (nLuaIndex < 0 || nLuaIndex >= LUA_SCRIPT_NUM) return false;
+    if (m_vpLuaScript[nLuaIndex] == nullptr) return false;
+    class LuaTask : public QRunnable {
+    public:
+        MainWorkFlow* self;
+        int idx;
+        QString file;
+        LuaTask(MainWorkFlow* s, int i, const QString& f) : self(s), idx(i), file(f) {}
+        void run() override {
+            QMutexLocker locker(self->m_vLuaMutex[idx].get());
+            QString err;
+            bool ok = self->m_vpLuaScript[idx]->RunLuaScript(file, err);
+            if (ok) {
+                QMetaObject::invokeMethod(self, "RegisterDataUpdate", Qt::QueuedConnection);
+            } else {
+                QMetaObject::invokeMethod(self, "commLogRecord", Qt::QueuedConnection,
+                                          Q_ARG(QString, QString("Lua执行失败:%1").arg(err)));
+            }
+        }
+    };
+    LuaTask* t = new LuaTask(this, nLuaIndex, strLuaFile);
+    t->setAutoDelete(true);
+    m_luaThreadPool->start(t);
     return true;
 }
 

@@ -19,3 +19,5 @@
 *.exe
 /markdown-img/
 VS2022项目迁移CMake.md
+/Docs/
+/.trae/

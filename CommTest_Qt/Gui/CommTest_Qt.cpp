@@ -445,6 +445,14 @@ void CommTest_Qt::InitialSignalConnect()
 				ui->text_CommLog->append("打开连接失败!");
 				return;
 			}
+			if (auto comm = m_pWorkFlow->GetCommBase())
+			{
+				auto ExecuteRequest = [this](const QByteArray& in, QByteArray& out) {
+					if (!m_pWorkFlow) return false;
+					return m_pWorkFlow->ProcessRequest(in, out);
+				};
+				comm->SetRequestProcessor(ExecuteRequest);
+			}
 			//m_bIsCommValid = true;
 			m_configManager->SaveCommInfo(m_CurInfo.get());
 
@@ -512,12 +520,9 @@ void CommTest_Qt::InitialSignalConnect()
 			{
 				strdata = QString(recData.toHex().toUpper());
 			}
-
+			
 			ui->text_CommLog->append(objectInfo + strdata);
-
-			if (m_pWorkFlow == nullptr) return;
-			//QThread::msleep(20);
-			m_pWorkFlow->WorkProcess(recData);
+			
 		});
 
 		//20251103	wm	发送数据
@@ -578,6 +583,12 @@ void CommTest_Qt::InitialSignalConnect()
 
 void CommTest_Qt::InitialLuaScript()
 {
+    connect(this,&CommTest_Qt::executeLuaScript,this,[=](int nLuaIndex, QString strLuaFile){
+        if (m_pWorkFlow)
+        {
+            m_pWorkFlow->RunLuaScript(nLuaIndex,strLuaFile);
+        }
+    });
 	//连接执行lua脚本按钮
 	connect(ui->Btn_Execute_1,&QPushButton::clicked, this, [=] {
 		if (m_pWorkFlow == nullptr)	return;
@@ -603,10 +614,11 @@ void CommTest_Qt::InitialLuaScript()
 		QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
 		strLuaPath += "LuaFile2.lua";
-		if (!m_pWorkFlow->RunLuaScript(1,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		// if (!m_pWorkFlow->RunLuaScript(1,strLuaPath))
+		// {
+		// 	ui->text_CommLog->append("执行Lua脚本失败!");
+		// }
+		emit executeLuaScript(1,strLuaPath);
 	});
 
 	connect(ui->Btn_Edit_2,&QPushButton::clicked, this, [=] {
@@ -619,10 +631,11 @@ void CommTest_Qt::InitialLuaScript()
 		QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
 		strLuaPath += "LuaFile3.lua";
-		if (!m_pWorkFlow->RunLuaScript(2,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		// if (!m_pWorkFlow->RunLuaScript(2,strLuaPath))
+		// {
+		// 	ui->text_CommLog->append("执行Lua脚本失败!");
+		// }
+		emit executeLuaScript(2,strLuaPath);
 	});
 
 	connect(ui->Btn_Edit_3,&QPushButton::clicked, this, [=] {
@@ -635,10 +648,11 @@ void CommTest_Qt::InitialLuaScript()
 		QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
 		strLuaPath += "LuaFile4.lua";
-		if (!m_pWorkFlow->RunLuaScript(3,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		// if (!m_pWorkFlow->RunLuaScript(3,strLuaPath))
+		// {
+		// 	ui->text_CommLog->append("执行Lua脚本失败!");
+		// }
+		emit executeLuaScript(3,strLuaPath);
 	});
 
 	connect(ui->Btn_Edit_4,&QPushButton::clicked, this, [=] {
@@ -651,10 +665,11 @@ void CommTest_Qt::InitialLuaScript()
 		QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
 		strLuaPath += "LuaFile5.lua";
-		if (!m_pWorkFlow->RunLuaScript(4,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		// if (!m_pWorkFlow->RunLuaScript(4,strLuaPath))
+		// {
+		// 	ui->text_CommLog->append("执行Lua脚本失败!");
+		// }
+		emit executeLuaScript(4,strLuaPath);
 	});
 
 	connect(ui->Btn_Edit_5,&QPushButton::clicked, this, [=] {
@@ -667,10 +682,11 @@ void CommTest_Qt::InitialLuaScript()
 		QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
 		strLuaPath += "LuaFile6.lua";
-		if (!m_pWorkFlow->RunLuaScript(5,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		// if (!m_pWorkFlow->RunLuaScript(5,strLuaPath))
+		// {
+		// 	ui->text_CommLog->append("执行Lua脚本失败!");
+		// }
+		emit executeLuaScript(5,strLuaPath);
 	});
 
 	connect(ui->Btn_Edit_6,&QPushButton::clicked, this, [=] {

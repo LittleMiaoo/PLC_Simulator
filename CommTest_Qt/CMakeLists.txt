@@ -1,4 +1,4 @@
-﻿project(CommTest_Qt LANGUAGES CXX)
+project(CommTest_Qt LANGUAGES CXX)
 
 # 设置目标名称（Debug版本加'd'后缀，与原项目一致）
 set(TARGET_NAME "CommTest_Qt")
@@ -209,3 +209,37 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         ${CMAKE_SOURCE_DIR}/Bin/x64/
     COMMENT "Copying executable to Bin/x64 directory"
 )
+
+# 自动部署 Qt 运行时与插件（优先使用 windeployqt）
+find_program(WINDEPLOYQT_PATH
+    NAMES windeployqt windeployqt.exe
+    HINTS
+        "$ENV{Qt6_DIR}/bin"
+        "$ENV{QTDIR}/bin"
+        "${Qt6_DIR}/bin"
+        "${Qt6_DIR}/../../../bin"
+)
+
+if(WINDEPLOYQT_PATH)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND "${WINDEPLOYQT_PATH}"
+            $<$<CONFIG:Debug>:--debug>
+            $<$<CONFIG:Release>:--release>
+            --no-compiler-runtime
+            --dir "${CMAKE_SOURCE_DIR}/Bin/x64"
+            "$<TARGET_FILE:${TARGET_NAME}>"
+        COMMENT "Deploying Qt runtime with windeployqt"
+    )
+else()
+    message(WARNING "windeployqt not found. Qt runtime will not be auto-deployed.")
+endif()
+
+# 复制 ScriptRunner.dll（若存在）到发布目录
+if(EXISTS "${CMAKE_SOURCE_DIR}/Lua/Lib/ScriptRunner.dll")
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/Lua/Lib/ScriptRunner.dll"
+            "${CMAKE_SOURCE_DIR}/Bin/x64/"
+        COMMENT "Copying ScriptRunner.dll to Bin/x64"
+    )
+endif()

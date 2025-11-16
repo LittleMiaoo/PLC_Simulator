@@ -1,6 +1,19 @@
 ﻿#ifndef COMM_BASE_H
 #define COMM_BASE_H
 #include <QObject>
+#include <QQueue>
+#include <QMutex>
+#include <QMutexLocker>
+#include <QThreadPool>
+#include <QSet>
+#include <QDateTime>
+#include <QTimer>
+#include <QMap>
+#include <QByteArray>
+#include <QString>
+#include <functional>
+#include <QRunnable>
+#include <QThread>
 class CommBase : public QObject
 {
 	Q_OBJECT
@@ -55,6 +68,28 @@ public:
 	virtual bool IsOpen() = 0;													// 连接是否打开
 	virtual bool SendData(const QByteArray& strData ) = 0;							// 发送数据
 	//virtual CommStatus RecieveData(QString& strData) = 0;						// 接收数据
+public:
+	void SetRequestProcessor(std::function<bool(const QByteArray&, QByteArray&)> fn) { m_requestProcessor = std::move(fn); }
+protected:
+	struct PendingRequest {
+		QString endpointId;
+		QByteArray requestData;
+		QDateTime timestamp;
+		bool isProcessing;
+		bool requiresResponse;
+		int timeoutMs;
+	};
+	void AddToRequestQueue(const QString& endpointId, const QByteArray& data);
+	void ProcessNextForEndpoint(const QString& endpointId);
+	virtual bool SendDataToEndpoint(const QString& endpointId, const QByteArray& data) = 0;
+	Q_INVOKABLE void OnTaskFinished(QString endpointId);
+protected:
+	QMap<QString, QQueue<PendingRequest>> m_endpointQueues;
+	QSet<QString> m_endpointProcessing;
+	QMutex m_queueMutex;
+	QThreadPool* m_threadPool;
+	int m_requestTimeout;
+	std::function<bool(const QByteArray&, QByteArray&)> m_requestProcessor;
 };
 
 
