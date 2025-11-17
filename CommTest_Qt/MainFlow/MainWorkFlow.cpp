@@ -1,5 +1,6 @@
-﻿#include "MainWorkFlow.h"
+#include "MainWorkFlow.h"
 #include "CommTest_Qt.h"
+#include "Comm/Socket/CommSocket.h"
 
 
 //初始化静态实例
@@ -192,6 +193,30 @@ bool MainWorkFlow::SetCommInfo(CommBase::CommInfoBase* commInfo)
 	// 使用unique_ptr管理内存
 	m_pCommInfo = commInfo;
 	return true;
+}
+
+bool MainWorkFlow::ConfigureComm(const CommConfig& cfg)
+{
+    if (cfg.type == CommBase::CommType::eSocket)
+    {
+        auto info = std::make_unique<CommSocket::SocketCommInfo>();
+        int socketType = cfg.params.value("socketType", 0).toInt();
+        info->m_SocketType = socketType == 0 ? CommSocket::SocketType::eSTServer : CommSocket::SocketType::eSTClient;
+        info->m_strSocketIPAddress = cfg.params.value("ip", "0.0.0.0").toString();
+        info->m_nSocketPort = static_cast<uint16_t>(cfg.params.value("port", 2000).toUInt());
+        info->m_nSocketListenNum = cfg.params.value("listenNum", 10).toInt();
+        m_ownedCommInfo = std::move(info);
+        return SetCommInfo(m_ownedCommInfo.get());
+    }
+    // TODO: 支持串口等其他通信方式
+    return false;
+}
+
+void MainWorkFlow::SetRequestProcessor(std::function<bool(const QByteArray&, QByteArray&)> fn)
+{
+    if (m_pComm) {
+        m_pComm->SetRequestProcessor(std::move(fn));
+    }
 }
 
 CommBase::CommInfoBase* MainWorkFlow::GetCommInfo()

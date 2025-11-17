@@ -1,6 +1,8 @@
 #include "ConfigManager.h"
 #include "Comm/CommBase.h"
 #include "Comm/Socket/CommSocket.h"
+#include "MainWorkFlow.h"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -103,7 +105,7 @@ bool ConfigManager::WriteConfigFile()
     return true;
 }
 
-bool ConfigManager::SaveCommInfo(CommBase::CommInfoBase* commInfo)
+bool ConfigManager::SaveCommInfo(CommConfig* commInfo)
 {
     if (!commInfo)
     {
@@ -118,19 +120,17 @@ bool ConfigManager::SaveCommInfo(CommBase::CommInfoBase* commInfo)
     
     QJsonObject root = m_configDoc.object();
     QJsonObject commObj;
-    
     if (!SerializeCommInfoToJson(commInfo, commObj))
     {
         return false;
     }
-    
     root["comm_info"] = commObj;
     m_configDoc.setObject(root);
     
     return WriteConfigFile();
 }
 
-bool ConfigManager::LoadCommInfo(CommBase::CommInfoBase*& commInfo)
+bool ConfigManager::LoadCommInfo(CommConfig*& commInfo)
 {
     if (!ReadConfigFile())
     {
@@ -146,63 +146,70 @@ bool ConfigManager::LoadCommInfo(CommBase::CommInfoBase*& commInfo)
     }
     
     QJsonObject commObj = root["comm_info"].toObject();
-    
     return ParseCommInfoFromJson(commObj, commInfo);
 }
 
-bool ConfigManager::SerializeCommInfoToJson(CommBase::CommInfoBase* commInfo, QJsonObject& jsonObj)
+bool ConfigManager::SerializeCommInfoToJson(CommConfig* commInfo, QJsonObject& jsonObj)
 {
     if (!commInfo)
     {
         return false;
     }
-    
-    // 保存基类信息
-    jsonObj["comm_stop"] = commInfo->m_strCommStop;
-    jsonObj["cmd_stop"] = commInfo->m_strCmdStop;
-    
-    // 根据不同的派生类进行序列化
-    if (commInfo->GetCommType() == CommBase::CommType::eSocket)
+    // 新结构：保存通信类型与通用参数字典
+    QString typeStr = (commInfo->type == CommBase::CommType::eSocket) ? "Socket" :
+                      (commInfo->type == CommBase::CommType::eSerial) ? "Serial" : "Unknown";
+    jsonObj["comm_type"] = typeStr;
+    QJsonObject paramsObj;
+    for (auto it = commInfo->params.begin(); it != commInfo->params.end(); ++it)
     {
-        CommSocket::SocketCommInfo* socketInfo = dynamic_cast<CommSocket::SocketCommInfo*>(commInfo);
-        if (socketInfo)
-        {
-            jsonObj["comm_type"] = "Socket";
-            jsonObj["socket_type"] = static_cast<int>(socketInfo->m_SocketType);
-            jsonObj["ip_address"] = socketInfo->m_strSocketIPAddress;
-            jsonObj["port"] = static_cast<int>(socketInfo->m_nSocketPort);
-            jsonObj["listen_num"] = static_cast<int>(socketInfo->m_nSocketListenNum);
-            
-            return true;
+        const QString& key = it.key();
+        const QVariant& val = it.value();
+        switch (val.typeId()) {
+        case QMetaType::Int:
+        case QMetaType::UInt:
+            paramsObj[key] = val.toInt();
+            break;
+        case QMetaType::Double:
+            paramsObj[key] = val.toDouble();
+            break;
+        case QMetaType::Bool:
+            paramsObj[key] = val.toBool();
+            break;
+        default:
+            paramsObj[key] = val.toString();
+            break;
         }
     }
-    
-    qWarning() << "Unsupported CommInfo type";
-    return false;
+    jsonObj["params"] = paramsObj;
+    return true;
 }
 
-bool ConfigManager::ParseCommInfoFromJson(const QJsonObject& jsonObj, CommBase::CommInfoBase*& commInfo)
+bool ConfigManager::ParseCommInfoFromJson(const QJsonObject& jsonObj, CommConfig*& commInfo)
 {
     QString commType = jsonObj["comm_type"].toString();
-    
+    std::unique_ptr<CommConfig> cfg = std::make_unique<CommConfig>();
     if (commType == "Socket")
     {
-        std::unique_ptr<CommSocket::SocketCommInfo> socketInfo = std::make_unique<CommSocket::SocketCommInfo>();
-        //CommSocket::SocketCommInfo* socketInfo = new CommSocket::SocketCommInfo();
-        
-        socketInfo->m_strCommStop = jsonObj["comm_stop"].toString();
-        socketInfo->m_strCmdStop = jsonObj["cmd_stop"].toString();
-        socketInfo->m_SocketType = static_cast<CommSocket::SocketType>(jsonObj["socket_type"].toInt());
-        socketInfo->m_strSocketIPAddress = jsonObj["ip_address"].toString();
-        socketInfo->m_nSocketPort = jsonObj["port"].toInt();
-        socketInfo->m_nSocketListenNum = jsonObj["listen_num"].toInt();
-        
-        commInfo = socketInfo.release();
-        return true;
+        cfg->type = CommBase::CommType::eSocket;
     }
-    
-    qWarning() << "Unknown comm_type:" << commType;
-    return false;
+    else if (commType == "Serial")
+    {
+        cfg->type = CommBase::CommType::eSerial;
+    }
+    else
+    {
+        cfg->type = CommBase::CommType::eCommUnknown;
+    }
+    if (jsonObj.contains("params"))
+    {
+        QJsonObject paramsObj = jsonObj["params"].toObject();
+        for (auto it = paramsObj.begin(); it != paramsObj.end(); ++it)
+        {
+            cfg->params.insert(it.key(), it.value().toVariant());
+        }
+    }
+    commInfo = cfg.release();
+    return true;
 }
 
 bool ConfigManager::SaveProtocolType(int protocolType)
@@ -358,7 +365,7 @@ bool ConfigManager::LoadAllConfigs()
     bool success = true;
     
     // 尝试加载所有配置，失败时继续尝试其他配置
-    CommBase::CommInfoBase* commInfo = nullptr;
+    CommConfig* commInfo = nullptr;
     if (!LoadCommInfo(commInfo))
     {
         qWarning() << "Failed to load comm info";

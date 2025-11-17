@@ -83,14 +83,13 @@ void CommTest_Qt::InitialAllConfigs()
 		m_configManager->LoadAllConfigs();
 		
 		//加载通信信息
-		CommBase::CommInfoBase* commInfo = nullptr;
+		CommConfig* commInfo = nullptr;
 		if (m_configManager->LoadCommInfo(commInfo))
 		{
-			if (commInfo != nullptr && commInfo->GetCommType() == CommBase::CommType::eSocket)
+			if (commInfo != nullptr && commInfo->type == CommBase::CommType::eSocket)
 			{
-				CommSocket::SocketCommInfo* socketInfo = dynamic_cast<CommSocket::SocketCommInfo*>(commInfo);
-				ui->edit_IP->setText(socketInfo->m_strSocketIPAddress);
-				ui->edit_Port->setText(socketInfo->m_nSocketPort == 0 ? "" : QString::number(socketInfo->m_nSocketPort));
+				ui->edit_IP->setText(commInfo->params["ip"].toString());
+				ui->edit_Port->setText(commInfo->params["port"].toString());
 			}
 		}
 		
@@ -435,31 +434,28 @@ void CommTest_Qt::InitialSignalConnect()
 		}
 		else
 		{
-			std::unique_ptr<CommSocket::SocketCommInfo> thisInfo = std::make_unique<CommSocket::SocketCommInfo>();
-
-			thisInfo->m_strSocketIPAddress = ui->edit_IP->text();
-			thisInfo->m_nSocketPort = ui->edit_Port->text().toUShort();
-
-			m_CurInfo = std::move(thisInfo);
-
-			m_pWorkFlow->SetCommInfo(m_CurInfo.get());
+			CommConfig cfg;
+			cfg.type = CommBase::CommType::eSocket;
+			cfg.params.insert("ip", ui->edit_IP->text());
+			cfg.params.insert("port", ui->edit_Port->text().toUShort());
+			cfg.params.insert("listenNum", 10);
+			cfg.params.insert("socketType", 0);
+			m_pWorkFlow->ConfigureComm(cfg);
 
 			if (!m_pWorkFlow->OpenComm())
 			{
 				ui->text_CommLog->append("打开连接失败!");
 				return;
 			}
-			if (auto comm = m_pWorkFlow->GetCommBase())
+			if (m_configManager)
 			{
-				auto ExecuteRequest = [this](const QByteArray& in, QByteArray& out) {
-					if (!m_pWorkFlow) return false;
-					return m_pWorkFlow->ProcessRequest(in, out);
-				};
-				comm->SetRequestProcessor(ExecuteRequest);
+				m_configManager->SaveCommInfo(&cfg);
 			}
-			//m_bIsCommValid = true;
-			m_configManager->SaveCommInfo(m_CurInfo.get());
-
+			auto ExecuteRequest = [this](const QByteArray& in, QByteArray& out) {
+				if (!m_pWorkFlow) return false;
+				return m_pWorkFlow->ProcessRequest(in, out);
+			};
+			m_pWorkFlow->SetRequestProcessor(ExecuteRequest);
 
 			ui->Btn_Create->setText("关闭链接");
 			ui->edit_IP->setEnabled(false);
@@ -1953,8 +1949,8 @@ void CommTest_Qt::InitialGuiStyle()
 	}
 	
 	// 应用组合框样式
-	//if (ui->cmbBox_ProtocolType != nullptr) ui->cmbBox_ProtocolType->setStyleSheet(inputStyleSheet);
-	//if (ui->cmbBox_DataType != nullptr) ui->cmbBox_DataType->setStyleSheet(inputStyleSheet);
+	if (ui->cmbBox_ProtocolType != nullptr) ui->cmbBox_ProtocolType->setStyleSheet(inputStyleSheet);
+	if (ui->cmbBox_DataType != nullptr) ui->cmbBox_DataType->setStyleSheet(inputStyleSheet);
 	
 	// 定义文本编辑框和表格的样式表
 	const QString textEditStyleSheet = 

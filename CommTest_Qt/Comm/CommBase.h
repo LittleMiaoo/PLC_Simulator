@@ -1,4 +1,4 @@
-﻿#ifndef COMM_BASE_H
+#ifndef COMM_BASE_H
 #define COMM_BASE_H
 #include <QObject>
 #include <QQueue>
@@ -71,6 +71,8 @@ public:
 	//virtual CommStatus RecieveData(QString& strData) = 0;						// 接收数据
 public:
 	void SetRequestProcessor(std::function<bool(const QByteArray&, QByteArray&)> fn) { m_requestProcessor = std::move(fn); }
+	void SetRequestTimeoutMs(int ms) { m_requestTimeout = ms; }
+	void SetMaxQueueSizePerEndpoint(int maxSize) { m_maxQueueSizePerEndpoint = maxSize; }
 protected:
 	struct PendingRequest {
 		QString endpointId;
@@ -90,6 +92,7 @@ protected:
 	QMutex m_queueMutex;
 	QThreadPool* m_threadPool;
 	int m_requestTimeout;
+	int m_maxQueueSizePerEndpoint = 100;
 	std::function<bool(const QByteArray&, QByteArray&)> m_requestProcessor;
 };
 

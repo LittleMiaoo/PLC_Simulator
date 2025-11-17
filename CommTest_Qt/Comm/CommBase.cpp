@@ -13,6 +13,10 @@ void CommBase::AddToRequestQueue(const QString& endpointId,QByteArray&& data)
 {
 	{
 		QMutexLocker locker(&m_queueMutex);
+		if (m_endpointQueues[endpointId].size() >= m_maxQueueSizePerEndpoint) {
+			emit CommLogRecord(QString("é˜Ÿåˆ—æº¢å‡ºï¼Œä¸¢å¼ƒè¯·æ±‚: %1").arg(endpointId));
+			return;
+		}
 		PendingRequest request;
 		request.endpointId = endpointId;
 		request.requestData = std::move(data);
@@ -40,6 +44,12 @@ void CommBase::ProcessNextForEndpoint(const QString& endpointId)
 		QMutexLocker locker(&m_queueMutex);
 		request = m_endpointQueues[endpointId].dequeue();
 	}
+	// è¶…æ—¶æ£€æŸ¥
+	if (request.timestamp.msecsTo(QDateTime::currentDateTime()) > request.timeoutMs) {
+		emit CommLogRecord(QString("è¯·æ±‚è¶…æ—¶ï¼Œè·³è¿‡: %1").arg(endpointId));
+		QMetaObject::invokeMethod(this, "OnTaskFinished", Qt::QueuedConnection, Q_ARG(QString, endpointId));
+		return;
+	}
 	emit dataReceived(QString("Rece:[%1]:").arg(endpointId), request.requestData);
 
 	class Task : public QRunnable {
@@ -48,7 +58,7 @@ void CommBase::ProcessNextForEndpoint(const QString& endpointId)
 		QString id;
 		QByteArray rec;
 		Task(CommBase* s, const QString& i, const QByteArray& r) : self(s), id(i), rec(r) {}
-		//move´úÌæ¿½±´.Ìá¸ßĞÔÄÜ
+		//moveï¿½ï¿½ï¿½æ¿½ï¿½ï¿½.ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		Task(CommBase* s, QString&& i, QByteArray&& r) : self(s), id(std::move(i)), rec(std::move(r)) {}
 
 		void run() override {
@@ -64,7 +74,7 @@ void CommBase::ProcessNextForEndpoint(const QString& endpointId)
 			QMetaObject::invokeMethod(self, "OnTaskFinished", Qt::QueuedConnection, Q_ARG(QString, id));
 		}
 	};
-	Task* t = new Task(this, std::move(request.endpointId), std::move(request.requestData));	//Ê¹ÓÃÓÒÖµÒıÓÃmove°æ±¾, Ìá¸ßĞÔÄÜ
+	Task* t = new Task(this, std::move(request.endpointId), std::move(request.requestData));	//Ê¹ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½moveï¿½æ±¾, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	t->setAutoDelete(true);
 	m_threadPool->start(t);
 }

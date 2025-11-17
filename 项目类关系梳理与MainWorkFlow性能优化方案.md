@@ -157,3 +157,65 @@ flowchart LR
 - 阶段 1：解耦 UI 与解析线程；加入请求队列与刷新节流；验证无功能回归。
 - 阶段 2：引入 TableModel；完成寄存器显示优化与批量写接口；压测日志写入。
 - 阶段 3：协议与通信并发管控；Lua/平台合并更新；提供配置项与监控指标（处理耗时/队列长度/丢弃计数）。
+
+## 层间耦合评估
+
+### 依赖关系图
+```mermaid
+flowchart LR
+    UI[UI 层\nCommTest_Qt] --> WF[业务层\nMainWorkFlow]
+    UI -. SetRequestProcessor .-> COMM[通信层\nCommBase/CommSocket]
+    WF --> COMM
+    WF --> PRO[协议层\nCommProtocolBase + 实现]
+    COMM ==> TP[QThreadPool]
+    TP ==> PR[MainWorkFlow::ProcessRequest]
+    PRO --> REG[(寄存器数组)]
+    WF --> REG
+```
+
+### 评估结论
+- UI ↔ 业务层：UI 通过公开接口操作 `MainWorkFlow`，并订阅其信号；交互遵循职责分离（`Gui/CommTest_Qt.h:77–113；MainFlow/MainWorkFlow.h:42–69, 105–113`）。
+- 业务层 ↔ 通信层：`MainWorkFlow` 持有 `CommBase*`，通过抽象接口管理打开/关闭通信与取指针（`MainFlow/MainWorkFlow.h:57–59, 95–104`）。
+- 通信层 ↔ 协议层：通信层不直接依赖协议；协议解析在 `MainWorkFlow::ProcessRequest` 中完成，通信只负责排队与并发执行（`Comm/CommBase.cpp:33–75；MainFlow/MainWorkFlow.cpp:379`）。
+- 注入关系：UI 将处理器注入到通信层（`SetRequestProcessor`），形成跨层穿透；但注入对象仍来自业务层（`CommTest_Qt/Gui/CommTest_Qt.cpp:448–455`）。
+- 循环依赖：不存在编译期循环；依赖方向为 UI → 业务 → 通信/协议。
+
+### 过耦合点与影响
+- UI 直接构造具体通信信息类型：`CommSocket::SocketCommInfo` 在 UI 层被实例化（`Gui/CommTest_Qt.cpp:308–317`），使 UI 依赖具体通信实现；影响：更换通信方式需要修改 UI。
+- UI 向通信层直接注入处理器：`SetRequestProcessor` 从 UI 触发（`Gui/CommTest_Qt.cpp:448–455`），虽然处理器来自业务层，但 UI 持有注入路径；影响：UI 与通信层产生额外关联。
+- 业务层公开 `GetCommBase()`：UI 可获得通信层实例并进行操作（`MainWorkFlow.h:57–59`）；影响：提升了跨层操作可能性。
+
+## 解耦实施方案
+- 依赖注入上移到业务层
+  - 在 `MainWorkFlow` 暴露 `SetRequestProcessor(std::function<bool(const QByteArray&, QByteArray&)>)`，由 UI 将处理器交给业务层，业务层再内部设置到 `CommBase`。
+  - 效果：UI 不直接接触通信层实例；职责边界更清晰。
+- 通信信息构造移至工厂
+  - 在业务层引入 `ICommInfoFactory`，根据 UI 提供的简单配置（IP/端口/模式）生成 `CommBase::CommInfoBase` 的具体实例；UI 不再引用 `CommSocket::SocketCommInfo`。
+  - 效果：UI 与具体通信类型解耦；可扩展串口等类型而不改动 UI。
+- 协议选择统一入口
+  - 保持 `MainWorkFlow::CreateCommProtocol(ProtocolType)` 为唯一入口；UI 仅选择枚举；业务层内部使用工厂创建具体实现。
+  - 效果：UI 与协议实现完全解耦。
+
+### 示例接口草案
+```mermaid
+classDiagram
+    class MainWorkFlow {
+        +SetRequestProcessor(std::function<bool(const QByteArray&, QByteArray&)>)
+        +ConfigureComm(const CommConfig&)
+    }
+    class ICommInfoFactory {
+        <<interface>>
+        +Create(const CommConfig&) CommBase::CommInfoBase*
+    }
+```
+
+## 重构优先级建议
+- P1：上移处理器注入到业务层；UI 不再调用 `GetCommBase()->SetRequestProcessor`。
+- P2：引入通信信息工厂；UI 仅传递配置值。
+- P3：协议工厂与枚举解耦增强；保留现有入口，内部实现工厂化。
+- P4：完善通信层请求超时与热点端点限流；避免线程池被占满影响系统响应。
+
+## 质量与兼容性保证
+- 保持 UI 接口不变（按钮与编辑框交互逻辑不变）；仅替换内部调用路径。
+- 业务层继续作为唯一对外接口；协议与通信实现细节对 UI 隐藏。
+- 增强可测试性：处理器注入与工厂化使各层易于单元测试与模拟替换。

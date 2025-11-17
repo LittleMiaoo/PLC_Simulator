@@ -25,11 +25,18 @@
 #include <memory>
 #include <atomic>
 #include <vector>
+#include <functional>
 
 //lua脚本数量
 #define LUA_SCRIPT_NUM 6
 
 #define REGISTER_VAL_NUM 100000
+
+struct CommConfig {
+	CommBase::CommType type;
+	QVariantMap params; // 通用参数字典，支持不同通信方式扩展
+	CommConfig() : type(CommBase::CommType::eSocket) {}
+};
 
 class MainWorkFlow :public QObject
 {
@@ -71,8 +78,13 @@ public:
 	bool RunLuaScript(int nLuaIndex,const QString& strLuaFile);
 	bool RunLuaScriptAsync(int nLuaIndex,const QString& strLuaFile);
 
-	LuaScript* GetLuaScript(int nIndex);
-	 
+    LuaScript* GetLuaScript(int nIndex);
+    
+
+
+    bool ConfigureComm(const CommConfig& cfg);
+    void SetRequestProcessor(std::function<bool(const QByteArray&, QByteArray&)> fn);
+    
 
 //解析指令的详细信息
 private:	
@@ -105,6 +117,7 @@ private:
 
 	CommBase* m_pComm;									//通信实例
 	CommBase::CommInfoBase* m_pCommInfo;//通信信息实例（智能指针管理）
+	std::unique_ptr<CommBase::CommInfoBase> m_ownedCommInfo; // 业务层自持有的通信信息
 	bool	m_bValidComm;								//通信实例是否有效标志
 	//CommStatus						m_CommStatus;		// 通信状态
 
