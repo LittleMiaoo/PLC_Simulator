@@ -277,27 +277,27 @@ int LuaScript::SetStringWrapper(lua_State* L)
 
 void LuaScript::SetInt16(int nIndex, int16_t nValue)
 {
-	emit SetRegisterValInt16(nIndex, nValue);
+	if (m_provider) m_provider->SetInt16(nIndex, nValue);
 }
 
 void LuaScript::SetInt32(int nIndex, int32_t nValue)
 {
-	emit SetRegisterValInt32(nIndex, nValue);
+	if (m_provider) m_provider->SetInt32(nIndex, nValue);
 }
 
 void LuaScript::SetFloat(int nIndex, float fValue)
 {
-	emit SetRegisterValFloat(nIndex, fValue);
+	if (m_provider) m_provider->SetFloat(nIndex, fValue);
 }
 
 void LuaScript::SetDouble(int nIndex, double dValue)
 {
-	emit SetRegisterValDouble(nIndex, dValue);
+	if (m_provider) m_provider->SetDouble(nIndex, dValue);
 }
 
 void LuaScript::SetString(int nIndex, QString strValue)
 {
-	emit SetRegisterValString(nIndex, strValue);
+	if (m_provider) m_provider->SetString(nIndex, strValue);
 }
 
 // ===== Get系列函数实现 =====
@@ -408,37 +408,27 @@ int LuaScript::GetStringWrapper(lua_State* L)
 
 int16_t LuaScript::GetInt16(int nIndex)
 {
-	int16_t value = 0;
-	emit GetRegisterValInt16(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetInt16(nIndex) : int16_t(0);
 }
 
 int32_t LuaScript::GetInt32(int nIndex)
 {
-	int32_t value = 0;
-	emit GetRegisterValInt32(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetInt32(nIndex) : int32_t(0);
 }
 
 float LuaScript::GetFloat(int nIndex)
 {
-	float value = 0.0f;
-	emit GetRegisterValFloat(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetFloat(nIndex) : 0.0f;
 }
 
 double LuaScript::GetDouble(int nIndex)
 {
-	double value = 0.0;
-	emit GetRegisterValDouble(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetDouble(nIndex) : 0.0;
 }
 
 QString LuaScript::GetString(int nIndex)
 {
-	QString value;
-	emit GetRegisterValString(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetString(nIndex) : QString();
 }
 
 // ===== 循环状态函数实现 =====

@@ -1,13 +1,14 @@
 #include "SimulationPlatform.h"
 
-
+#define MARK_RECT_WIDTH 3
+#define MARK_RECT_HEIGHT 8
 // Canvas widget for drawing
 class CanvasWidget : public QWidget
 {
 public:
     CanvasWidget(SimulationPlatform* parent) : QWidget(parent), m_parent(parent)
     {
-        setStyleSheet("background-color: white;");
+        setStyleSheet("background-color: #FFFFFF; border: 1px solid #CCCCCC;");
     }
 
 protected:
@@ -74,6 +75,7 @@ SimulationPlatform::SimulationPlatform(QWidget *parent)
     setupUI();
     setupValidators();
     setupConnections();
+    applyStyle();
     
     setWindowTitle("Simulation Platform");
     resize(800, 600);
@@ -415,6 +417,90 @@ void SimulationPlatform::updateMark2()
     canvas->update();
 }
 
+void SimulationPlatform::applyStyle()
+{
+    const QString inputStyleSheet =
+        "QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {"
+        "    background-color: #FFFFFF;"
+        "    color: #212121;"
+        "    border: 1px solid #CCCCCC;"
+        "    border-radius: 4px;"
+        "    padding: 4px 6px;"
+        "    font-size: 10pt;"
+        "}"
+        "QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {"
+        "    border: 2px solid #4CA3E0;"
+        "    background-color: #FFFEF5;"
+        "}";
+
+    const QString checkboxStyleSheet =
+        "QCheckBox, QRadioButton {"
+        "    color: #212121;"
+        "    spacing: 6px;"
+        "    font-size: 10pt;"
+        "}"
+        "QCheckBox::indicator, QRadioButton::indicator {"
+        "    width: 16px;"
+        "    height: 16px;"
+        "    border: 1px solid #CCCCCC;"
+        "    border-radius: 3px;"
+        "    background-color: #FFFFFF;"
+        "}"
+        "QCheckBox::indicator:checked, QRadioButton::indicator:checked {"
+        "    background-color: #4CA3E0;"
+        "    border: 1px solid #2E7BA8;"
+        "}"
+        "QCheckBox::indicator:hover, QRadioButton::indicator:hover {"
+        "    border: 1px solid #4CA3E0;"
+        "}";
+
+    const QString groupBoxStyleSheet =
+        "QGroupBox {"
+        "    background-color: #F0F0F0;"
+        "    color: #212121;"
+        "    border: 1px solid #CCCCCC;"
+        "    border-radius: 6px;"
+        "    margin-top: 8px;"
+        "}"
+        "QGroupBox::title {"
+        "    subcontrol-origin: margin;"
+        "    subcontrol-position: top left;"
+        "    padding: 0 6px;"
+        "    font-weight: 600;"
+        "}";
+
+    auto applyLineEdit = [&](QLineEdit* e){ if (e) e->setStyleSheet(inputStyleSheet); };
+    applyLineEdit(basePlatformXEdit);
+    applyLineEdit(basePlatformYEdit);
+    applyLineEdit(basePlatformAngleEdit);
+    applyLineEdit(realTimePlatformXEdit);
+    applyLineEdit(realTimePlatformYEdit);
+    applyLineEdit(realTimePlatformAngleEdit);
+    applyLineEdit(mark1XEdit);
+    applyLineEdit(mark1YEdit);
+    applyLineEdit(mark1AngleEdit);
+    applyLineEdit(mark2XEdit);
+    applyLineEdit(mark2YEdit);
+    applyLineEdit(mark2AngleEdit);
+    applyLineEdit(markCenterDistanceEdit);
+    applyLineEdit(ScreenRatio);
+
+    auto applyCheckRadio = [&](QWidget* w){ if (w) w->setStyleSheet(checkboxStyleSheet); };
+    applyCheckRadio(showBasePlatformCheckBox);
+    applyCheckRadio(showRealTimePlatformCheckBox);
+    applyCheckRadio(mark1FollowBaseCheckBox);
+    applyCheckRadio(ShowMark1CheckBox);
+    applyCheckRadio(mark2FollowRealTimeCheckBox);
+    applyCheckRadio(ShowMark2CheckBox);
+    applyCheckRadio(ShowPlatformUL);
+    applyCheckRadio(ShowPlatformUR);
+    applyCheckRadio(ShowPlatformDL);
+    applyCheckRadio(ShowPlatformDR);
+
+    auto applyGroup = [&](QGroupBox* g){ if (g) g->setStyleSheet(groupBoxStyleSheet); };
+    applyGroup(controlGroup);
+}
+
 void SimulationPlatform::paintEvent(QPaintEvent *event)
 {
     // 主窗口不需要绘制，由CanvasWidget负责绘制
@@ -581,8 +667,8 @@ void SimulationPlatform::drawMark1(QPainter &painter)
     
     // 绘制L型
     double spacing = m_markSpacing/2 * m_scale; // 中心间距
-    double rectWidth = 2 * m_scale; // 矩形宽度
-    double rectHeight = 6 * m_scale; // 矩形高度
+    double rectWidth = MARK_RECT_WIDTH * m_scale; // 矩形宽度
+    double rectHeight = MARK_RECT_HEIGHT * m_scale; // 矩形高度
     
     // 绘制左边的L型mark
     // 水平部分（横杠）- 左边
@@ -642,8 +728,8 @@ void SimulationPlatform::drawMark2(QPainter &painter)
     
    // 绘制L型
     double spacing = m_markSpacing/2 * m_scale; // 中心间距
-    double rectWidth = 2 * m_scale; // 矩形宽度
-    double rectHeight = 6 * m_scale; // 矩形高度
+	double rectWidth = MARK_RECT_WIDTH * m_scale; // 矩形宽度
+	double rectHeight = MARK_RECT_HEIGHT * m_scale; // 矩形高度
     
     // 绘制水平部分
     painter.drawRect(-spacing, 0, rectHeight, rectWidth);

@@ -26,9 +26,76 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
 	//m_pLuaScript = nullptr;
     m_vpLuaScript.resize(LUA_SCRIPT_NUM);
     m_vLuaMutex.resize(LUA_SCRIPT_NUM);
+    struct RegisterProvider : public LuaScript::IDataProvider {
+        MainWorkFlow* self;
+        explicit RegisterProvider(MainWorkFlow* s) : self(s) {}
+        int16_t GetInt16(int index) override { return self->GetRegisterVal(index); }
+        int32_t GetInt32(int index) override {
+            DataTypeConvert dt;
+            dt.u_Int16[0] = self->GetRegisterVal(index);
+            dt.u_Int16[1] = self->GetRegisterVal(index + 1);
+            return dt.u_Int32[0];
+        }
+        float GetFloat(int index) override {
+            DataTypeConvert dt;
+            dt.u_Int16[0] = self->GetRegisterVal(index);
+            dt.u_Int16[1] = self->GetRegisterVal(index + 1);
+            return dt.u_float[0];
+        }
+        double GetDouble(int index) override {
+            DataTypeConvert dt;
+            dt.u_Int16[0] = self->GetRegisterVal(index);
+            dt.u_Int16[1] = self->GetRegisterVal(index + 1);
+            dt.u_Int16[2] = self->GetRegisterVal(index + 2);
+            dt.u_Int16[3] = self->GetRegisterVal(index + 3);
+            return dt.u_double;
+        }
+        QString GetString(int index) override {
+            DataTypeConvert dt;
+            dt.u_Int16[0] = self->GetRegisterVal(index);
+            return QString("%1%2").arg(QChar(dt.u_chars[0])).arg(QChar(dt.u_chars[1]));
+        }
+        void SetInt16(int index, int16_t value) override {
+            self->SetRegisterVal(index, value);
+            QMetaObject::invokeMethod(self, "RegisterDataUpdate", Qt::QueuedConnection);
+        }
+        void SetInt32(int index, int32_t value) override {
+            DataTypeConvert dt;
+            dt.u_Int32[0] = value;
+            self->SetRegisterVal(index, dt.u_Int16[0]);
+            self->SetRegisterVal(index + 1, dt.u_Int16[1]);
+            QMetaObject::invokeMethod(self, "RegisterDataUpdate", Qt::QueuedConnection);
+        }
+        void SetFloat(int index, float value) override {
+            DataTypeConvert dt;
+            dt.u_float[0] = value;
+            self->SetRegisterVal(index, dt.u_Int16[0]);
+            self->SetRegisterVal(index + 1, dt.u_Int16[1]);
+            QMetaObject::invokeMethod(self, "RegisterDataUpdate", Qt::QueuedConnection);
+        }
+        void SetDouble(int index, double value) override {
+            DataTypeConvert dt;
+            dt.u_double = value;
+            self->SetRegisterVal(index, dt.u_Int16[0]);
+            self->SetRegisterVal(index + 1, dt.u_Int16[1]);
+            self->SetRegisterVal(index + 2, dt.u_Int16[2]);
+            self->SetRegisterVal(index + 3, dt.u_Int16[3]);
+            QMetaObject::invokeMethod(self, "RegisterDataUpdate", Qt::QueuedConnection);
+        }
+        void SetString(int index, const QString& value) override {
+            DataTypeConvert dt;
+            for (int i = 0; i < value.length() && i < 2; ++i) {
+                dt.u_chars[i] = value[i].toLatin1();
+            }
+            self->SetRegisterVal(index, dt.u_Int16[0]);
+            QMetaObject::invokeMethod(self, "RegisterDataUpdate", Qt::QueuedConnection);
+        }
+    };
+    m_dataProvider = std::make_unique<RegisterProvider>(this);
     for (int i = 0; i < LUA_SCRIPT_NUM; ++i)
     {
         m_vpLuaScript[i] = std::unique_ptr<LuaScript>(LuaScript::InitialLuaScript());
+        m_vpLuaScript[i]->SetDataProvider(m_dataProvider.get());
         ConnectLuaSignalSlot(m_vpLuaScript[i]);
         m_vLuaMutex[i] = std::make_unique<QMutex>();
     }
@@ -66,97 +133,11 @@ MainWorkFlow::~MainWorkFlow()
 
 void MainWorkFlow::ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript)
 {
-		//连換lua实例的SetRegisterValInt16
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValInt16, this, [this](int Addr, int16_t nVal) {
-		SetRegisterVal(Addr, nVal);
-		emit RegisterDataUpdate();
-	});
 
-	//连換lua实例的SetRegisterValInt32
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValInt32, this, [this](int Addr, int32_t nVal) {
 
-		DataTypeConvert dataConvert;
-		dataConvert.u_Int32[0] = nVal;
-		SetRegisterVal(Addr, dataConvert.u_Int16[0]);
-		SetRegisterVal(Addr+1, dataConvert.u_Int16[1]);
-		emit RegisterDataUpdate();
-	});
 
-	//连換lua实例的SetRegisterValFloat
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValFloat, this, [this](int Addr, float nVal) {
 
-		DataTypeConvert dataConvert;
-		dataConvert.u_float[0] = nVal;
-		SetRegisterVal(Addr, dataConvert.u_Int16[0]);
-		SetRegisterVal(Addr+1, dataConvert.u_Int16[1]);
 
-		emit RegisterDataUpdate();
-	});
-
-	//连換lua实例的SetRegisterValDouble
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValDouble, this, [this](int Addr, double nVal) {
-		
-		DataTypeConvert dataConvert;
-		dataConvert.u_double = nVal;
-		SetRegisterVal(Addr, dataConvert.u_Int16[0]);
-		SetRegisterVal(Addr+1, dataConvert.u_Int16[1]);
-		SetRegisterVal(Addr+2, dataConvert.u_Int16[2]);
-		SetRegisterVal(Addr+3, dataConvert.u_Int16[3]);
-
-		emit RegisterDataUpdate();
-	});
-
-	//连換lua实例的SetRegisterValString
-	connect(pLuaScript.get(), &LuaScript::SetRegisterValString, this, [this](int Addr, QString strVal) {
-		
-		DataTypeConvert dataConvert;
-		for (int i = 0; i < strVal.length() && i < 2; i++)
-		{
-			dataConvert.u_chars[i] = strVal[i].toLatin1();
-		}
-		SetRegisterVal(Addr, dataConvert.u_Int16[0]);
-
-		emit RegisterDataUpdate();
-	});
-
-	// ===== 连接Get系列信号 =====
-	//连換lua实例的GetRegisterValInt16
-	connect(pLuaScript.get(), &LuaScript::GetRegisterValInt16, this, [this](int Addr, int16_t& nVal) {
-		nVal = GetRegisterVal(Addr);
-	});
-
-	//连換lua实例的GetRegisterValInt32
-	connect(pLuaScript.get(), &LuaScript::GetRegisterValInt32, this, [this](int Addr, int32_t& nVal) {
-		DataTypeConvert dataConvert;
-		dataConvert.u_Int16[0] = GetRegisterVal(Addr);
-		dataConvert.u_Int16[1] = GetRegisterVal(Addr + 1);
-		nVal = dataConvert.u_Int32[0];
-	});
-
-	//连換lua实例的GetRegisterValFloat
-	connect(pLuaScript.get(), &LuaScript::GetRegisterValFloat, this, [this](int Addr, float& fVal) {
-		DataTypeConvert dataConvert;
-		dataConvert.u_Int16[0] = GetRegisterVal(Addr);
-		dataConvert.u_Int16[1] = GetRegisterVal(Addr + 1);
-		fVal = dataConvert.u_float[0];
-	});
-
-	//连換lua实例的GetRegisterValDouble
-	connect(pLuaScript.get(), &LuaScript::GetRegisterValDouble, this, [this](int Addr, double& dVal) {
-		DataTypeConvert dataConvert;
-		dataConvert.u_Int16[0] = GetRegisterVal(Addr);
-		dataConvert.u_Int16[1] = GetRegisterVal(Addr + 1);
-		dataConvert.u_Int16[2] = GetRegisterVal(Addr + 2);
-		dataConvert.u_Int16[3] = GetRegisterVal(Addr + 3);
-		dVal = dataConvert.u_double;
-	});
-
-	//连換lua实例的GetRegisterValString
-	connect(pLuaScript.get(), &LuaScript::GetRegisterValString, this, [this](int Addr, QString& strVal) {
-		DataTypeConvert dataConvert;
-		dataConvert.u_Int16[0] = GetRegisterVal(Addr);
-		strVal = QString("%1%2").arg(QChar(dataConvert.u_chars[0])).arg(QChar(dataConvert.u_chars[1]));
-	});
 }
 
 //初始化静态实例

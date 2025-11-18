@@ -122,6 +122,7 @@ private:
     void setupUI();
     void setupValidators();
     void setupConnections();
+    void applyStyle();
     void updateOriginAndScale();
     void drawCoordinateSystem(QPainter &painter);
     void drawPlatform(QPainter &painter, const Platform &platform, QColor color);

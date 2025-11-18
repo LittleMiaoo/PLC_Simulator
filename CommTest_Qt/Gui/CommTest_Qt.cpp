@@ -9,6 +9,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
     , ui(new Ui::CommTest_QtClass())
 {
     ui->setupUi(this);
+	setWindowTitle("PLC通信模拟器");
 	
 	m_CurInfo = nullptr;
 	m_pWorkFlow = nullptr;
@@ -54,7 +55,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 
 	//int* thisint = new int(1);
 
-	setWindowTitle("PLC通信模拟器");
+	
 }
  
 CommTest_Qt::~CommTest_Qt()
@@ -152,11 +153,15 @@ void CommTest_Qt::InitializeMember()
 
 	// 初始化小窗口
 	m_subWindow = std::make_unique<SubMainWindow>();
+	//将当前窗口的名称设置为小窗名称
+	m_subWindow->setWindowTitle(this->windowTitle() + " - 子窗口");
     
     // 初始化模拟平台窗口
    // m_simulationPlatform = std::make_unique<SimulationPlatform>(this);
     m_simulationPlatform = new SimulationPlatform(this);
     m_simulationPlatform->setWindowFlags(Qt::Window); // 设置为独立窗口
+	//将当前窗口的名称设置为模拟平台窗口名称
+	m_simulationPlatform->setWindowTitle(this->windowTitle() + " - 模拟平台");
 
 	//协议设置相关
 	{
@@ -262,10 +267,10 @@ void CommTest_Qt::InitialSignalConnect()
     connect(m_subWindow.get(), &SubMainWindow::showMainWindow, this, &CommTest_Qt::show);
     connect(m_subWindow.get(), &SubMainWindow::executeLuaScript, this, [=](int buttonId) {
         if (m_pWorkFlow == nullptr) return;
-        int idx = buttonId - 1;
+        int idx = buttonId;
         QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile1.lua";
+		strLuaPath += QString("LuaFile%1.lua").arg(idx);
         QFile f(strLuaPath);
         if (!f.exists()) {
             QMessageBox::critical(this, "Lua执行错误", QString("脚本不存在: %1").arg(strLuaPath));

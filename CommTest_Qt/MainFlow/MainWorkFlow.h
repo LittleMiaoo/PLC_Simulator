@@ -123,6 +123,7 @@ private:
 
 	CommProtocolBase* m_pComProBase;					//通信协议实例
     QMutex m_protocolMutex;
+    std::unique_ptr<LuaScript::IDataProvider> m_dataProvider;
 signals:
 	//通信实例的信号转发
 	void commLogRecord(QString strLogInfo);

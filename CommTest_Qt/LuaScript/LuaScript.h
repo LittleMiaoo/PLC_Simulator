@@ -19,6 +19,21 @@ public:
     LuaScript& operator=(const LuaScript&) = delete;
 
     static LuaScript* InitialLuaScript(QObject* pParent = nullptr);
+    class IDataProvider {
+    public:
+        virtual ~IDataProvider() = default;
+        virtual int16_t GetInt16(int index) = 0;
+        virtual int32_t GetInt32(int index) = 0;
+        virtual float GetFloat(int index) = 0;
+        virtual double GetDouble(int index) = 0;
+        virtual QString GetString(int index) = 0;
+        virtual void SetInt16(int index, int16_t value) = 0;
+        virtual void SetInt32(int index, int32_t value) = 0;
+        virtual void SetFloat(int index, float value) = 0;
+        virtual void SetDouble(int index, double value) = 0;
+        virtual void SetString(int index, const QString& value) = 0;
+    };
+    void SetDataProvider(IDataProvider* provider) { m_provider = provider; }
 
 	//设置循环是否有效
 	void SetLoopValid(bool bValid) {
@@ -38,9 +53,7 @@ private:
 	LuaScript(QObject* parent = nullptr);
 
 	lua_State* m_pLua;
-
 	
-
 	bool m_bLoopValid;	//循环是否有效
 
 	bool RegisterLuaFunc();
@@ -106,42 +119,17 @@ public:
                             << "IsLoopValid"<< "sleep"
                             << "MoveAbsInt32" << "MoveAbsFloat" << "MoveRelativeInt32" << "MoveRelativeFloat";
     }
-    
-    // static QString getFunctionTemplate(const QString &functionName) {
-    //     // 返回函数的模板，包含默认参数
-    //     if (functionName == "SetInt16") {
-    //         return "SetInt16(\"D100\", 123)";
-    //     } else if (functionName == "GetInt16") {
-    //         return "GetInt16(\"D100\")";
-    //     } else if (functionName == "SetFloat") {
-    //         return "SetFloat(\"F100\", 123.45)";
-    //     } else if (functionName == "GetFloat") {
-    //         return "GetFloat(\"F100\")";
-    //     }
-    //     return functionName + "()";
-    // }
+
 
 signals:
-	void SetRegisterValInt16(int nIndex, int16_t nValue);
-	void SetRegisterValInt32(int nIndex, int32_t nValue);
-    void SetRegisterValFloat(int nIndex, float fValue);
-    void SetRegisterValDouble(int nIndex, double dValue);
-    void SetRegisterValString(int nIndex, QString strValue);
-
-	// 获取寄存器数据信号
-	void GetRegisterValInt16(int nIndex, int16_t& nValue);
-	void GetRegisterValInt32(int nIndex, int32_t& nValue);
-	void GetRegisterValFloat(int nIndex, float& fValue);
-	void GetRegisterValDouble(int nIndex, double& dValue);
-	void GetRegisterValString(int nIndex, QString& strValue);
-
 	// 平台控制信号
 	void MovePlatformAbsInt32(int32_t nX, int32_t nY, int32_t nAngle);
 	void MovePlatformAbsFloat(double dX, double dY, double dAngle);
 	void MovePlatformRelativeInt32(int32_t nX, int32_t nY, int32_t nAngle);
-	void MovePlatformRelativeFloat(double dX, double dY, double dAngle);
-	
+    void MovePlatformRelativeFloat(double dX, double dY, double dAngle);
 
+private:
+    IDataProvider* m_provider = nullptr;
 };
 
 #endif	// LUASCRIPT_H

@@ -67,7 +67,7 @@
              </font>
             </property>
             <property name="text">
-             <string>最小化</string>
+             <string>小窗显示</string>
             </property>
            </widget>
           </item>
