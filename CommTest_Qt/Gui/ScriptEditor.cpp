@@ -45,30 +45,38 @@ ScriptEditor::ScriptEditor(QWidget *parent,LuaScript* pLuaScript)
     
     createMenus();
     setupHighlighter();
-    updateFunctionMenu();
+
     
     // 设置初始函数模板
-    functionTemplates["SetInt16"] = "SetInt16(\"D100\", 123)";
-    functionTemplates["SetInt32"] = "SetInt32(\"D100\", 123)";
-    functionTemplates["SetFloat"] = "SetFloat(\"D100\", 123.45)";
-    functionTemplates["SetDouble"] = "SetDouble(\"D100\", 123.45)";
-    functionTemplates["SetString"] = "SetString(\"D100\", \"AB\")";
+    functionTemplates["SetInt16"] = "SetInt16(\"D100\", 123) -- 设置D100为123,单字";
+    functionTemplates["SetInt32"] = "SetInt32(\"D100\", 123)    -- 设置D100为123,双字";
+    functionTemplates["SetFloat"] = "SetFloat(\"D100\", 123.45) -- 设置D100为123.45,浮点数";
+    functionTemplates["SetDouble"] = "SetDouble(\"D100\", 123.45) -- 设置D100为123.45,双精度浮点数";
+    functionTemplates["SetString"] = "SetString(\"D100\", \"AB\") -- 设置D100为字符串AB";
 
-    functionTemplates["GetInt16"] = "GetInt16(\"D100\")";
-    functionTemplates["GetInt32"] = "GetInt32(\"D100\")";
-    functionTemplates["GetFloat"] = "GetFloat(\"D100\")";
-    functionTemplates["GetDouble"] = "GetDouble(\"D100\")";
-    functionTemplates["GetString"] = "GetString(\"D100\")";
+    functionTemplates["GetInt16"] = "GetInt16(\"D100\") -- 获取D100的值,单字";
+    functionTemplates["GetInt32"] = "GetInt32(\"D100\")   -- 获取D100的值,双字";
+    functionTemplates["GetFloat"] = "GetFloat(\"D100\") -- 获取D100的值,浮点数";
+    functionTemplates["GetDouble"] = "GetDouble(\"D100\") -- 获取D100的值,双精度浮点数";
+    functionTemplates["GetString"] = "GetString(\"D100\") -- 获取D100的值,字符串";
 
-    functionTemplates["MoveAbsInt32"] = "MoveAbsInt32(\"D100\", \"D102\", \"D104\")";
-    functionTemplates["MoveAbsFloat"] = "MoveAbsFloat(\"D100\", \"D102\", \"D104\")";
-    functionTemplates["MoveRelativeInt32"] = "MoveRelativeInt32(\"D100\", \"D102\", \"D104\")";
-    functionTemplates["MoveRelativeFloat"] = "MoveRelativeFloat(\"D100\", \"D102\", \"D104\")";
+    functionTemplates["MoveAbsInt32"] = "MoveAbsInt32(\"D100\", \"D102\", \"D104\") --根据指定寄存器绝对移动,双字";
+    functionTemplates["MoveAbsFloat"] = "MoveAbsFloat(\"D100\", \"D102\", \"D104\") --根据指定寄存器绝对移动,浮点数";
+    functionTemplates["MoveRelativeInt32"] = "MoveRelativeInt32(\"D100\", \"D102\", \"D104\") --根据指定寄存器相对移动,双字";
+    functionTemplates["MoveRelativeFloat"] = "MoveRelativeFloat(\"D100\", \"D102\", \"D104\") --根据指定寄存器相对移动,浮点数";
 
-    functionTemplates["IsLoopValid"] = "IsLoopValid()";
-    functionTemplates["sleep"] = "sleep(500)";
-
+    functionTemplates["IsLoopValid"] = "IsLoopValid() -- 获取循环是否有效";
+    functionTemplates["sleep"] = "sleep(500) -- 睡眠500毫秒";
+    //lua判定语法
+    functionTemplates["if"] = "if (condition1) then\n    -- 条件condition1为真时执行的代码\nend";
+    functionTemplates["while"] = "while (condition1) do\n    -- 条件condition1为真时执行的代码\nend";
+    functionTemplates["for"] = "for i = 1, 10 do\n    -- 循环体代码\nend";
+    functionTemplates["if-elseif-else"] = "if (condition1) then\n    -- 条件condition1为真时执行的代码\n" \
+                                        "elseif (condition2) then\n    -- 条件condition2为真时执行的代码\n" \
+                                        "else\n    -- 所有条件均不为真时执行的代码\nend";
     
+    updateFunctionMenu();
+
     resize(800, 600);
 }
 
@@ -143,7 +151,12 @@ void ScriptEditor::updateFunctionMenu()
     functionsMenu->clear();
     
     // 获取注册的函数并添加到菜单
-    QStringList functions = LuaScript::getRegisteredFunctions();
+    // QStringList functions = LuaScript::getRegisteredFunctions();
+    QStringList functions;
+    for (auto it = functionTemplates.begin(); it != functionTemplates.end(); ++it) {
+        functions.append(it.key());
+    }
+
     for (const QString &function : functions) {
         QAction *action = new QAction(function, this);
 

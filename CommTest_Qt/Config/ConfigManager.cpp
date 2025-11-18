@@ -130,7 +130,7 @@ bool ConfigManager::SaveCommInfo(CommConfig* commInfo)
     return WriteConfigFile();
 }
 
-bool ConfigManager::LoadCommInfo(CommConfig*& commInfo)
+bool ConfigManager::LoadCommInfo(std::unique_ptr<CommConfig>& commInfo)
 {
     if (!ReadConfigFile())
     {
@@ -184,31 +184,31 @@ bool ConfigManager::SerializeCommInfoToJson(CommConfig* commInfo, QJsonObject& j
     return true;
 }
 
-bool ConfigManager::ParseCommInfoFromJson(const QJsonObject& jsonObj, CommConfig*& commInfo)
+bool ConfigManager::ParseCommInfoFromJson(const QJsonObject& jsonObj, std::unique_ptr<CommConfig>& commInfo)
 {
     QString commType = jsonObj["comm_type"].toString();
-    std::unique_ptr<CommConfig> cfg = std::make_unique<CommConfig>();
+    commInfo = std::make_unique<CommConfig>();
     if (commType == "Socket")
     {
-        cfg->type = CommBase::CommType::eSocket;
+        commInfo->type = CommBase::CommType::eSocket;
     }
     else if (commType == "Serial")
     {
-        cfg->type = CommBase::CommType::eSerial;
+        commInfo->type = CommBase::CommType::eSerial;
     }
     else
     {
-        cfg->type = CommBase::CommType::eCommUnknown;
+        commInfo->type = CommBase::CommType::eCommUnknown;
     }
     if (jsonObj.contains("params"))
     {
         QJsonObject paramsObj = jsonObj["params"].toObject();
         for (auto it = paramsObj.begin(); it != paramsObj.end(); ++it)
         {
-            cfg->params.insert(it.key(), it.value().toVariant());
+            commInfo->params.insert(it.key(), it.value().toVariant());
         }
     }
-    commInfo = cfg.release();
+   // commInfo = cfg.release();
     return true;
 }
 
@@ -365,16 +365,17 @@ bool ConfigManager::LoadAllConfigs()
     bool success = true;
     
     // 尝试加载所有配置，失败时继续尝试其他配置
-    CommConfig* commInfo = nullptr;
+   /* CommConfig* commInfo = nullptr;*/
+    std::unique_ptr<CommConfig> commInfo;
     if (!LoadCommInfo(commInfo))
     {
         qWarning() << "Failed to load comm info";
         success = false;
     }
-    else if (commInfo)
-    {
-        delete commInfo;
-    }
+//     else if (commInfo)
+//     {
+//         delete commInfo;
+//     }
     
     int protocolType = -1;
     if (!LoadProtocolType(protocolType))

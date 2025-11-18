@@ -54,6 +54,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 
 	//int* thisint = new int(1);
 
+	setWindowTitle("PLC通信模拟器");
 }
  
 CommTest_Qt::~CommTest_Qt()
@@ -83,15 +84,19 @@ void CommTest_Qt::InitialAllConfigs()
 		m_configManager->LoadAllConfigs();
 		
 		//加载通信信息
-		CommConfig* commInfo = nullptr;
-		if (m_configManager->LoadCommInfo(commInfo))
 		{
-			if (commInfo != nullptr && commInfo->type == CommBase::CommType::eSocket)
+			std::unique_ptr<CommConfig> commInfo;
+			//CommConfig* commInfo = nullptr;
+			if (m_configManager->LoadCommInfo(commInfo))
 			{
-				ui->edit_IP->setText(commInfo->params["ip"].toString());
-				ui->edit_Port->setText(commInfo->params["port"].toString());
+				if (commInfo != nullptr && commInfo->type == CommBase::CommType::eSocket)
+				{
+					ui->edit_IP->setText(commInfo->params["ip"].toString());
+					ui->edit_Port->setText(commInfo->params["port"].toString());
+				}
 			}
 		}
+		
 		
 		// 应用加载的配置到UI
 		// 加载脚本名称
@@ -1812,7 +1817,7 @@ void CommTest_Qt::OnWriteAxisFloat()
 void CommTest_Qt::OnShowAboutDialog()
 {
 	QMessageBox aboutBox(this);
-	aboutBox.setWindowTitle("关于CommTest_Qt");
+	aboutBox.setWindowTitle("关于 PLC通信模拟器");
 	
 	// 获取编译时间
 	QString compileDate = QString::fromLatin1(__DATE__);
@@ -1820,13 +1825,13 @@ void CommTest_Qt::OnShowAboutDialog()
 	
 	// 设置信息内容
 	QString aboutText = QString(
-		"<h2>CommTest_Qt</h2>"
-		"<p><b>版本：</b> Version 1.0.0</p>"
+		"<h2>PLC通信模拟器</h2>"
+		"<p><b>版本：</b> Version 1.2.0</p>"
 		"<p><b>编译日期：</b> %1</p>"
 		"<p><b>编译时间：</b> %2</p>"
-		"<p><b>作者：</b> Wang Mao</p>"
+		"<p><b>作者：</b> WangMao</p>"
 		"<hr>"
-		"<p>一个基于Qt6的通信测试平台.支持Lua脚本操作</p>"
+		"<p>一个基于Qt6的通信测试平台,支持Lua脚本语言</p>"
 	).arg(compileDate).arg(compileTime);
 	
 	aboutBox.setText(aboutText);

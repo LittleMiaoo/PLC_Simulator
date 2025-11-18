@@ -58,7 +58,7 @@ void CommBase::ProcessNextForEndpoint(const QString& endpointId)
 		QString id;
 		QByteArray rec;
 		Task(CommBase* s, const QString& i, const QByteArray& r) : self(s), id(i), rec(r) {}
-		//move���濽��.�������
+		//提供移动语义的构造函数
 		Task(CommBase* s, QString&& i, QByteArray&& r) : self(s), id(std::move(i)), rec(std::move(r)) {}
 
 		void run() override {
@@ -74,7 +74,7 @@ void CommBase::ProcessNextForEndpoint(const QString& endpointId)
 			QMetaObject::invokeMethod(self, "OnTaskFinished", Qt::QueuedConnection, Q_ARG(QString, id));
 		}
 	};
-	Task* t = new Task(this, std::move(request.endpointId), std::move(request.requestData));	//ʹ����ֵ����move�汾, �������
+	Task* t = new Task(this, std::move(request.endpointId), std::move(request.requestData));	//使用移动语义的构造函数，避免拷贝
 	t->setAutoDelete(true);
 	m_threadPool->start(t);
 }

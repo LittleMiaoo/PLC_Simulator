@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 	MemoryLeakDetector::EnableMemoryLeakChecks();
 	
 	// 如果你知道特定的内存分配编号，可以设置断点
-	 //MemoryLeakDetector::SetBreakAlloc(26543);  
+	 //MemoryLeakDetector::SetBreakAlloc(15370);
 #endif
 #endif
 

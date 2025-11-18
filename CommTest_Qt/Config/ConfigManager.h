@@ -37,7 +37,7 @@ public:
      * @param commInfo 用于存储加载结果的通信参数基类指针引用
      * @return 加载是否成功
      */
-    bool LoadCommInfo(CommConfig*& commInfo);
+    bool LoadCommInfo(std::unique_ptr<CommConfig>& commInfo);
 
     // ==================== 协议类型相关接口 ====================
     
@@ -157,7 +157,7 @@ private:
      * @param commInfo 用于存储结果的通信参数基类指针引用
      * @return 解析是否成功
      */
-    bool ParseCommInfoFromJson(const QJsonObject& jsonObj, CommConfig*& commInfo);
+    bool ParseCommInfoFromJson(const QJsonObject& jsonObj, std::unique_ptr<CommConfig>& commConfig);
 
     /**
      * @brief 将通信参数信息序列化为JSON对象
