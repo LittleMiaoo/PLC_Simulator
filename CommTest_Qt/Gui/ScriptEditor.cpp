@@ -64,6 +64,8 @@ ScriptEditor::ScriptEditor(QWidget *parent,LuaScript* pLuaScript)
     functionTemplates["MoveAbsFloat"] = "MoveAbsFloat(\"D100\", \"D102\", \"D104\") --根据指定寄存器绝对移动,浮点数";
     functionTemplates["MoveRelativeInt32"] = "MoveRelativeInt32(\"D100\", \"D102\", \"D104\") --根据指定寄存器相对移动,双字";
     functionTemplates["MoveRelativeFloat"] = "MoveRelativeFloat(\"D100\", \"D102\", \"D104\") --根据指定寄存器相对移动,浮点数";
+    functionTemplates["WriteCurrentPosInt32"] = "WriteCurrentPosInt32(\"D100\", \"D102\", \"D104\") --写入当前位置,双字";
+    functionTemplates["WriteCurrentPosFloat"] = "WriteCurrentPosFloat(\"D100\", \"D102\", \"D104\") --写入当前位置,浮点数";
 
     functionTemplates["IsLoopValid"] = "IsLoopValid() -- 获取循环是否有效";
     functionTemplates["sleep"] = "sleep(500) -- 睡眠500毫秒";

@@ -32,6 +32,15 @@ public:
         virtual void SetFloat(int index, float value) = 0;
         virtual void SetDouble(int index, double value) = 0;
         virtual void SetString(int index, const QString& value) = 0;
+
+		//控制平台移动,传入参数为地址
+		virtual void MovePlatformAbsInt32(int Xaddr, int Yaddr, int Angleaddr)= 0;
+		virtual void MovePlatformAbsFloat(int Xaddr, int Yaddr, int Angleaddr) = 0;
+		virtual void MovePlatformRelativeInt32(int Xaddr, int Yaddr, int Angleaddr) = 0;
+		virtual void MovePlatformRelativeFloat(int Xaddr, int Yaddr, int Angleaddr) = 0;
+		//写入当前轴位置,传入参数为地址
+		virtual void WriteCurrentPosInt32(int Xaddr, int Yaddr, int Angleaddr) = 0;
+		virtual void WriteCurrentPosFloat(int Xaddr, int Yaddr, int Angleaddr) = 0;
     };
     void SetDataProvider(IDataProvider* provider) { m_provider = provider; }
 
@@ -83,6 +92,10 @@ private:
 	static int MoveRelativeInt32Wrapper(lua_State* L);
 	static int MoveRelativeFloatWrapper(lua_State* L);
 
+	//注册到Lua的平台数据写入函数
+	static int WriteCurrentPosInt32Wrapper(lua_State* L);
+	static int WriteCurrentPosFloatWrapper(lua_State* L);
+
 	//各种数据类型的实际执行函数
 	void SetInt16(int nIndex, int16_t nValue);
 	void SetInt32(int nIndex, int32_t nValue);
@@ -103,6 +116,10 @@ private:
 	void MoveRelativeInt32(int nXIndex, int nYIndex, int nAngleIndex);
 	void MoveRelativeFloat(int nXIndex, int nYIndex, int nAngleIndex);
 
+	//平台数据写入函数实际执行
+	void WriteCurrentPosInt32(int nXIndex, int nYIndex, int nAngleIndex);
+	void WriteCurrentPosFloat(int nXIndex, int nYIndex, int nAngleIndex);
+
 	//验证Lua传入的地址字符串是否有效并解析成地址
 	static bool ParseRegisterAddr(const char* strAddr, int& nAddr,int nMinVal = 0,int nMaxVal = 100000);
 
@@ -117,16 +134,20 @@ public:
         return QStringList() << "SetInt16" << "SetInt32" << "SetFloat" << "SetDouble" << "SetString"
                             << "GetInt16" << "GetInt32" << "GetFloat" << "GetDouble" << "GetString"
                             << "IsLoopValid"<< "sleep"
-                            << "MoveAbsInt32" << "MoveAbsFloat" << "MoveRelativeInt32" << "MoveRelativeFloat";
+                            << "MoveAbsInt32" << "MoveAbsFloat" << "MoveRelativeInt32" << "MoveRelativeFloat"
+							<< "WriteCurrentPosInt32" << "WriteCurrentPosFloat";
     }
 
 
-signals:
-	// 平台控制信号
-	void MovePlatformAbsInt32(int32_t nX, int32_t nY, int32_t nAngle);
-	void MovePlatformAbsFloat(double dX, double dY, double dAngle);
-	void MovePlatformRelativeInt32(int32_t nX, int32_t nY, int32_t nAngle);
-    void MovePlatformRelativeFloat(double dX, double dY, double dAngle);
+// signals:
+// 	// 平台控制信号
+// 	void MovePlatformAbsInt32(int32_t nX, int32_t nY, int32_t nAngle);
+// 	void MovePlatformAbsFloat(double dX, double dY, double dAngle);
+// 	void MovePlatformRelativeInt32(int32_t nX, int32_t nY, int32_t nAngle);
+//     void MovePlatformRelativeFloat(double dX, double dY, double dAngle);
+// 	// 平台数据写入信号
+// 	void WriteCurrentPosInt32(int32_t nX, int32_t nY, int32_t nAngle);
+// 	void WriteCurrentPosFloat(double dX, double dY, double dAngle);
 
 private:
     IDataProvider* m_provider = nullptr;

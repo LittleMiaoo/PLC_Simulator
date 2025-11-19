@@ -132,6 +132,25 @@ signals:
 
 	void RegisterDataUpdate();	//寄存器数据发生改变的信号
 
+public:
+
+	//平台控制器
+	class IBaseController
+	{
+	public:
+		virtual ~IBaseController() = default;
+		virtual void MovePlatformAbsFloat(double dX, double dY, double dAngle) = 0;
+		virtual void MovePlatformRelativeFloat(double dX, double dY, double dAngle) = 0;
+		virtual void MovePlatformAbsInt32(int32_t nX, int32_t nY, int32_t nAngle) = 0;
+		virtual void MovePlatformRelativeInt32(int32_t nX, int32_t nY, int32_t nAngle) = 0;
+		virtual void GetCurrentPosInt32(int32_t& nX, int32_t& nY, int32_t& nAngle) = 0;
+		virtual void GetCurrentPosFloat(double& dX, double& dY, double& dAngle) = 0;
+	};
+	void SetBaseController(IBaseController* provider) { m_pController = provider; }
+
+private:
+	IBaseController* m_pController = nullptr;
+
 	
 };
 

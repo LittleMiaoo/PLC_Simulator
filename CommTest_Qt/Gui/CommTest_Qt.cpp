@@ -55,7 +55,86 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 
 	//int* thisint = new int(1);
 
-	
+	struct SimulationPlatformController: public MainWorkFlow::IBaseController
+	{
+		CommTest_Qt* m_pParent;
+		explicit SimulationPlatformController(CommTest_Qt* parent) : m_pParent(parent) {}
+		void MovePlatformAbsFloat(double dX, double dY, double dAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				m_pParent->m_simulationPlatform->SetRealTimePlatformAbs(dX, dY, dAngle);
+			}
+		}
+		void MovePlatformRelativeFloat(double dX, double dY, double dAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				m_pParent->m_simulationPlatform->SetRealTimePlatformRelative(dX, dY, dAngle);
+			}
+		}
+		void MovePlatformRelativeInt32(int32_t nX, int32_t nY, int32_t nAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				// 获取除数：10的幂次方
+				double divisorXY = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_XY);
+				double divisorD = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_D);
+
+				// 转换坐标值：除以10的幂次方
+				double convertedX = static_cast<double>(nX) / divisorXY;
+				double convertedY = static_cast<double>(nY) / divisorXY;
+				double convertedAngle = static_cast<double>(nAngle) / divisorD;
+
+				// 控制平台移动
+				m_pParent->m_simulationPlatform->SetRealTimePlatformRelative(convertedX, convertedY, convertedAngle);
+			}
+		}
+		void MovePlatformAbsInt32(int32_t nX, int32_t nY, int32_t nAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				// 获取除数：10的幂次方
+				double divisorXY = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_XY);
+				double divisorD = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_D);
+
+				// 转换坐标值：除以10的幂次方
+				double convertedX = static_cast<double>(nX) / divisorXY;
+				double convertedY = static_cast<double>(nY) / divisorXY;
+				double convertedAngle = static_cast<double>(nAngle) / divisorD;
+
+				// 控制平台移动
+				m_pParent->m_simulationPlatform->SetRealTimePlatformAbs(convertedX, convertedY, convertedAngle);
+			}
+		}
+
+		void GetCurrentPosInt32(int32_t& nX, int32_t& nY, int32_t& nAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				double x = 0.0, y = 0.0, angle = 0.0;
+				m_pParent->m_simulationPlatform->GetRealTimePlatformData(x, y, angle);
+
+				// 获取幂次值并计算乘数（注意：这里是乘以幂次，与平台控制时除以幂次相反）
+				double multiplierXY = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_XY);  // 10^powerXY
+				double multiplierD = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_D);    // 10^powerD
+
+				// 将坐标值乘以10的幂次方并转换为int32
+				 nX = static_cast<int32_t>(x * multiplierXY);
+				 nY = static_cast<int32_t>(y * multiplierXY);
+				 nAngle = static_cast<int32_t>(angle * multiplierD);
+			}
+		}
+		void GetCurrentPosFloat(double& dX, double& dY, double& dAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				m_pParent->m_simulationPlatform->GetRealTimePlatformData(dX, dY, dAngle);
+			}
+		}
+	};
+	m_PlatformController = std::make_unique<SimulationPlatformController>(this);
+	m_pWorkFlow->SetBaseController(m_PlatformController.get());
 }
  
 CommTest_Qt::~CommTest_Qt()
@@ -766,24 +845,24 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	// 连接所有6个Lua脚本实例的平台控制信号
-	for (int i = 0; i < LUA_SCRIPT_NUM; ++i)
-	{
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(i);
-		if (pLua != nullptr)
-		{
-			// 连接绝对位置Int32信号
-			connect(pLua, &LuaScript::MovePlatformAbsInt32, this, &CommTest_Qt::OnMovePlatformAbsInt32);
+	// for (int i = 0; i < LUA_SCRIPT_NUM; ++i)
+	// {
+	// 	LuaScript* pLua = m_pWorkFlow->GetLuaScript(i);
+	// 	if (pLua != nullptr)
+	// 	{
+	// 		// 连接绝对位置Int32信号
+	// 		connect(pLua, &LuaScript::MovePlatformAbsInt32, this, &CommTest_Qt::OnMovePlatformAbsInt32);
 			
-			// 连接绝对位置Float信号
-			connect(pLua, &LuaScript::MovePlatformAbsFloat, this, &CommTest_Qt::OnMovePlatformAbsFloat);
+	// 		// 连接绝对位置Float信号
+	// 		connect(pLua, &LuaScript::MovePlatformAbsFloat, this, &CommTest_Qt::OnMovePlatformAbsFloat);
 			
-			// 连接相对位置Int32信号
-			connect(pLua, &LuaScript::MovePlatformRelativeInt32, this, &CommTest_Qt::OnMovePlatformRelativeInt32);
+	// 		// 连接相对位置Int32信号
+	// 		connect(pLua, &LuaScript::MovePlatformRelativeInt32, this, &CommTest_Qt::OnMovePlatformRelativeInt32);
 			
-			// 连接相对位置Float信号
-			connect(pLua, &LuaScript::MovePlatformRelativeFloat, this, &CommTest_Qt::OnMovePlatformRelativeFloat);
-		}
-	}
+	// 		// 连接相对位置Float信号
+	// 		connect(pLua, &LuaScript::MovePlatformRelativeFloat, this, &CommTest_Qt::OnMovePlatformRelativeFloat);
+	// 	}
+	// }
 }
 
 void CommTest_Qt::OpenScriptEditor(int scriptIndex)
@@ -1648,67 +1727,67 @@ double CommTest_Qt::GetDivisorFromPowerEdit(QLineEdit* edit, double defaultPower
 	return std::pow(10.0, power);
 }
 
-void CommTest_Qt::OnMovePlatformAbsInt32(int32_t x, int32_t y, int32_t angle)
-{
-	if (m_simulationPlatform == nullptr)
-	{
-		return;
-	}
+// void CommTest_Qt::OnMovePlatformAbsInt32(int32_t x, int32_t y, int32_t angle)
+// {
+// 	if (m_simulationPlatform == nullptr)
+// 	{
+// 		return;
+// 	}
 
-	// 获取除数：10的幂次方
-	double divisorXY = GetDivisorFromPowerEdit(ui->edit_Unit_XY);
-	double divisorD = GetDivisorFromPowerEdit(ui->edit_Unit_D);
+// 	// 获取除数：10的幂次方
+// 	double divisorXY = GetDivisorFromPowerEdit(ui->edit_Unit_XY);
+// 	double divisorD = GetDivisorFromPowerEdit(ui->edit_Unit_D);
 
-	// 转换坐标值：除以10的幂次方
-	double convertedX = static_cast<double>(x) / divisorXY;
-	double convertedY = static_cast<double>(y) / divisorXY;
-	double convertedAngle = static_cast<double>(angle) / divisorD;
+// 	// 转换坐标值：除以10的幂次方
+// 	double convertedX = static_cast<double>(x) / divisorXY;
+// 	double convertedY = static_cast<double>(y) / divisorXY;
+// 	double convertedAngle = static_cast<double>(angle) / divisorD;
 
-	// 控制平台移动
-	m_simulationPlatform->SetRealTimePlatformAbs(convertedX, convertedY, convertedAngle);
-}
+// 	// 控制平台移动
+// 	m_simulationPlatform->SetRealTimePlatformAbs(convertedX, convertedY, convertedAngle);
+// }
 
-void CommTest_Qt::OnMovePlatformAbsFloat(double x, double y, double angle)
-{
-	if (m_simulationPlatform == nullptr)
-	{
-		return;
-	}
+// void CommTest_Qt::OnMovePlatformAbsFloat(double x, double y, double angle)
+// {
+// 	if (m_simulationPlatform == nullptr)
+// 	{
+// 		return;
+// 	}
 
-	// Float类型直接使用，无需转换
-	m_simulationPlatform->SetRealTimePlatformAbs(x, y, angle);
-}
+// 	// Float类型直接使用，无需转换
+// 	m_simulationPlatform->SetRealTimePlatformAbs(x, y, angle);
+// }
 
-void CommTest_Qt::OnMovePlatformRelativeInt32(int32_t x, int32_t y, int32_t angle)
-{
-	if (m_simulationPlatform == nullptr)
-	{
-		return;
-	}
+// void CommTest_Qt::OnMovePlatformRelativeInt32(int32_t x, int32_t y, int32_t angle)
+// {
+// 	if (m_simulationPlatform == nullptr)
+// 	{
+// 		return;
+// 	}
 
-	// 获取除数：10的幂次方
-	double divisorXY = GetDivisorFromPowerEdit(ui->edit_Unit_XY);
-	double divisorD = GetDivisorFromPowerEdit(ui->edit_Unit_D);
+// 	// 获取除数：10的幂次方
+// 	double divisorXY = GetDivisorFromPowerEdit(ui->edit_Unit_XY);
+// 	double divisorD = GetDivisorFromPowerEdit(ui->edit_Unit_D);
 
-	// 转换坐标值：除以10的幂次方
-	double convertedX = static_cast<double>(x) / divisorXY;
-	double convertedY = static_cast<double>(y) / divisorXY;
-	double convertedAngle = static_cast<double>(angle) / divisorD;
+// 	// 转换坐标值：除以10的幂次方
+// 	double convertedX = static_cast<double>(x) / divisorXY;
+// 	double convertedY = static_cast<double>(y) / divisorXY;
+// 	double convertedAngle = static_cast<double>(angle) / divisorD;
 
-	// 控制平台移动
-	m_simulationPlatform->SetRealTimePlatformRelative(convertedX, convertedY, convertedAngle);
-}
+// 	// 控制平台移动
+// 	m_simulationPlatform->SetRealTimePlatformRelative(convertedX, convertedY, convertedAngle);
+// }
 
-void CommTest_Qt::OnMovePlatformRelativeFloat(double x, double y, double angle)
-{
-	if (m_simulationPlatform == nullptr)
-	{
-		return;
-	}
+// void CommTest_Qt::OnMovePlatformRelativeFloat(double x, double y, double angle)
+// {
+// 	if (m_simulationPlatform == nullptr)
+// 	{
+// 		return;
+// 	}
 
-	// Float类型直接使用，无需转换
-	m_simulationPlatform->SetRealTimePlatformRelative(x, y, angle);
-}
+// 	// Float类型直接使用，无需转换
+// 	m_simulationPlatform->SetRealTimePlatformRelative(x, y, angle);
+// }
 
 // ====================轴位置写入相关槽函数实现====================
 

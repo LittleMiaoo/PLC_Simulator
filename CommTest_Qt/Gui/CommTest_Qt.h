@@ -86,6 +86,7 @@ protected:
 private:
 
 	MainWorkFlow* m_pWorkFlow;
+	std::unique_ptr<MainWorkFlow::IBaseController> m_PlatformController;
 	//CommSocket::SocketCommInfo* m_CurInfo;
 	std::unique_ptr<CommBase::CommInfoBase> m_CurInfo; //内存自动管理
 

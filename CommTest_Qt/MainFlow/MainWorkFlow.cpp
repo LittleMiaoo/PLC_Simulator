@@ -1,4 +1,4 @@
-#include "MainWorkFlow.h"
+﻿#include "MainWorkFlow.h"
 #include "CommTest_Qt.h"
 #include "Comm/Socket/CommSocket.h"
 
@@ -90,6 +90,55 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
             self->SetRegisterVal(index, dt.u_Int16[0]);
             QMetaObject::invokeMethod(self, "RegisterDataUpdate", Qt::QueuedConnection);
         }
+
+        void MovePlatformAbsInt32(int Xaddr, int Yaddr, int Angleaddr) override {
+            if (!self->m_pController) return;
+			int X, Y, Angle;
+			X = GetInt32(Xaddr);
+			Y = GetInt32(Yaddr);
+			Angle = GetInt32(Angleaddr);
+            self->m_pController->MovePlatformAbsInt32(X, Y, Angle);
+        }
+        void MovePlatformAbsFloat(int Xaddr, int Yaddr, int Angleaddr) override {
+            if (!self->m_pController) return;
+			double X, Y, Angle;
+			X = GetFloat(Xaddr);
+			Y = GetFloat(Yaddr);
+			Angle = GetFloat(Angleaddr);
+            self->m_pController->MovePlatformAbsFloat(X, Y, Angle);
+        }
+        void MovePlatformRelativeInt32(int Xaddr, int Yaddr, int Angleaddr) override {
+            if (!self->m_pController) return;
+            int X, Y, Angle;
+            X = GetInt32(Xaddr);
+            Y = GetInt32(Yaddr);
+            Angle = GetInt32(Angleaddr);
+            self->m_pController->MovePlatformRelativeInt32(X, Y, Angle);
+        }
+        void MovePlatformRelativeFloat(int Xaddr, int Yaddr, int Angleaddr) override {
+            if (!self->m_pController) return;
+			double X, Y, Angle;
+			X = GetFloat(Xaddr);
+			Y = GetFloat(Yaddr);
+			Angle = GetFloat(Angleaddr);
+            self->m_pController->MovePlatformRelativeFloat(X, Y, Angle);
+        }
+        void WriteCurrentPosInt32(int Xaddr, int Yaddr, int Angleaddr) override {
+            if (!self->m_pController) return;
+            int X, Y, Angle;
+            self->m_pController->GetCurrentPosInt32(X, Y, Angle);
+            SetInt32(Xaddr, X);
+            SetInt32(Yaddr, Y);
+            SetInt32(Angleaddr, Angle);
+        }
+        void WriteCurrentPosFloat(int Xaddr, int Yaddr, int Angleaddr) override {
+            if (!self->m_pController) return;
+            double dX, dY, dAngle;
+            self->m_pController->GetCurrentPosFloat(dX, dY, dAngle);
+            SetFloat(Xaddr, dX);
+            SetFloat(Yaddr, dY);
+            SetFloat(Angleaddr, dAngle);
+        }
     };
     m_dataProvider = std::make_unique<RegisterProvider>(this);
     for (int i = 0; i < LUA_SCRIPT_NUM; ++i)
@@ -102,11 +151,6 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
 
     m_luaThreadPool = new QThreadPool(this);
     m_luaThreadPool->setMaxThreadCount(QThread::idealThreadCount());
-
-
-	
-
-	
 }
 
 // 析构函数：确保所有资源正确释放
