@@ -113,6 +113,10 @@ private:
 //通信&寄存器相关	
 private:	
 	std::vector<std::atomic_int16_t> m_RegisterVal;		//寄存器数据
+	QString m_strSendObjInfo;						//发送数据的对象信息
+	QByteArray m_strSendData;							//发送的数据
+	QString m_strRecObjInfo;						//接收数据的对象信息
+	QByteArray m_strRecData;							//接收的数据
 	std::atomic_bool m_bDataChanged;
 
 	CommBase* m_pComm;									//通信实例

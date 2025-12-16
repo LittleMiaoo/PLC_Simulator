@@ -49,6 +49,14 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 
 	//初始化输入限制
 	InitialLineEditValidator();
+	
+	// 在状态栏添加作者和版本信息
+	const QString datetime = QStringLiteral("%1 %2").arg(__DATE__).arg(__TIME__);
+	
+	QLabel *label = new QLabel(this);
+    label->setText(QStringLiteral("Author:Wang Version:1.2.0 Compile Time: ") + datetime);
+	ui->statusBar->addPermanentWidget(label);
+
 
 	//更新表格显示
 	UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt(),true);
@@ -353,20 +361,20 @@ void CommTest_Qt::InitialSignalConnect()
         QFile f(strLuaPath);
         if (!f.exists()) {
             QMessageBox::critical(this, "Lua执行错误", QString("脚本不存在: %1").arg(strLuaPath));
-            ui->text_CommLog->append(QString("脚本不存在: %1").arg(strLuaPath));
+			UpdateLogDisplay(QString("脚本不存在: %1").arg(strLuaPath));
             return;
         }
         try {
-            if (!m_pWorkFlow->RunLuaScript(idx, strLuaPath)) {
+            if (!m_pWorkFlow->RunLuaScript(idx-1, strLuaPath)) { // 20251216	wm	buttonId从1开始，索引从0开始
                 QMessageBox::critical(this, "Lua执行错误", QString("执行失败: %1").arg(strLuaPath));
-                ui->text_CommLog->append(QString("执行Lua脚本失败: %1").arg(strLuaPath));
+                UpdateLogDisplay(QString("执行Lua脚本失败: %1").arg(strLuaPath));
             }
         } catch (const std::exception& e) {
             QMessageBox::critical(this, "Lua执行异常", QString("%1").arg(e.what()));
-            ui->text_CommLog->append(QString("Lua执行异常: %1").arg(e.what()));
+            UpdateLogDisplay(QString("Lua执行异常: %1").arg(e.what()));
         } catch (...) {
             QMessageBox::critical(this, "Lua执行异常", "未知异常");
-            ui->text_CommLog->append("Lua执行异常: 未知异常");
+            UpdateLogDisplay("Lua执行异常: 未知异常");
         }
     });
 
@@ -512,7 +520,7 @@ void CommTest_Qt::InitialSignalConnect()
 		{
 			if (!m_pWorkFlow->CloseComm())
 			{
-				ui->text_CommLog->append("关闭连接失败!");
+				UpdateLogDisplay("关闭连接失败!");
 				return;
 			}
 			//m_bIsCommValid = false;
@@ -533,7 +541,7 @@ void CommTest_Qt::InitialSignalConnect()
 
 			if (!m_pWorkFlow->OpenComm())
 			{
-				ui->text_CommLog->append("打开连接失败!");
+				UpdateLogDisplay("打开连接失败!");
 				return;
 			}
 			if (m_configManager)
@@ -599,7 +607,7 @@ void CommTest_Qt::InitialSignalConnect()
 	{
 		//20251031	wm	通信日志记录
 		connect(m_pWorkFlow, &MainWorkFlow::commLogRecord, this, [=](QString strLogInfo) {
-			ui->text_CommLog->append(strLogInfo);
+			UpdateLogDisplay(strLogInfo);
 		});
 
 		//20251031	wm	接收数据
@@ -612,7 +620,7 @@ void CommTest_Qt::InitialSignalConnect()
 				strdata = QString(recData.toHex().toUpper());
 			}
 			
-			ui->text_CommLog->append(objectInfo + strdata);
+			UpdateLogDisplay(objectInfo + strdata);
 			
 		});
 
@@ -625,8 +633,8 @@ void CommTest_Qt::InitialSignalConnect()
 			{
 				strdata = QString(sendData.toHex().toUpper());
 			}
-		
-			ui->text_CommLog->append(objectInfo + strdata);
+
+			UpdateLogDisplay(objectInfo + strdata);
 
 			});
 
@@ -680,19 +688,21 @@ void CommTest_Qt::InitialLuaScript()
             m_pWorkFlow->RunLuaScript(nLuaIndex,strLuaFile);
         }
     });
-	//连接执行lua脚本按钮
-	connect(ui->Btn_Execute_1,&QPushButton::clicked, this, [=] {
+
+	auto LuaScriptFun = [=](int index)->void{
 		if (m_pWorkFlow == nullptr)	return;
 
 		//获取当前执行程序路径
 		QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile1.lua";
-		// if (!m_pWorkFlow->RunLuaScript(0,strLuaPath))
-		// {
-		// 	ui->text_CommLog->append("执行Lua脚本失败!");
-		// }
-		emit executeLuaScript(0,strLuaPath);
+		QString luaFileName = QString("LuaFile%1.lua").arg(index + 1);
+		strLuaPath += luaFileName;
+		emit executeLuaScript(index,strLuaPath);
+	};
+
+	//连接执行lua脚本按钮
+	connect(ui->Btn_Execute_1,&QPushButton::clicked, this, [=] {
+		LuaScriptFun(0);
 	});
 
 	connect(ui->Btn_Edit_1,&QPushButton::clicked, this, [=] {
@@ -700,16 +710,7 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_2,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile2.lua";
-		// if (!m_pWorkFlow->RunLuaScript(1,strLuaPath))
-		// {
-		// 	ui->text_CommLog->append("执行Lua脚本失败!");
-		// }
-		emit executeLuaScript(1,strLuaPath);
+		LuaScriptFun(1);
 	});
 
 	connect(ui->Btn_Edit_2,&QPushButton::clicked, this, [=] {
@@ -717,16 +718,7 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_3,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile3.lua";
-		// if (!m_pWorkFlow->RunLuaScript(2,strLuaPath))
-		// {
-		// 	ui->text_CommLog->append("执行Lua脚本失败!");
-		// }
-		emit executeLuaScript(2,strLuaPath);
+		LuaScriptFun(2);
 	});
 
 	connect(ui->Btn_Edit_3,&QPushButton::clicked, this, [=] {
@@ -734,16 +726,7 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_4,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile4.lua";
-		// if (!m_pWorkFlow->RunLuaScript(3,strLuaPath))
-		// {
-		// 	ui->text_CommLog->append("执行Lua脚本失败!");
-		// }
-		emit executeLuaScript(3,strLuaPath);
+		LuaScriptFun(3);
 	});
 
 	connect(ui->Btn_Edit_4,&QPushButton::clicked, this, [=] {
@@ -751,16 +734,7 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_5,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile5.lua";
-		// if (!m_pWorkFlow->RunLuaScript(4,strLuaPath))
-		// {
-		// 	ui->text_CommLog->append("执行Lua脚本失败!");
-		// }
-		emit executeLuaScript(4,strLuaPath);
+		LuaScriptFun(4);
 	});
 
 	connect(ui->Btn_Edit_5,&QPushButton::clicked, this, [=] {
@@ -768,101 +742,47 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_6,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile6.lua";
-		// if (!m_pWorkFlow->RunLuaScript(5,strLuaPath))
-		// {
-		// 	ui->text_CommLog->append("执行Lua脚本失败!");
-		// }
-		emit executeLuaScript(5,strLuaPath);
+		LuaScriptFun(5);
 	});
 
 	connect(ui->Btn_Edit_6,&QPushButton::clicked, this, [=] {
 		OpenScriptEditor(6);
 	});
 
-	connect(ui->ChkBox_LoopEnable_1,&QCheckBox::stateChanged, this, [=](int state) {
+	//连接循环执行复选框
+	auto SetLoopEnableFun = [=](int scriptIndex, bool enable)->void{
 		if (m_pWorkFlow == nullptr)	return;
 
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(0);
+		LuaScript* pLua = m_pWorkFlow->GetLuaScript(scriptIndex);
 		if (pLua != nullptr)
 		{
-			pLua->SetLoopValid(state == Qt::Checked);
+			pLua->SetLoopValid(enable);
 		}
+	};
+
+	connect(ui->ChkBox_LoopEnable_1,&QCheckBox::stateChanged, this, [=](int state) {
+		SetLoopEnableFun(0, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_2,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(1);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(1, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_3,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(2);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(2, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_4,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(3);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(3, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_5,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(4);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(4, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_6,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(5);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(5, state == Qt::Checked);
 	});
-
-	// 连接所有6个Lua脚本实例的平台控制信号
-	// for (int i = 0; i < LUA_SCRIPT_NUM; ++i)
-	// {
-	// 	LuaScript* pLua = m_pWorkFlow->GetLuaScript(i);
-	// 	if (pLua != nullptr)
-	// 	{
-	// 		// 连接绝对位置Int32信号
-	// 		connect(pLua, &LuaScript::MovePlatformAbsInt32, this, &CommTest_Qt::OnMovePlatformAbsInt32);
-			
-	// 		// 连接绝对位置Float信号
-	// 		connect(pLua, &LuaScript::MovePlatformAbsFloat, this, &CommTest_Qt::OnMovePlatformAbsFloat);
-			
-	// 		// 连接相对位置Int32信号
-	// 		connect(pLua, &LuaScript::MovePlatformRelativeInt32, this, &CommTest_Qt::OnMovePlatformRelativeInt32);
-			
-	// 		// 连接相对位置Float信号
-	// 		connect(pLua, &LuaScript::MovePlatformRelativeFloat, this, &CommTest_Qt::OnMovePlatformRelativeFloat);
-	// 	}
-	// }
 }
 
 void CommTest_Qt::OpenScriptEditor(int scriptIndex)
@@ -1727,68 +1647,6 @@ double CommTest_Qt::GetDivisorFromPowerEdit(QLineEdit* edit, double defaultPower
 	return std::pow(10.0, power);
 }
 
-// void CommTest_Qt::OnMovePlatformAbsInt32(int32_t x, int32_t y, int32_t angle)
-// {
-// 	if (m_simulationPlatform == nullptr)
-// 	{
-// 		return;
-// 	}
-
-// 	// 获取除数：10的幂次方
-// 	double divisorXY = GetDivisorFromPowerEdit(ui->edit_Unit_XY);
-// 	double divisorD = GetDivisorFromPowerEdit(ui->edit_Unit_D);
-
-// 	// 转换坐标值：除以10的幂次方
-// 	double convertedX = static_cast<double>(x) / divisorXY;
-// 	double convertedY = static_cast<double>(y) / divisorXY;
-// 	double convertedAngle = static_cast<double>(angle) / divisorD;
-
-// 	// 控制平台移动
-// 	m_simulationPlatform->SetRealTimePlatformAbs(convertedX, convertedY, convertedAngle);
-// }
-
-// void CommTest_Qt::OnMovePlatformAbsFloat(double x, double y, double angle)
-// {
-// 	if (m_simulationPlatform == nullptr)
-// 	{
-// 		return;
-// 	}
-
-// 	// Float类型直接使用，无需转换
-// 	m_simulationPlatform->SetRealTimePlatformAbs(x, y, angle);
-// }
-
-// void CommTest_Qt::OnMovePlatformRelativeInt32(int32_t x, int32_t y, int32_t angle)
-// {
-// 	if (m_simulationPlatform == nullptr)
-// 	{
-// 		return;
-// 	}
-
-// 	// 获取除数：10的幂次方
-// 	double divisorXY = GetDivisorFromPowerEdit(ui->edit_Unit_XY);
-// 	double divisorD = GetDivisorFromPowerEdit(ui->edit_Unit_D);
-
-// 	// 转换坐标值：除以10的幂次方
-// 	double convertedX = static_cast<double>(x) / divisorXY;
-// 	double convertedY = static_cast<double>(y) / divisorXY;
-// 	double convertedAngle = static_cast<double>(angle) / divisorD;
-
-// 	// 控制平台移动
-// 	m_simulationPlatform->SetRealTimePlatformRelative(convertedX, convertedY, convertedAngle);
-// }
-
-// void CommTest_Qt::OnMovePlatformRelativeFloat(double x, double y, double angle)
-// {
-// 	if (m_simulationPlatform == nullptr)
-// 	{
-// 		return;
-// 	}
-
-// 	// Float类型直接使用，无需转换
-// 	m_simulationPlatform->SetRealTimePlatformRelative(x, y, angle);
-// }
-
 // ====================轴位置写入相关槽函数实现====================
 
 void CommTest_Qt::OnWriteAxisDoubleWord()
@@ -1816,7 +1674,7 @@ void CommTest_Qt::OnWriteAxisDoubleWord()
 	int startAddr = ui->edit_AxisPosRegisterAddr->text().toInt(&ok);
 	if (!ok)
 	{
-		ui->text_CommLog->append("错误: 轴位置地址无效");
+		UpdateLogDisplay("错误: 轴位置地址无效");
 		return;
 	}
 
@@ -1827,7 +1685,7 @@ void CommTest_Qt::OnWriteAxisDoubleWord()
 	// Angle占用2个int16（地址startAddr+4和startAddr+5）
 	if (startAddr >= REGISTER_VAL_NUM - 6)
 	{
-		ui->text_CommLog->append("错误: 寄存器地址超出范围");
+		UpdateLogDisplay("错误: 寄存器地址超出范围");
 		return;
 	}
 
@@ -1842,7 +1700,7 @@ void CommTest_Qt::OnWriteAxisDoubleWord()
 	m_pWorkFlow->SetRegisterVal(startAddr++, data.u_Int16[0]);
 	m_pWorkFlow->SetRegisterVal(startAddr++, data.u_Int16[1]);
 
-	ui->text_CommLog->append(QString("轴位置双字写入成功: X=%1, Y=%2, Angle=%3 (地址:%4)")
+	UpdateLogDisplay(QString("轴位置双字写入成功: X=%1, Y=%2, Angle=%3 (地址:%4)")
 		.arg(xInt32).arg(yInt32).arg(angleInt32).arg(startAddr));
 
 	UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
@@ -1869,13 +1727,13 @@ void CommTest_Qt::OnWriteAxisFloat()
 	int startAddr = ui->edit_AxisPosRegisterAddr->text().toInt(&ok);
 	if (!ok)
 	{
-		ui->text_CommLog->append("错误: 轴位置地址无效");
+		UpdateLogDisplay("错误: 轴位置地址无效");
 		return;
 	}
 
 	if (startAddr >= REGISTER_VAL_NUM - 6)
 	{
-		ui->text_CommLog->append("错误: 寄存器地址超出范围");
+		UpdateLogDisplay("错误: 寄存器地址超出范围");
 		return;
 	}
 
@@ -1890,7 +1748,7 @@ void CommTest_Qt::OnWriteAxisFloat()
 	m_pWorkFlow->SetRegisterVal(startAddr++, data.u_Int16[0]);
 	m_pWorkFlow->SetRegisterVal(startAddr++, data.u_Int16[1]);
 
-	ui->text_CommLog->append(QString("轴位置浮点写入成功: X=%1, Y=%2, Angle=%3 (地址:%4)")
+	UpdateLogDisplay(QString("轴位置浮点写入成功: X=%1, Y=%2, Angle=%3 (地址:%4)")
 		.arg(xFloat).arg(yFloat).arg(angleFloat).arg(startAddr));
 
 	UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
@@ -2156,4 +2014,23 @@ bool CommTest_Qt::eventFilter(QObject* watched, QEvent* event)
 		return QMainWindow::eventFilter(watched, event);
 	}
 	return QMainWindow::eventFilter(watched, event);
+}
+
+void CommTest_Qt::UpdateLogDisplay(QString strNewLog)
+{
+	QTextDocument *document = ui->text_CommLog->document();
+
+	//获取当前行数
+	int lineCount = document->blockCount();
+	//如果行数超过最大限制，则清空
+	int nMaxLogLines = 5000;
+	if (lineCount > nMaxLogLines)
+	{
+		ui->text_CommLog->clear();
+	}
+
+	//添加新日志，自动滚动到最底部
+	ui->text_CommLog->append(strNewLog);
+	ui->text_CommLog->moveCursor(QTextCursor::End);
+
 }

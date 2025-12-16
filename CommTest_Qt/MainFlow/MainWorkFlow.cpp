@@ -15,6 +15,11 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
 
 	m_bValidComm = false;
 	m_pComProBase = nullptr;
+
+    m_strSendObjInfo = "";
+    m_strSendData.clear();
+    m_strRecObjInfo = "";
+    m_strRecData.clear();
 	
 	for (int i = 0 ; i < REGISTER_VAL_NUM;i++)
 	{
@@ -287,11 +292,26 @@ bool MainWorkFlow::OpenComm()
 			});
 
 			connect(m_pComm, &CommBase::dataReceived, this, [this](QString objectInfo,QByteArray strData) {
-				emit dataReceived(objectInfo,strData);
+
+                if (this->m_strRecObjInfo != objectInfo || this->m_strRecData != strData)
+                {
+                    this->m_strRecObjInfo = objectInfo;
+                    this->m_strRecData = strData;
+
+                    emit dataReceived(objectInfo,strData);
+                }
+                
+				
 			});
 
 			connect(m_pComm, &CommBase::dataSend, this, [this](QString objectInfo, QByteArray strData) {
-				emit dataSend(objectInfo, strData);
+
+                if( this->m_strSendObjInfo != objectInfo || this->m_strSendData != strData)
+                {
+                    this->m_strSendObjInfo = objectInfo;
+                    this->m_strSendData = strData;
+                    emit dataSend(objectInfo, strData);
+                }
 				});
 		}
 

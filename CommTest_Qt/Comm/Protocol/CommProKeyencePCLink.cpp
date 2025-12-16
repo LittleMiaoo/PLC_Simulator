@@ -62,7 +62,7 @@ bool CommProKeyencePCLink::PackReportReadRegInfo(QByteArray& strInfo, long nRegA
 	QByteArray strSpace = (" ");
 	for (int i = 0; i < nWriteNum; i++)
 	{
-		int16_t nTemp = vWriteData.at(i) & 0xFFFF;
+		uint16_t nTemp = vWriteData.at(i) & 0xFFFF;
 
 		QByteArray strTemp = QString("%1").arg(nTemp, 4, 16, QChar('0')).toUpper().toLatin1();
 

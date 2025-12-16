@@ -1,0 +1,96 @@
+CommTest_Qt 工业通信协议测试仿真工具使用说明文档
+
+Author：WangMao
+Time：2025-11-19
+Version：1.2
+
+程序依赖：
+- Qt6 框架（Core、Gui、Widgets、Network、SerialPort 模块）
+- Lua 5.4 脚本引擎
+- C++17 标准库
+- Windows SDK（Windows平台）
+
+一、通信方式支持
+1. 网络通信：
+   - 支持TCP/IP协议的Socket通信
+   - 支持服务端和客户端两种模式
+   - 可配置IP地址、端口号和监听数量等参数
+
+二、通信协议支持
+1. 三菱Q系列PLC通信协议：
+   - 支持三菱MC协议二进制通信（3E帧格式）
+2. 基恩士PLC通信协议：
+   - 支持基恩士PC-LINK上位链路协议
+
+三、脚本编辑器支持的功能
+1. 文件操作：
+   - 新建、打开、保存Lua脚本文件
+2. 编辑功能：
+   - 语法高亮显示
+   - 函数自动插入（通过菜单选择）
+   - 支持常用的Lua语法结构模板（if、while、for等）
+3. 脚本执行：
+   - 编译检查功能（F7）
+   - 直接执行功能（F5）
+   - 错误提示和定位
+
+四、Lua脚本注册的函数
+1. 寄存器读写函数：
+   - SetInt16(addr, value)：设置16位整型寄存器值
+   - SetInt32(addr, value)：设置32位整型寄存器值
+   - SetFloat(addr, value)：设置浮点型寄存器值
+   - SetDouble(addr, value)：设置双精度浮点型寄存器值
+   - SetString(addr, value)：设置字符串寄存器值
+   - GetInt16(addr)：获取16位整型寄存器值
+   - GetInt32(addr)：获取32位整型寄存器值
+   - GetFloat(addr)：获取浮点型寄存器值
+   - GetDouble(addr)：获取双精度浮点型寄存器值
+   - GetString(addr)：获取字符串寄存器值
+2. 循环控制函数：
+   - IsLoopValid()：检查循环是否有效
+   - sleep(milliseconds)：延时函数
+3. 平台控制函数：
+   - MoveAbsInt32(xAddr, yAddr, angleAddr)：绝对位置移动（整型参数）
+   - MoveAbsFloat(xAddr, yAddr, angleAddr)：绝对位置移动（浮点参数）
+   - MoveRelativeInt32(xAddr, yAddr, angleAddr)：相对位置移动（整型参数）
+   - MoveRelativeFloat(xAddr, yAddr, angleAddr)：相对位置移动（浮点参数）
+   - WriteCurrentPosInt32(xAddr, yAddr, angleAddr)：写入当前位置（整型参数）
+   - WriteCurrentPosFloat(xAddr, yAddr, angleAddr)：写入当前位置（浮点参数）
+
+五、寄存器信息
+1. 寄存器地址范围：0-99999
+2. 支持的数据类型：
+   - 字符（8位）
+   - 单字（16位整型）
+   - 双字（32位整型）
+   - 单精度浮点数
+   - 双精度浮点数
+3. 寄存器显示：
+   - 在主界面的表格中实时显示寄存器数据
+   - 支持十进制和十六进制显示模式
+   - 支持从指定地址开始的连续显示
+
+六、Lua循环启用方式
+1. 在主界面的脚本控制区域，每个脚本都有对应的"循环使能"复选框
+2. 勾选相应的复选框即可启用该脚本的循环执行功能
+3. 在Lua脚本中可通过IsLoopValid()函数检查循环状态
+
+七、模拟平台支持功能
+1. 平台控制：
+   - 支持绝对位置和相对位置移动
+   - 支持整型和浮点型坐标参数
+2. 平台显示：
+   - 实时显示平台位置和角度
+   - 可视化平台运动轨迹
+3. 参数设置：
+   - 可设置基准平台和实时平台的坐标参数
+   - 支持显示/隐藏基准平台和实时平台
+4. 标记点管理：
+   - 可设置两个标记点的位置
+   - 可调整标记点中心距离和屏幕比例参数
+
+八、小窗显示功能
+1. 点击主界面的"隐藏主窗口"按钮可切换到小窗模式
+2. 小窗包含6个可自定义名称的快捷按钮，用于快速执行对应的Lua脚本
+3. 小窗底部有"退出小窗"按钮，点击后可返回主窗口
+4. 关闭小窗将退出整个应用程序

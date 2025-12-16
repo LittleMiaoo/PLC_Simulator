@@ -37,7 +37,6 @@ public:
 	CommTest_Qt(QWidget* parent = nullptr);
 	~CommTest_Qt();
 
-	//void InitialSocketPort();
 private:
 
 	void InitializeMember();
@@ -77,7 +76,6 @@ private:
     Ui::CommTest_QtClass* ui;
 
 	std::unique_ptr<SubMainWindow> m_subWindow; // 小窗口实例
-    //std::unique_ptr<SimulationPlatform> m_simulationPlatform;   // 模拟平台窗口实例
     SimulationPlatform* m_simulationPlatform;
     bool m_bShouldFlash; // 是否允许触发表格闪烁效果
 protected:
@@ -87,7 +85,6 @@ private:
 
 	MainWorkFlow* m_pWorkFlow;
 	std::unique_ptr<MainWorkFlow::IBaseController> m_PlatformController;
-	//CommSocket::SocketCommInfo* m_CurInfo;
 	std::unique_ptr<CommBase::CommInfoBase> m_CurInfo; //内存自动管理
 
 	//列表刷新相关
@@ -95,7 +92,6 @@ private:
 	QMap<QTableWidgetItem*, QString> m_lastTextValues;
 
 	void CreateCurrentProtocol();
-	//QMap<ProtocolType,QString> m_ProtocolTypeMap;
 
 	int m_nLogStat;
 	int m_nIntStat;
@@ -153,7 +149,8 @@ private:
     //显示Double类型数据
     void DisplayRegisterVals_Double();
 
-
+	//更新日志显示
+	void UpdateLogDisplay(QString strNewLog);
 };
 
 #endif
