@@ -43,6 +43,48 @@ else()
     endif()
 endif()
 
+# ========== 通用查找 VLD（适配 Windows + VS） ==========
+if(WIN32)
+    # 手动指定 VLD 可能的安装路径（优先级高于系统默认）
+    set(VLD_PATHS 
+        "C:/Program Files (x86)/Visual Leak Detector"
+        "C:/Program Files/Visual Leak Detector"
+    )
+
+    # 查找 VLD 的头文件和库文件
+    find_path(VLD_INCLUDE_DIR 
+        NAMES vld.h
+        PATHS ${VLD_PATHS}
+        PATH_SUFFIXES include
+    )
+    find_library(VLD_LIBRARY 
+        NAMES vld.lib
+        PATHS ${VLD_PATHS}
+        PATH_SUFFIXES lib/Win64  # 针对 x64 平台，Win32 用 lib/Win32
+    )
+
+    # 标记 VLD 是否找到
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(VLD 
+        DEFAULT_MSG 
+        VLD_INCLUDE_DIR 
+        VLD_LIBRARY
+    )
+
+    # 若找到 VLD，创建导入库目标（方便链接）
+    if(VLD_FOUND)
+        add_library(VLD::VLD UNKNOWN IMPORTED)
+        set_target_properties(VLD::VLD PROPERTIES
+            IMPORTED_LOCATION "${VLD_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${VLD_INCLUDE_DIR}"
+        )
+        message(STATUS "VLD found: ${VLD_LIBRARY}")
+    else()
+        message(WARNING "VLD not found (check VLD_PATHS), memory leak detection disabled")
+    endif()
+endif()
+
+
 # 设置默认的启动项目(MSVC有效)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CommTest_Qt)
 

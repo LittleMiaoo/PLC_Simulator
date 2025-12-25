@@ -1,7 +1,9 @@
 #include "CommTest_Qt.h"
+#include "../version.h"
 #include <QDir>
 #include <QFile>
 #include <cmath>
+#include<QWindow>
 
 
 CommTest_Qt::CommTest_Qt(QWidget *parent)
@@ -9,14 +11,14 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
     , ui(new Ui::CommTest_QtClass())
 {
     ui->setupUi(this);
-	setWindowTitle("PLC通信模拟器");
+	setWindowTitle(QString("%1 - v%2").arg(APP_NAME).arg(APP_VERSION));
 	
 	m_CurInfo = nullptr;
 	m_pWorkFlow = nullptr;
 	m_subWindow = nullptr;
 	
 	m_simulationPlatform = nullptr;
-	m_configManager = new ConfigManager(this);
+	m_configManager = nullptr;
 	// 初始化脚本编辑器指针
 	m_pCurrentScriptEditor = nullptr;
 	m_nCurrentScriptIndex = -1;
@@ -51,10 +53,13 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	InitialLineEditValidator();
 	
 	// 在状态栏添加作者和版本信息
-	const QString datetime = QStringLiteral("%1 %2").arg(__DATE__).arg(__TIME__);
-	
+	const QString datetime = QStringLiteral("%1 %2").arg(APP_COMPILE_DATE).arg(APP_COMPILE_TIME);
+
 	QLabel *label = new QLabel(this);
-    label->setText(QStringLiteral("Author:Wang Version:1.2.0 Compile Time: ") + datetime);
+    label->setText(QStringLiteral("Author:%1 Version:%2 Compile Time: %3")
+		.arg(APP_AUTHOR)
+		.arg(APP_VERSION)
+		.arg(datetime));
 	ui->statusBar->addPermanentWidget(label);
 
 
@@ -142,6 +147,8 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 		}
 	};
 	m_PlatformController = std::make_unique<SimulationPlatformController>(this);
+
+	if (m_pWorkFlow == nullptr)return;
 	m_pWorkFlow->SetBaseController(m_PlatformController.get());
 }
  
@@ -225,7 +232,8 @@ void CommTest_Qt::InitialAllConfigs()
 		double markCenterDistance = 0.0, screenRatio = 0.0;
 		if (m_configManager->LoadSimulationPlatformParams(markCenterDistance, screenRatio))
 		{
-			m_simulationPlatform->SetSimulationPlatformParams(markCenterDistance, screenRatio);
+			if (m_simulationPlatform != nullptr)
+				m_simulationPlatform->SetSimulationPlatformParams(markCenterDistance, screenRatio);
 		}
 	}
 }
@@ -233,6 +241,9 @@ void CommTest_Qt::InitialAllConfigs()
 
 void CommTest_Qt::InitializeMember()
 {
+
+	m_configManager = new ConfigManager(this);
+
 	if (m_pWorkFlow == nullptr)
 	{
 		m_pWorkFlow = MainWorkFlow::InitialWorkFlow(this);
@@ -242,14 +253,45 @@ void CommTest_Qt::InitializeMember()
 	m_subWindow = std::make_unique<SubMainWindow>();
 	//将当前窗口的名称设置为小窗名称
 	m_subWindow->setWindowTitle(this->windowTitle() + " - 子窗口");
-    
-    // 初始化模拟平台窗口
-   // m_simulationPlatform = std::make_unique<SimulationPlatform>(this);
+	m_subWindow->setWindowFlags(Qt::Window); // 设置为独立窗口
+    m_subWindow->createWinId();
+    //初始化模拟平台窗口
     m_simulationPlatform = new SimulationPlatform(this);
-    m_simulationPlatform->setWindowFlags(Qt::Window); // 设置为独立窗口
+    //m_simulationPlatform->setWindowFlags(Qt::Window); // 设置为独立窗口
 	//将当前窗口的名称设置为模拟平台窗口名称
 	m_simulationPlatform->setWindowTitle(this->windowTitle() + " - 模拟平台");
-
+	m_simulationPlatform->setWindowFlags(
+		Qt::Dialog                	
+		| Qt::WindowMinimizeButtonHint  // 显示最小化按钮
+		| Qt::WindowMaximizeButtonHint  // 显示最大化按钮
+		| Qt::WindowCloseButtonHint     // 显示关闭按钮
+		| Qt::WindowSystemMenuHint      // 保留系统菜单（支持右键最小化/最大化）
+	);
+	m_simulationPlatform->setAttribute(Qt::WA_ShowWithoutActivating, true);
+	
+    // 监听所有窗口状态变化
+    connect(windowHandle(), &QWindow::windowStateChanged, this, [this](Qt::WindowState state) {
+        // 主窗口状态变化
+        if (this->isVisible()) {
+            // 只有主窗口显示时才同步
+            m_simulationPlatform->setWindowState(state);
+        }
+    });
+    
+    // 监听子窗口状态变化
+	auto subHandle = m_subWindow->windowHandle();
+    if (subHandle) 
+	{
+        connect(subHandle, &QWindow::windowStateChanged, this, [this](Qt::WindowState state) {
+            // 子窗口状态变化
+            if (m_subWindow->isVisible()) {
+                // 只有子窗口显示时才同步
+                m_simulationPlatform->setWindowState(state);
+            }
+			m_subWindow->activateWindow();
+        });
+    }
+	
 	//协议设置相关
 	{
 		QMap<ProtocolType, QString> m_ProtocolTypeMap;
@@ -351,7 +393,8 @@ void CommTest_Qt::InitialSignalConnect()
 	connect(aboutAction, &QAction::triggered, this, &CommTest_Qt::OnShowAboutDialog);
 
     //20251024	wm	 连接小窗口的显示主窗口信号到主窗口的show()槽
-    connect(m_subWindow.get(), &SubMainWindow::showMainWindow, this, &CommTest_Qt::show);
+	connect(m_subWindow.get(), &SubMainWindow::showMainWindow, this, &CommTest_Qt::show);
+
     connect(m_subWindow.get(), &SubMainWindow::executeLuaScript, this, [=](int buttonId) {
         if (m_pWorkFlow == nullptr) return;
         int idx = buttonId;
@@ -402,11 +445,19 @@ void CommTest_Qt::InitialSignalConnect()
 			<< ui->edit_ScriptName_6->text();
 
 		// 2. 设置小窗口6个按钮的文本
-		m_subWindow->setButtonTexts(lineEditTexts);
+		if(m_subWindow != nullptr)
+		{
+			m_subWindow->setButtonTexts(lineEditTexts);
 
-		// 3. 隐藏主窗口，显示小窗口
-		this->hide();
-		m_subWindow->show();
+
+			// 3. 隐藏主窗口，显示小窗口
+			this->hide();
+
+			// 3. 设置小窗口为工具窗口，不会单独占用任务栏图标
+			m_subWindow->show();
+			m_subWindow->activateWindow();
+		}
+		
 	});
 	
 	//寄存器表格相关信号
@@ -683,10 +734,10 @@ void CommTest_Qt::InitialSignalConnect()
 void CommTest_Qt::InitialLuaScript()
 {
     connect(this,&CommTest_Qt::executeLuaScript,this,[=](int nLuaIndex, QString strLuaFile){
-        if (m_pWorkFlow)
-        {
-            m_pWorkFlow->RunLuaScript(nLuaIndex,strLuaFile);
-        }
+		if (m_pWorkFlow == nullptr)return;
+        
+        m_pWorkFlow->RunLuaScript(nLuaIndex,strLuaFile);
+        
     });
 
 	auto LuaScriptFun = [=](int index)->void{
@@ -866,9 +917,10 @@ void CommTest_Qt::OpenScriptEditor(int scriptIndex)
 		m_nCurrentScriptIndex = -1;
 	}
 
-	// 创建新的编辑器窗口
-	ScriptEditor* pScriptEditor = new ScriptEditor(this, m_pWorkFlow->GetLuaScript(scriptIndex - 1));
+	// 创建新的编辑器窗口，使用 IScriptRunner 接口进行异步脚本执行
+	ScriptEditor* pScriptEditor = new ScriptEditor(this, m_pWorkFlow->GetScriptRunner(scriptIndex - 1));
 	pScriptEditor->setAttribute(Qt::WA_DeleteOnClose); // 确保窗口关闭时会被删除
+	pScriptEditor->setWindowModality(Qt::ApplicationModal); // 20251224	wm 设置为应用程序级模态窗口
 	pScriptEditor->setScriptName(scriptPath);
 
 	// 加载文件内容
@@ -949,6 +1001,7 @@ void CommTest_Qt::UpdateTableInfo(int nStart,bool bInitialize /* = false */)
 	const int colCount = ui->table_RegisterData->columnCount(); // 列数
 	const int step = rowCount;									// 列组间隔步长
 
+	if(m_pWorkFlow == nullptr)return;
 	int nRegisterNum = m_pWorkFlow->GetRegisterNum();
 
 	for (int row = 0; row < rowCount; ++row) 
@@ -997,6 +1050,8 @@ void CommTest_Qt::CreateCurrentProtocol()
 
 	QVariant data = ui->cmbBox_ProtocolType->itemData(nCurIndex);
 
+	if (m_pWorkFlow == nullptr)return;
+	
 	m_pWorkFlow->CreateCommProtocol(data.value<ProtocolType>());
 
 }
@@ -1758,29 +1813,84 @@ void CommTest_Qt::OnWriteAxisFloat()
 
 void CommTest_Qt::OnShowAboutDialog()
 {
-	QMessageBox aboutBox(this);
-	aboutBox.setWindowTitle("关于 PLC通信模拟器");
-	
-	// 获取编译时间
-	QString compileDate = QString::fromLatin1(__DATE__);
-	QString compileTime = QString::fromLatin1(__TIME__);
-	
-	// 设置信息内容
-	QString aboutText = QString(
-		"<h2>PLC通信模拟器</h2>"
-		"<p><b>版本：</b> Version 1.2.0</p>"
-		"<p><b>编译日期：</b> %1</p>"
-		"<p><b>编译时间：</b> %2</p>"
-		"<p><b>作者：</b> WangMao</p>"
-		"<hr>"
-		"<p>一个基于Qt6的通信测试平台,支持Lua脚本语言</p>"
-	).arg(compileDate).arg(compileTime);
-	
-	aboutBox.setText(aboutText);
-	aboutBox.setIcon(QMessageBox::Information);
-	aboutBox.setStandardButtons(QMessageBox::Ok);
-	
-	aboutBox.exec();
+	QDialog aboutDialog(this);
+	aboutDialog.setWindowTitle(QString("关于 %1").arg(APP_NAME));
+	aboutDialog.setFixedSize(400, 320);
+	aboutDialog.setWindowFlags(aboutDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+	QVBoxLayout* mainLayout = new QVBoxLayout(&aboutDialog);
+	mainLayout->setSpacing(15);
+	mainLayout->setContentsMargins(30, 25, 30, 20);
+
+	// 图标显示（居中）
+	QLabel* iconLabel = new QLabel(&aboutDialog);
+	QPixmap iconPixmap(":/CommTest_Qt/PLC_Simulator.ico");
+	iconLabel->setPixmap(iconPixmap.scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+	iconLabel->setAlignment(Qt::AlignCenter);
+	mainLayout->addWidget(iconLabel);
+
+	// 应用名称（居中）
+	QLabel* nameLabel = new QLabel(APP_NAME, &aboutDialog);
+	nameLabel->setAlignment(Qt::AlignCenter);
+	nameLabel->setStyleSheet("font-size: 18pt; font-weight: bold; color: #333333;");
+	mainLayout->addWidget(nameLabel);
+
+	// 版本信息（居中）
+	QString compileDate = QString::fromLatin1(APP_COMPILE_DATE);
+	QString compileTime = QString::fromLatin1(APP_COMPILE_TIME);
+	QString versionInfo = QString("Version: %1\nCompile Time: %2 %3\nAuthor: %4")
+		.arg(APP_VERSION)
+		.arg(compileDate)
+		.arg(compileTime)
+		.arg(APP_AUTHOR);
+	QLabel* versionLabel = new QLabel(versionInfo, &aboutDialog);
+	versionLabel->setAlignment(Qt::AlignCenter);
+	versionLabel->setStyleSheet("font-size: 10pt; color: #666666;");
+	mainLayout->addWidget(versionLabel);
+
+	// 分隔线
+	QFrame* line = new QFrame(&aboutDialog);
+	line->setFrameShape(QFrame::HLine);
+	line->setFrameShadow(QFrame::Sunken);
+	line->setStyleSheet("background-color: #CCCCCC;");
+	mainLayout->addWidget(line);
+
+	// 应用描述（靠左）
+	QLabel* descLabel = new QLabel(APP_DESCRIPTION, &aboutDialog);
+	descLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+	descLabel->setWordWrap(true);
+	descLabel->setStyleSheet("font-size: 10pt; color: #333333;");
+	mainLayout->addWidget(descLabel);
+
+	mainLayout->addStretch();
+
+	// 确定按钮（居中）
+	QPushButton* okButton = new QPushButton("确定", &aboutDialog);
+	okButton->setFixedSize(80, 30);
+	okButton->setStyleSheet(
+		"QPushButton {"
+		"    background-color: #4CA3E0;"
+		"    color: white;"
+		"    border: none;"
+		"    border-radius: 4px;"
+		"    font-size: 10pt;"
+		"}"
+		"QPushButton:hover {"
+		"    background-color: #3A8BC8;"
+		"}"
+		"QPushButton:pressed {"
+		"    background-color: #2E7BA8;"
+		"}"
+	);
+	connect(okButton, &QPushButton::clicked, &aboutDialog, &QDialog::accept);
+
+	QHBoxLayout* buttonLayout = new QHBoxLayout();
+	buttonLayout->addStretch();
+	buttonLayout->addWidget(okButton);
+	buttonLayout->addStretch();
+	mainLayout->addLayout(buttonLayout);
+
+	aboutDialog.exec();
 }
 
 void CommTest_Qt::InitialGuiStyle()
