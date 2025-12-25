@@ -55,7 +55,8 @@ bool CommProMitsubishiQBinary::PackReportReadRegInfo(QByteArray& strInfo, long n
 	{
 		QByteArray strCurData;
 		//strCurData = QByteArray::number(vWriteData.at(i), 16);
-		strCurData = QString("%1").arg(vWriteData.at(i), 4, 16, QChar('0')).toUpper().toLatin1();
+		uint16_t nTemp = vWriteData.at(i) & 0xFFFF;
+		strCurData = QString("%1").arg(nTemp, 4, 16, QChar('0')).toUpper().toLatin1();
 
 		QByteArray strOut = strCurData.mid(2, 2) + strCurData.mid(0, 2);
 		strRegData = strRegData + strOut;

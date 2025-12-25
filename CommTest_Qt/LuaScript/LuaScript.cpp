@@ -112,6 +112,11 @@ bool LuaScript::RegisterLuaFunc()
 	lua_pushcclosure(m_pLua, IsLoopValidWrapper, 1);
 	lua_setglobal(m_pLua, "IsLoopValid");
 
+	//注册sleep
+	lua_pushlightuserdata(m_pLua, this);
+	lua_pushcclosure(m_pLua, SleepWrapper, 1);
+	lua_setglobal(m_pLua, "sleep");
+
 	// 注册平台控制函数
 	lua_pushlightuserdata(m_pLua, this);
 	lua_pushcclosure(m_pLua, MoveAbsInt32Wrapper, 1);
@@ -128,6 +133,14 @@ bool LuaScript::RegisterLuaFunc()
 	lua_pushlightuserdata(m_pLua, this);
 	lua_pushcclosure(m_pLua, MoveRelativeFloatWrapper, 1);
 	lua_setglobal(m_pLua, "MoveRelativeFloat");
+
+	lua_pushlightuserdata(m_pLua, this);
+	lua_pushcclosure(m_pLua, WriteCurrentPosInt32Wrapper, 1);
+	lua_setglobal(m_pLua, "WriteCurrentPosInt32");
+
+	lua_pushlightuserdata(m_pLua, this);
+	lua_pushcclosure(m_pLua, WriteCurrentPosFloatWrapper, 1);
+	lua_setglobal(m_pLua, "WriteCurrentPosFloat");
 
 	return true;
 }
@@ -272,27 +285,27 @@ int LuaScript::SetStringWrapper(lua_State* L)
 
 void LuaScript::SetInt16(int nIndex, int16_t nValue)
 {
-	emit SetRegisterValInt16(nIndex, nValue);
+	if (m_provider) m_provider->SetInt16(nIndex, nValue);
 }
 
 void LuaScript::SetInt32(int nIndex, int32_t nValue)
 {
-	emit SetRegisterValInt32(nIndex, nValue);
+	if (m_provider) m_provider->SetInt32(nIndex, nValue);
 }
 
 void LuaScript::SetFloat(int nIndex, float fValue)
 {
-	emit SetRegisterValFloat(nIndex, fValue);
+	if (m_provider) m_provider->SetFloat(nIndex, fValue);
 }
 
 void LuaScript::SetDouble(int nIndex, double dValue)
 {
-	emit SetRegisterValDouble(nIndex, dValue);
+	if (m_provider) m_provider->SetDouble(nIndex, dValue);
 }
 
 void LuaScript::SetString(int nIndex, QString strValue)
 {
-	emit SetRegisterValString(nIndex, strValue);
+	if (m_provider) m_provider->SetString(nIndex, strValue);
 }
 
 // ===== Get系列函数实现 =====
@@ -403,37 +416,27 @@ int LuaScript::GetStringWrapper(lua_State* L)
 
 int16_t LuaScript::GetInt16(int nIndex)
 {
-	int16_t value = 0;
-	emit GetRegisterValInt16(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetInt16(nIndex) : int16_t(0);
 }
 
 int32_t LuaScript::GetInt32(int nIndex)
 {
-	int32_t value = 0;
-	emit GetRegisterValInt32(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetInt32(nIndex) : int32_t(0);
 }
 
 float LuaScript::GetFloat(int nIndex)
 {
-	float value = 0.0f;
-	emit GetRegisterValFloat(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetFloat(nIndex) : 0.0f;
 }
 
 double LuaScript::GetDouble(int nIndex)
 {
-	double value = 0.0;
-	emit GetRegisterValDouble(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetDouble(nIndex) : 0.0;
 }
 
 QString LuaScript::GetString(int nIndex)
 {
-	QString value;
-	emit GetRegisterValString(nIndex, value);
-	return value;
+    return m_provider ? m_provider->GetString(nIndex) : QString();
 }
 
 // ===== 循环状态函数实现 =====
@@ -445,6 +448,24 @@ int LuaScript::IsLoopValidWrapper(lua_State* L)
 	lua_pushboolean(L, bValid);
 	return 1;
 }
+
+int LuaScript::SleepWrapper(lua_State* L)
+{
+	LuaScript* pThis = static_cast<LuaScript*>(lua_touserdata(L, lua_upvalueindex(1)));
+
+	// 获取参数
+	if (!lua_isnumber(L, 1)) {
+		return luaL_error(L, "Argument #1 (milliseconds) must be a number");
+	}
+	int milliseconds = lua_tointeger(L, 1);
+
+	/*QThread::msleep(milliseconds);*/
+	QEventLoop loop;
+	QTimer::singleShot(milliseconds, &loop, &QEventLoop::quit);
+	loop.exec();
+	return 0;
+}
+
 
 // ===== 平台控制函数实现 =====
 int LuaScript::MoveAbsInt32Wrapper(lua_State* L)
@@ -599,38 +620,136 @@ int LuaScript::MoveRelativeFloatWrapper(lua_State* L)
 	return 0;
 }
 
+int LuaScript::WriteCurrentPosInt32Wrapper(lua_State* L)
+{
+	LuaScript* pThis = static_cast<LuaScript*>(lua_touserdata(L, lua_upvalueindex(1)));
+
+	// 解析X地址
+	if (!lua_isstring(L, 1)) {
+		return luaL_error(L, "Argument #1 (xReg) must be a string (register address)");
+	}
+	const char* xAddr = lua_tostring(L, 1);
+	int nXAddr = 0;
+	if (!LuaScript::ParseRegisterAddr(xAddr, nXAddr)) {
+		return luaL_error(L, "X register address Invalid: %s", xAddr);
+	}
+
+	// 解析Y地址
+	if (!lua_isstring(L, 2)) {
+		return luaL_error(L, "Argument #2 (yReg) must be a string (register address)");
+	}
+	const char* yAddr = lua_tostring(L, 2);
+	int nYAddr = 0;
+	if (!LuaScript::ParseRegisterAddr(yAddr, nYAddr)) {
+		return luaL_error(L, "Y register address Invalid: %s", yAddr);
+	}
+
+	// 解析角度地址
+	if (!lua_isstring(L, 3)) {
+		return luaL_error(L, "Argument #3 (angleReg) must be a string (register address)");
+	}
+	const char* angleAddr = lua_tostring(L, 3);
+	int nAngleAddr = 0;
+	if (!LuaScript::ParseRegisterAddr(angleAddr, nAngleAddr)) {
+		return luaL_error(L, "Angle register address Invalid: %s", angleAddr);
+	}
+
+	pThis->WriteCurrentPosInt32(nXAddr, nYAddr, nAngleAddr);
+	return 0;
+}
+
+int LuaScript::WriteCurrentPosFloatWrapper(lua_State* L)
+{
+	LuaScript* pThis = static_cast<LuaScript*>(lua_touserdata(L, lua_upvalueindex(1)));
+
+	// 解析X地址
+	if (!lua_isstring(L, 1)) {
+		return luaL_error(L, "Argument #1 (xReg) must be a string (register address)");
+	}
+	const char* xAddr = lua_tostring(L, 1);
+	int nXAddr = 0;
+	if (!LuaScript::ParseRegisterAddr(xAddr, nXAddr)) {
+		return luaL_error(L, "X register address Invalid: %s", xAddr);
+	}
+
+	// 解析Y地址
+	if (!lua_isstring(L, 2)) {
+		return luaL_error(L, "Argument #2 (yReg) must be a string (register address)");
+	}
+	const char* yAddr = lua_tostring(L, 2);
+	int nYAddr = 0;
+	if (!LuaScript::ParseRegisterAddr(yAddr, nYAddr)) {
+		return luaL_error(L, "Y register address Invalid: %s", yAddr);
+	}
+
+	// 解析角度地址
+	if (!lua_isstring(L, 3)) {
+		return luaL_error(L, "Argument #3 (angleReg) must be a string (register address)");
+	}
+	const char* angleAddr = lua_tostring(L, 3);
+	int nAngleAddr = 0;
+	if (!LuaScript::ParseRegisterAddr(angleAddr, nAngleAddr)) {
+		return luaL_error(L, "Angle register address Invalid: %s", angleAddr);
+	}
+
+	pThis->WriteCurrentPosFloat(nXAddr, nYAddr, nAngleAddr);
+	return 0;
+}
+
+
 void LuaScript::MoveAbsInt32(int nXIndex, int nYIndex, int nAngleIndex)
 {
-	double x = GetInt32(nXIndex);
-	double y = GetInt32(nYIndex);
-	double angle = GetInt32(nAngleIndex);
-	emit MovePlatformAbsInt32(x, y, angle);
+	// double x = GetInt32(nXIndex);
+	// double y = GetInt32(nYIndex);
+	// double angle = GetInt32(nAngleIndex);
+	// emit MovePlatformAbsInt32(x, y, angle);
+	if (m_provider) m_provider->MovePlatformAbsInt32(nXIndex, nYIndex, nAngleIndex);
 }
 
 void LuaScript::MoveAbsFloat(int nXIndex, int nYIndex, int nAngleIndex)
 {
-	double x = static_cast<double>(GetFloat(nXIndex));
-	double y = static_cast<double>(GetFloat(nYIndex));
-	double angle = static_cast<double>(GetFloat(nAngleIndex));
-	emit MovePlatformAbsFloat(x, y, angle);
+	// double x = static_cast<double>(GetFloat(nXIndex));
+	// double y = static_cast<double>(GetFloat(nYIndex));
+	// double angle = static_cast<double>(GetFloat(nAngleIndex));
+	// emit MovePlatformAbsFloat(x, y, angle);
+	if (m_provider) m_provider->MovePlatformAbsFloat(nXIndex, nYIndex, nAngleIndex);
 }
 
 void LuaScript::MoveRelativeInt32(int nXIndex, int nYIndex, int nAngleIndex)
 {
-	double x = GetInt32(nXIndex);
-	double y = GetInt32(nYIndex);
-	double angle = GetInt32(nAngleIndex);
-	emit MovePlatformRelativeInt32(x, y, angle);
+	// double x = GetInt32(nXIndex);
+	// double y = GetInt32(nYIndex);
+	// double angle = GetInt32(nAngleIndex);
+	// emit MovePlatformRelativeInt32(x, y, angle);
+	if (m_provider) m_provider->MovePlatformRelativeInt32(nXIndex, nYIndex, nAngleIndex);
 }
 
 void LuaScript::MoveRelativeFloat(int nXIndex, int nYIndex, int nAngleIndex)
 {
-	double x = static_cast<double>(GetFloat(nXIndex));
-	double y = static_cast<double>(GetFloat(nYIndex));
-	double angle = static_cast<double>(GetFloat(nAngleIndex));
-	emit MovePlatformRelativeFloat(x, y, angle);
+	// double x = static_cast<double>(GetFloat(nXIndex));
+	// double y = static_cast<double>(GetFloat(nYIndex));
+	// double angle = static_cast<double>(GetFloat(nAngleIndex));
+	// emit MovePlatformRelativeFloat(x, y, angle);
+	if (m_provider) m_provider->MovePlatformRelativeFloat(nXIndex, nYIndex, nAngleIndex);
 }
 
+void LuaScript::WriteCurrentPosInt32(int nXIndex, int nYIndex, int nAngleIndex)
+{
+	// double x = GetInt32(nXIndex);
+	// double y = GetInt32(nYIndex);
+	// double angle = GetInt32(nAngleIndex);
+	// emit WriteCurrentPosInt32(x, y, angle);
+	if (m_provider) m_provider->WriteCurrentPosInt32(nXIndex, nYIndex, nAngleIndex);
+}
+
+void LuaScript::WriteCurrentPosFloat(int nXIndex, int nYIndex, int nAngleIndex)
+{
+	// double x = static_cast<double>(GetFloat(nXIndex));
+	// double y = static_cast<double>(GetFloat(nYIndex));
+	// double angle = static_cast<double>(GetFloat(nAngleIndex));
+	// emit WriteCurrentPosFloat(x, y, angle);
+	if (m_provider) m_provider->WriteCurrentPosFloat(nXIndex, nYIndex, nAngleIndex);
+}
 bool LuaScript::ParseRegisterAddr(const char* strAddr, int& nAddr, int nMinVal /*= 0*/, int nMaxVal /*= 100000*/)
 {
 	QString addressStr = QString::fromUtf8(strAddr).trimmed();
@@ -720,9 +839,11 @@ void LuaScript::InitialCompileLuaState()
 		lua_setglobal(g_LuaCompileState, "GetString");
 
 		//注册循环状态函数
-		lua_pushcfunction(g_LuaCompileState,LamdaFuncReturn1);
+		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
 		lua_setglobal(g_LuaCompileState, "IsLoopValid");
 
+		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_setglobal(g_LuaCompileState, "sleep");
 		//注册平台控制函数
 		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
 		lua_setglobal(g_LuaCompileState, "MoveAbsInt32");
@@ -736,6 +857,11 @@ void LuaScript::InitialCompileLuaState()
 		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
 		lua_setglobal(g_LuaCompileState, "MoveRelativeFloat");
 
+		lua_pushcfunction(g_LuaCompileState, LamdaFunc);
+		lua_setglobal(g_LuaCompileState, "WriteCurrentPosInt32");
+
+		lua_pushcfunction(g_LuaCompileState, LamdaFunc);
+		lua_setglobal(g_LuaCompileState, "WriteCurrentPosFloat");
 		 //qDebug() << "Compilation Lua state initialized";
 	}};
 

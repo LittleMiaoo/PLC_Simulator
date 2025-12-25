@@ -1,7 +1,9 @@
 #include "CommTest_Qt.h"
+#include "../version.h"
 #include <QDir>
 #include <QFile>
 #include <cmath>
+#include<QWindow>
 
 
 CommTest_Qt::CommTest_Qt(QWidget *parent)
@@ -9,6 +11,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
     , ui(new Ui::CommTest_QtClass())
 {
     ui->setupUi(this);
+	setWindowTitle(QString("%1 - v%2").arg(APP_NAME).arg(APP_VERSION));
 	
 	m_CurInfo = nullptr;
 	m_pWorkFlow = nullptr;
@@ -32,11 +35,14 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	InitializeMember();
 	
 	//m_pWorkFlow->CreateCommProtocol(ProtocolType::eProRegMitsubishiQBinary);
-
-	//初始化信号槽连接
-	InitialSignalConnect();
-	
 	InitialAllConfigs();
+
+    //初始化信号槽连接
+    InitialSignalConnect();
+    m_bShouldFlash = true;
+    ui->table_RegisterData->installEventFilter(this);
+	
+
 	//初始化界面样式
 	InitialGuiStyle();
 	
@@ -45,12 +51,105 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 
 	//初始化输入限制
 	InitialLineEditValidator();
+	
+	// 在状态栏添加作者和版本信息
+	const QString datetime = QStringLiteral("%1 %2").arg(APP_COMPILE_DATE).arg(APP_COMPILE_TIME);
+
+	QLabel *label = new QLabel(this);
+    label->setText(QStringLiteral("Author:%1 Version:%2 Compile Time: %3")
+		.arg(APP_AUTHOR)
+		.arg(APP_VERSION)
+		.arg(datetime));
+	ui->statusBar->addPermanentWidget(label);
+
 
 	//更新表格显示
 	UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt(),true);
 
 	//int* thisint = new int(1);
 
+	struct SimulationPlatformController: public MainWorkFlow::IBaseController
+	{
+		CommTest_Qt* m_pParent;
+		explicit SimulationPlatformController(CommTest_Qt* parent) : m_pParent(parent) {}
+		void MovePlatformAbsFloat(double dX, double dY, double dAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				m_pParent->m_simulationPlatform->SetRealTimePlatformAbs(dX, dY, dAngle);
+			}
+		}
+		void MovePlatformRelativeFloat(double dX, double dY, double dAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				m_pParent->m_simulationPlatform->SetRealTimePlatformRelative(dX, dY, dAngle);
+			}
+		}
+		void MovePlatformRelativeInt32(int32_t nX, int32_t nY, int32_t nAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				// 获取除数：10的幂次方
+				double divisorXY = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_XY);
+				double divisorD = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_D);
+
+				// 转换坐标值：除以10的幂次方
+				double convertedX = static_cast<double>(nX) / divisorXY;
+				double convertedY = static_cast<double>(nY) / divisorXY;
+				double convertedAngle = static_cast<double>(nAngle) / divisorD;
+
+				// 控制平台移动
+				m_pParent->m_simulationPlatform->SetRealTimePlatformRelative(convertedX, convertedY, convertedAngle);
+			}
+		}
+		void MovePlatformAbsInt32(int32_t nX, int32_t nY, int32_t nAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				// 获取除数：10的幂次方
+				double divisorXY = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_XY);
+				double divisorD = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_D);
+
+				// 转换坐标值：除以10的幂次方
+				double convertedX = static_cast<double>(nX) / divisorXY;
+				double convertedY = static_cast<double>(nY) / divisorXY;
+				double convertedAngle = static_cast<double>(nAngle) / divisorD;
+
+				// 控制平台移动
+				m_pParent->m_simulationPlatform->SetRealTimePlatformAbs(convertedX, convertedY, convertedAngle);
+			}
+		}
+
+		void GetCurrentPosInt32(int32_t& nX, int32_t& nY, int32_t& nAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				double x = 0.0, y = 0.0, angle = 0.0;
+				m_pParent->m_simulationPlatform->GetRealTimePlatformData(x, y, angle);
+
+				// 获取幂次值并计算乘数（注意：这里是乘以幂次，与平台控制时除以幂次相反）
+				double multiplierXY = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_XY);  // 10^powerXY
+				double multiplierD = m_pParent->GetDivisorFromPowerEdit(m_pParent->ui->edit_Unit_D);    // 10^powerD
+
+				// 将坐标值乘以10的幂次方并转换为int32
+				 nX = static_cast<int32_t>(x * multiplierXY);
+				 nY = static_cast<int32_t>(y * multiplierXY);
+				 nAngle = static_cast<int32_t>(angle * multiplierD);
+			}
+		}
+		void GetCurrentPosFloat(double& dX, double& dY, double& dAngle) override
+		{
+			if (m_pParent && m_pParent->m_simulationPlatform)
+			{
+				m_pParent->m_simulationPlatform->GetRealTimePlatformData(dX, dY, dAngle);
+			}
+		}
+	};
+	m_PlatformController = std::make_unique<SimulationPlatformController>(this);
+
+	if (m_pWorkFlow == nullptr)return;
+	m_pWorkFlow->SetBaseController(m_PlatformController.get());
 }
  
 CommTest_Qt::~CommTest_Qt()
@@ -73,23 +172,26 @@ CommTest_Qt::~CommTest_Qt()
 
 void CommTest_Qt::InitialAllConfigs()
 {
-	m_configManager = new ConfigManager(this);
+	
 	// 加载之前保存的配置
 	if (m_configManager)
 	{
 		m_configManager->LoadAllConfigs();
 		
 		//加载通信信息
-		CommBase::CommInfoBase* commInfo = nullptr;
-		if (m_configManager->LoadCommInfo(commInfo))
 		{
-			if (commInfo != nullptr && commInfo->GetCommType() == CommBase::CommType::eSocket)
+			std::unique_ptr<CommConfig> commInfo;
+			//CommConfig* commInfo = nullptr;
+			if (m_configManager->LoadCommInfo(commInfo))
 			{
-				CommSocket::SocketCommInfo* socketInfo = dynamic_cast<CommSocket::SocketCommInfo*>(commInfo);
-				ui->edit_IP->setText(socketInfo->m_strSocketIPAddress);
-				ui->edit_Port->setText(socketInfo->m_nSocketPort == 0 ? "" : QString::number(socketInfo->m_nSocketPort));
+				if (commInfo != nullptr && commInfo->type == CommBase::CommType::eSocket)
+				{
+					ui->edit_IP->setText(commInfo->params["ip"].toString());
+					ui->edit_Port->setText(commInfo->params["port"].toString());
+				}
 			}
 		}
+		
 		
 		// 应用加载的配置到UI
 		// 加载脚本名称
@@ -130,7 +232,8 @@ void CommTest_Qt::InitialAllConfigs()
 		double markCenterDistance = 0.0, screenRatio = 0.0;
 		if (m_configManager->LoadSimulationPlatformParams(markCenterDistance, screenRatio))
 		{
-			m_simulationPlatform->SetSimulationPlatformParams(markCenterDistance, screenRatio);
+			if (m_simulationPlatform != nullptr)
+				m_simulationPlatform->SetSimulationPlatformParams(markCenterDistance, screenRatio);
 		}
 	}
 }
@@ -138,6 +241,9 @@ void CommTest_Qt::InitialAllConfigs()
 
 void CommTest_Qt::InitializeMember()
 {
+
+	m_configManager = new ConfigManager(this);
+
 	if (m_pWorkFlow == nullptr)
 	{
 		m_pWorkFlow = MainWorkFlow::InitialWorkFlow(this);
@@ -145,12 +251,47 @@ void CommTest_Qt::InitializeMember()
 
 	// 初始化小窗口
 	m_subWindow = std::make_unique<SubMainWindow>();
-    
-    // 初始化模拟平台窗口
-   // m_simulationPlatform = std::make_unique<SimulationPlatform>(this);
+	//将当前窗口的名称设置为小窗名称
+	m_subWindow->setWindowTitle(this->windowTitle() + " - 子窗口");
+	m_subWindow->setWindowFlags(Qt::Window); // 设置为独立窗口
+    m_subWindow->createWinId();
+    //初始化模拟平台窗口
     m_simulationPlatform = new SimulationPlatform(this);
-    m_simulationPlatform->setWindowFlags(Qt::Window); // 设置为独立窗口
-
+    //m_simulationPlatform->setWindowFlags(Qt::Window); // 设置为独立窗口
+	//将当前窗口的名称设置为模拟平台窗口名称
+	m_simulationPlatform->setWindowTitle(this->windowTitle() + " - 模拟平台");
+	m_simulationPlatform->setWindowFlags(
+		Qt::Dialog                	
+		| Qt::WindowMinimizeButtonHint  // 显示最小化按钮
+		| Qt::WindowMaximizeButtonHint  // 显示最大化按钮
+		| Qt::WindowCloseButtonHint     // 显示关闭按钮
+		| Qt::WindowSystemMenuHint      // 保留系统菜单（支持右键最小化/最大化）
+	);
+	m_simulationPlatform->setAttribute(Qt::WA_ShowWithoutActivating, true);
+	
+    // 监听所有窗口状态变化
+    connect(windowHandle(), &QWindow::windowStateChanged, this, [this](Qt::WindowState state) {
+        // 主窗口状态变化
+        if (this->isVisible()) {
+            // 只有主窗口显示时才同步
+            m_simulationPlatform->setWindowState(state);
+        }
+    });
+    
+    // 监听子窗口状态变化
+	auto subHandle = m_subWindow->windowHandle();
+    if (subHandle) 
+	{
+        connect(subHandle, &QWindow::windowStateChanged, this, [this](Qt::WindowState state) {
+            // 子窗口状态变化
+            if (m_subWindow->isVisible()) {
+                // 只有子窗口显示时才同步
+                m_simulationPlatform->setWindowState(state);
+            }
+			m_subWindow->activateWindow();
+        });
+    }
+	
 	//协议设置相关
 	{
 		QMap<ProtocolType, QString> m_ProtocolTypeMap;
@@ -215,11 +356,12 @@ void CommTest_Qt::InitializeMember()
 				{
 					m_nIntStat = 1;
 				}
-				ui->table_RegisterData->blockSignals(true);	//修改数据进制时临时断开表格信号,以禁用闪烁提示
+				if (m_bShouldFlash) m_bShouldFlash = false;
+				const QSignalBlocker blocker(ui->table_RegisterData);
 
 				UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
 
-                ui->table_RegisterData->blockSignals(false);
+				m_bShouldFlash = true;
 			}
 			});
 
@@ -251,30 +393,31 @@ void CommTest_Qt::InitialSignalConnect()
 	connect(aboutAction, &QAction::triggered, this, &CommTest_Qt::OnShowAboutDialog);
 
     //20251024	wm	 连接小窗口的显示主窗口信号到主窗口的show()槽
-    connect(m_subWindow.get(), &SubMainWindow::showMainWindow, this, &CommTest_Qt::show);
+	connect(m_subWindow.get(), &SubMainWindow::showMainWindow, this, &CommTest_Qt::show);
+
     connect(m_subWindow.get(), &SubMainWindow::executeLuaScript, this, [=](int buttonId) {
         if (m_pWorkFlow == nullptr) return;
-        int idx = buttonId - 1;
+        int idx = buttonId;
         QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile1.lua";
+		strLuaPath += QString("LuaFile%1.lua").arg(idx);
         QFile f(strLuaPath);
         if (!f.exists()) {
             QMessageBox::critical(this, "Lua执行错误", QString("脚本不存在: %1").arg(strLuaPath));
-            ui->text_CommLog->append(QString("脚本不存在: %1").arg(strLuaPath));
+			UpdateLogDisplay(QString("脚本不存在: %1").arg(strLuaPath));
             return;
         }
         try {
-            if (!m_pWorkFlow->RunLuaScript(idx, strLuaPath)) {
+            if (!m_pWorkFlow->RunLuaScript(idx-1, strLuaPath)) { // 20251216	wm	buttonId从1开始，索引从0开始
                 QMessageBox::critical(this, "Lua执行错误", QString("执行失败: %1").arg(strLuaPath));
-                ui->text_CommLog->append(QString("执行Lua脚本失败: %1").arg(strLuaPath));
+                UpdateLogDisplay(QString("执行Lua脚本失败: %1").arg(strLuaPath));
             }
         } catch (const std::exception& e) {
             QMessageBox::critical(this, "Lua执行异常", QString("%1").arg(e.what()));
-            ui->text_CommLog->append(QString("Lua执行异常: %1").arg(e.what()));
+            UpdateLogDisplay(QString("Lua执行异常: %1").arg(e.what()));
         } catch (...) {
             QMessageBox::critical(this, "Lua执行异常", "未知异常");
-            ui->text_CommLog->append("Lua执行异常: 未知异常");
+            UpdateLogDisplay("Lua执行异常: 未知异常");
         }
     });
 
@@ -302,11 +445,19 @@ void CommTest_Qt::InitialSignalConnect()
 			<< ui->edit_ScriptName_6->text();
 
 		// 2. 设置小窗口6个按钮的文本
-		m_subWindow->setButtonTexts(lineEditTexts);
+		if(m_subWindow != nullptr)
+		{
+			m_subWindow->setButtonTexts(lineEditTexts);
 
-		// 3. 隐藏主窗口，显示小窗口
-		this->hide();
-		m_subWindow->show();
+
+			// 3. 隐藏主窗口，显示小窗口
+			this->hide();
+
+			// 3. 设置小窗口为工具窗口，不会单独占用任务栏图标
+			m_subWindow->show();
+			m_subWindow->activateWindow();
+		}
+		
 	});
 	
 	//寄存器表格相关信号
@@ -314,6 +465,7 @@ void CommTest_Qt::InitialSignalConnect()
 		//20251024	wm	表格闪烁提示槽函数
 		connect(ui->table_RegisterData, &QTableWidget::itemChanged, this, [=](QTableWidgetItem* item) {
 			if (!item) return;
+			if (!m_bShouldFlash) return;
 
 			//忽略奇数列的变化(地址列)
 			if (item->column() % 2 == 0)	return;
@@ -365,7 +517,7 @@ void CommTest_Qt::InitialSignalConnect()
 
 			m_animationTimers[item] = restoreTimer;
 
-			restoreTimer->start(100);	//20251024	wm	启动定时器，500ms后执行
+			restoreTimer->start(400);	//20251024	wm	启动定时器，500ms后执行
 		});
 
 		QAbstractItemDelegate* delegate = ui->table_RegisterData->itemDelegate();
@@ -419,7 +571,7 @@ void CommTest_Qt::InitialSignalConnect()
 		{
 			if (!m_pWorkFlow->CloseComm())
 			{
-				ui->text_CommLog->append("关闭连接失败!");
+				UpdateLogDisplay("关闭连接失败!");
 				return;
 			}
 			//m_bIsCommValid = false;
@@ -430,23 +582,28 @@ void CommTest_Qt::InitialSignalConnect()
 		}
 		else
 		{
-			std::unique_ptr<CommSocket::SocketCommInfo> thisInfo = std::make_unique<CommSocket::SocketCommInfo>();
-
-			thisInfo->m_strSocketIPAddress = ui->edit_IP->text();
-			thisInfo->m_nSocketPort = ui->edit_Port->text().toUShort();
-
-			m_CurInfo = std::move(thisInfo);
-
-			m_pWorkFlow->SetCommInfo(m_CurInfo.get());
+			CommConfig cfg;
+			cfg.type = CommBase::CommType::eSocket;
+			cfg.params.insert("ip", ui->edit_IP->text());
+			cfg.params.insert("port", ui->edit_Port->text().toUShort());
+			cfg.params.insert("listenNum", 10);
+			cfg.params.insert("socketType", 0);
+			m_pWorkFlow->ConfigureComm(cfg);
 
 			if (!m_pWorkFlow->OpenComm())
 			{
-				ui->text_CommLog->append("打开连接失败!");
+				UpdateLogDisplay("打开连接失败!");
 				return;
 			}
-			//m_bIsCommValid = true;
-			m_configManager->SaveCommInfo(m_CurInfo.get());
-
+			if (m_configManager)
+			{
+				m_configManager->SaveCommInfo(&cfg);
+			}
+			auto ExecuteRequest = [this](const QByteArray& in, QByteArray& out) {
+				if (!m_pWorkFlow) return false;
+				return m_pWorkFlow->ProcessRequest(in, out);
+			};
+			m_pWorkFlow->SetRequestProcessor(ExecuteRequest);
 
 			ui->Btn_Create->setText("关闭链接");
 			ui->edit_IP->setEnabled(false);
@@ -457,8 +614,9 @@ void CommTest_Qt::InitialSignalConnect()
 	//20251102	wm	点击清除寄存器按钮
 	connect(ui->Btn_ClearRegister, &QPushButton::clicked, this, [=] {
 		if (m_pWorkFlow == nullptr)	return;
-
+		if (m_bShouldFlash) m_bShouldFlash = false;
 		m_pWorkFlow->ResetAllRegisters(0);
+		m_bShouldFlash = true;
 	});
 
 	//20251102	wm	点击清除日志
@@ -477,23 +635,30 @@ void CommTest_Qt::InitialSignalConnect()
 		//从MainWorkFlow中获取寄存器数据并存入m_vecRegisterVals
 		GetRegisterVals(nAddr);
 
-		ui->table_RegisterData->blockSignals(true);	//20251024	wm	修改寄存器地址时临时断开表格信号,以禁用闪烁提示
+		if (m_bShouldFlash) m_bShouldFlash = false;
+		const QSignalBlocker blocker(ui->table_RegisterData);
 
 		UpdateTableInfo(nAddr);
 
-		ui->table_RegisterData->blockSignals(false);
+		m_bShouldFlash = true;
 
 	});
 
 	//20251101	wm	修改显示寄存器数据类型
-    connect(ui->cmbBox_DataType, &QComboBox::currentIndexChanged, this, &CommTest_Qt::DisplayRegisterVals);
+	connect(ui->cmbBox_DataType, &QComboBox::currentIndexChanged, this, [=]{
+		if (m_bShouldFlash) m_bShouldFlash = false;
+		const QSignalBlocker blocker(ui->table_RegisterData);
+		UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
+		m_bShouldFlash = true;
+
+	});
 
 	//20251101	wm	主控类持有的通信实例信号转发
 	if (m_pWorkFlow != nullptr)
 	{
 		//20251031	wm	通信日志记录
 		connect(m_pWorkFlow, &MainWorkFlow::commLogRecord, this, [=](QString strLogInfo) {
-			ui->text_CommLog->append(strLogInfo);
+			UpdateLogDisplay(strLogInfo);
 		});
 
 		//20251031	wm	接收数据
@@ -505,12 +670,9 @@ void CommTest_Qt::InitialSignalConnect()
 			{
 				strdata = QString(recData.toHex().toUpper());
 			}
-
-			ui->text_CommLog->append(objectInfo + strdata);
-
-			if (m_pWorkFlow == nullptr) return;
-			//QThread::msleep(20);
-			m_pWorkFlow->WorkProcess(recData);
+			
+			UpdateLogDisplay(objectInfo + strdata);
+			
 		});
 
 		//20251103	wm	发送数据
@@ -522,8 +684,8 @@ void CommTest_Qt::InitialSignalConnect()
 			{
 				strdata = QString(sendData.toHex().toUpper());
 			}
-		
-			ui->text_CommLog->append(objectInfo + strdata);
+
+			UpdateLogDisplay(objectInfo + strdata);
 
 			});
 
@@ -571,18 +733,27 @@ void CommTest_Qt::InitialSignalConnect()
 
 void CommTest_Qt::InitialLuaScript()
 {
-	//连接执行lua脚本按钮
-	connect(ui->Btn_Execute_1,&QPushButton::clicked, this, [=] {
+    connect(this,&CommTest_Qt::executeLuaScript,this,[=](int nLuaIndex, QString strLuaFile){
+		if (m_pWorkFlow == nullptr)return;
+        
+        m_pWorkFlow->RunLuaScript(nLuaIndex,strLuaFile);
+        
+    });
+
+	auto LuaScriptFun = [=](int index)->void{
 		if (m_pWorkFlow == nullptr)	return;
 
 		//获取当前执行程序路径
 		QString strLuaPath = QCoreApplication::applicationDirPath();
 		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile1.lua";
-		if (!m_pWorkFlow->RunLuaScript(0,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		QString luaFileName = QString("LuaFile%1.lua").arg(index + 1);
+		strLuaPath += luaFileName;
+		emit executeLuaScript(index,strLuaPath);
+	};
+
+	//连接执行lua脚本按钮
+	connect(ui->Btn_Execute_1,&QPushButton::clicked, this, [=] {
+		LuaScriptFun(0);
 	});
 
 	connect(ui->Btn_Edit_1,&QPushButton::clicked, this, [=] {
@@ -590,15 +761,7 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_2,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile2.lua";
-		if (!m_pWorkFlow->RunLuaScript(1,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		LuaScriptFun(1);
 	});
 
 	connect(ui->Btn_Edit_2,&QPushButton::clicked, this, [=] {
@@ -606,15 +769,7 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_3,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile3.lua";
-		if (!m_pWorkFlow->RunLuaScript(2,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		LuaScriptFun(2);
 	});
 
 	connect(ui->Btn_Edit_3,&QPushButton::clicked, this, [=] {
@@ -622,15 +777,7 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_4,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile4.lua";
-		if (!m_pWorkFlow->RunLuaScript(3,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		LuaScriptFun(3);
 	});
 
 	connect(ui->Btn_Edit_4,&QPushButton::clicked, this, [=] {
@@ -638,15 +785,7 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_5,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile5.lua";
-		if (!m_pWorkFlow->RunLuaScript(4,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		LuaScriptFun(4);
 	});
 
 	connect(ui->Btn_Edit_5,&QPushButton::clicked, this, [=] {
@@ -654,100 +793,47 @@ void CommTest_Qt::InitialLuaScript()
 	});
 
 	connect(ui->Btn_Execute_6,&QPushButton::clicked, this, [=] {
-		if (m_pWorkFlow == nullptr)	return;
-
-		QString strLuaPath = QCoreApplication::applicationDirPath();
-		strLuaPath += "/Config/LuaScript/";
-		strLuaPath += "LuaFile6.lua";
-		if (!m_pWorkFlow->RunLuaScript(5,strLuaPath))
-		{
-			ui->text_CommLog->append("执行Lua脚本失败!");
-		}
+		LuaScriptFun(5);
 	});
 
 	connect(ui->Btn_Edit_6,&QPushButton::clicked, this, [=] {
 		OpenScriptEditor(6);
 	});
 
-	connect(ui->ChkBox_LoopEnable_1,&QCheckBox::stateChanged, this, [=](int state) {
+	//连接循环执行复选框
+	auto SetLoopEnableFun = [=](int scriptIndex, bool enable)->void{
 		if (m_pWorkFlow == nullptr)	return;
 
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(0);
+		LuaScript* pLua = m_pWorkFlow->GetLuaScript(scriptIndex);
 		if (pLua != nullptr)
 		{
-			pLua->SetLoopValid(state == Qt::Checked);
+			pLua->SetLoopValid(enable);
 		}
+	};
+
+	connect(ui->ChkBox_LoopEnable_1,&QCheckBox::stateChanged, this, [=](int state) {
+		SetLoopEnableFun(0, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_2,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(1);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(1, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_3,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(2);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(2, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_4,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(3);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(3, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_5,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(4);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(4, state == Qt::Checked);
 	});
 
 	connect(ui->ChkBox_LoopEnable_6,&QCheckBox::stateChanged, this, [=](int state) {
-		if (m_pWorkFlow == nullptr)	return;
-
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(5);
-		if (pLua != nullptr)
-		{
-			pLua->SetLoopValid(state == Qt::Checked);
-		}
+		SetLoopEnableFun(5, state == Qt::Checked);
 	});
-
-	// 连接所有6个Lua脚本实例的平台控制信号
-	for (int i = 0; i < LUA_SCRIPT_NUM; ++i)
-	{
-		LuaScript* pLua = m_pWorkFlow->GetLuaScript(i);
-		if (pLua != nullptr)
-		{
-			// 连接绝对位置Int32信号
-			connect(pLua, &LuaScript::MovePlatformAbsInt32, this, &CommTest_Qt::OnMovePlatformAbsInt32);
-			
-			// 连接绝对位置Float信号
-			connect(pLua, &LuaScript::MovePlatformAbsFloat, this, &CommTest_Qt::OnMovePlatformAbsFloat);
-			
-			// 连接相对位置Int32信号
-			connect(pLua, &LuaScript::MovePlatformRelativeInt32, this, &CommTest_Qt::OnMovePlatformRelativeInt32);
-			
-			// 连接相对位置Float信号
-			connect(pLua, &LuaScript::MovePlatformRelativeFloat, this, &CommTest_Qt::OnMovePlatformRelativeFloat);
-		}
-	}
 }
 
 void CommTest_Qt::OpenScriptEditor(int scriptIndex)
@@ -831,9 +917,10 @@ void CommTest_Qt::OpenScriptEditor(int scriptIndex)
 		m_nCurrentScriptIndex = -1;
 	}
 
-	// 创建新的编辑器窗口
-	ScriptEditor* pScriptEditor = new ScriptEditor(this, m_pWorkFlow->GetLuaScript(scriptIndex - 1));
+	// 创建新的编辑器窗口，使用 IScriptRunner 接口进行异步脚本执行
+	ScriptEditor* pScriptEditor = new ScriptEditor(this, m_pWorkFlow->GetScriptRunner(scriptIndex - 1));
 	pScriptEditor->setAttribute(Qt::WA_DeleteOnClose); // 确保窗口关闭时会被删除
+	pScriptEditor->setWindowModality(Qt::ApplicationModal); // 20251224	wm 设置为应用程序级模态窗口
 	pScriptEditor->setScriptName(scriptPath);
 
 	// 加载文件内容
@@ -910,30 +997,11 @@ void CommTest_Qt::InitRegisterTable()
 
 void CommTest_Qt::UpdateTableInfo(int nStart,bool bInitialize /* = false */)
 {
-
-// 	ui->table_RegisterData->setStyleSheet(
-// 		"QTableWidget {"
-// 		"   background-color: rgb(255, 255, 255); /* 默认行背景色 */"
-// 		"   alternate-background-color: rgb(240, 240, 240); /* 交替行背景色 */"
-// 		"   gridline-color: rgb(200, 200, 200); /* 网格线颜色 */"
-// 		"}"
-// 		// 单元格未选中状态：继承行的背景色（无需额外设置，保持默认）
-// 		"QTableWidget::item {"
-// 		"   color: black; /* 文字色（默认） */"
-// 		"   border: none; /* 去掉单元格默认边框，避免与网格线冲突 */"
-// 		"}"
-// 		// 单元格选中状态：强制与未选中状态一致（核心）
-// 		"QTableWidget::item:selected {"
-// 		"   background-color: transparent; /* 透明背景，显示所在行的原始背景（白色/浅灰） */"
-// 		"   color: black; /* 文字色不变 */"
-// 		"   outline: none; /* 去掉选中时的焦点边框（可选，更彻底隐藏选中痕迹） */"
-// 		"}"
-// 	);
-
 	const int rowCount = ui->table_RegisterData->rowCount();    // 行数
 	const int colCount = ui->table_RegisterData->columnCount(); // 列数
 	const int step = rowCount;									// 列组间隔步长
 
+	if(m_pWorkFlow == nullptr)return;
 	int nRegisterNum = m_pWorkFlow->GetRegisterNum();
 
 	for (int row = 0; row < rowCount; ++row) 
@@ -982,6 +1050,8 @@ void CommTest_Qt::CreateCurrentProtocol()
 
 	QVariant data = ui->cmbBox_ProtocolType->itemData(nCurIndex);
 
+	if (m_pWorkFlow == nullptr)return;
+	
 	m_pWorkFlow->CreateCommProtocol(data.value<ProtocolType>());
 
 }
@@ -1351,8 +1421,9 @@ void CommTest_Qt::DisplayRegisterVals()
 	int nCurIndex = ui->cmbBox_DataType->currentIndex();
 	if (nCurIndex < 0) return ;
 
-	//禁用寄存器表格修改信号
-    ui->table_RegisterData->blockSignals(true);
+
+	//ui->table_RegisterData->blockSignals(true);
+	m_bShouldFlash = false;
 
 	QVariant data = ui->cmbBox_DataType->itemData(nCurIndex);
 
@@ -1374,6 +1445,8 @@ void CommTest_Qt::DisplayRegisterVals()
         }
     }
 
+	//ui->table_RegisterData->blockSignals(false);
+	m_bShouldFlash = true;
 
 	int ndataIndex = -1;
 	int nRegiseterValIndex = -1;
@@ -1396,8 +1469,6 @@ void CommTest_Qt::DisplayRegisterVals()
             DisplayRegisterVals_Double();
 		break;
     }
-
-    ui->table_RegisterData->blockSignals(false);
 }
 
 void CommTest_Qt::DisplayRegisterVals_Char8()
@@ -1631,68 +1702,6 @@ double CommTest_Qt::GetDivisorFromPowerEdit(QLineEdit* edit, double defaultPower
 	return std::pow(10.0, power);
 }
 
-void CommTest_Qt::OnMovePlatformAbsInt32(int32_t x, int32_t y, int32_t angle)
-{
-	if (m_simulationPlatform == nullptr)
-	{
-		return;
-	}
-
-	// 获取除数：10的幂次方
-	double divisorXY = GetDivisorFromPowerEdit(ui->edit_Unit_XY);
-	double divisorD = GetDivisorFromPowerEdit(ui->edit_Unit_D);
-
-	// 转换坐标值：除以10的幂次方
-	double convertedX = static_cast<double>(x) / divisorXY;
-	double convertedY = static_cast<double>(y) / divisorXY;
-	double convertedAngle = static_cast<double>(angle) / divisorD;
-
-	// 控制平台移动
-	m_simulationPlatform->SetRealTimePlatformAbs(convertedX, convertedY, convertedAngle);
-}
-
-void CommTest_Qt::OnMovePlatformAbsFloat(double x, double y, double angle)
-{
-	if (m_simulationPlatform == nullptr)
-	{
-		return;
-	}
-
-	// Float类型直接使用，无需转换
-	m_simulationPlatform->SetRealTimePlatformAbs(x, y, angle);
-}
-
-void CommTest_Qt::OnMovePlatformRelativeInt32(int32_t x, int32_t y, int32_t angle)
-{
-	if (m_simulationPlatform == nullptr)
-	{
-		return;
-	}
-
-	// 获取除数：10的幂次方
-	double divisorXY = GetDivisorFromPowerEdit(ui->edit_Unit_XY);
-	double divisorD = GetDivisorFromPowerEdit(ui->edit_Unit_D);
-
-	// 转换坐标值：除以10的幂次方
-	double convertedX = static_cast<double>(x) / divisorXY;
-	double convertedY = static_cast<double>(y) / divisorXY;
-	double convertedAngle = static_cast<double>(angle) / divisorD;
-
-	// 控制平台移动
-	m_simulationPlatform->SetRealTimePlatformRelative(convertedX, convertedY, convertedAngle);
-}
-
-void CommTest_Qt::OnMovePlatformRelativeFloat(double x, double y, double angle)
-{
-	if (m_simulationPlatform == nullptr)
-	{
-		return;
-	}
-
-	// Float类型直接使用，无需转换
-	m_simulationPlatform->SetRealTimePlatformRelative(x, y, angle);
-}
-
 // ====================轴位置写入相关槽函数实现====================
 
 void CommTest_Qt::OnWriteAxisDoubleWord()
@@ -1720,7 +1729,7 @@ void CommTest_Qt::OnWriteAxisDoubleWord()
 	int startAddr = ui->edit_AxisPosRegisterAddr->text().toInt(&ok);
 	if (!ok)
 	{
-		ui->text_CommLog->append("错误: 轴位置地址无效");
+		UpdateLogDisplay("错误: 轴位置地址无效");
 		return;
 	}
 
@@ -1731,7 +1740,7 @@ void CommTest_Qt::OnWriteAxisDoubleWord()
 	// Angle占用2个int16（地址startAddr+4和startAddr+5）
 	if (startAddr >= REGISTER_VAL_NUM - 6)
 	{
-		ui->text_CommLog->append("错误: 寄存器地址超出范围");
+		UpdateLogDisplay("错误: 寄存器地址超出范围");
 		return;
 	}
 
@@ -1746,7 +1755,7 @@ void CommTest_Qt::OnWriteAxisDoubleWord()
 	m_pWorkFlow->SetRegisterVal(startAddr++, data.u_Int16[0]);
 	m_pWorkFlow->SetRegisterVal(startAddr++, data.u_Int16[1]);
 
-	ui->text_CommLog->append(QString("轴位置双字写入成功: X=%1, Y=%2, Angle=%3 (地址:%4)")
+	UpdateLogDisplay(QString("轴位置双字写入成功: X=%1, Y=%2, Angle=%3 (地址:%4)")
 		.arg(xInt32).arg(yInt32).arg(angleInt32).arg(startAddr));
 
 	UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
@@ -1773,13 +1782,13 @@ void CommTest_Qt::OnWriteAxisFloat()
 	int startAddr = ui->edit_AxisPosRegisterAddr->text().toInt(&ok);
 	if (!ok)
 	{
-		ui->text_CommLog->append("错误: 轴位置地址无效");
+		UpdateLogDisplay("错误: 轴位置地址无效");
 		return;
 	}
 
 	if (startAddr >= REGISTER_VAL_NUM - 6)
 	{
-		ui->text_CommLog->append("错误: 寄存器地址超出范围");
+		UpdateLogDisplay("错误: 寄存器地址超出范围");
 		return;
 	}
 
@@ -1794,7 +1803,7 @@ void CommTest_Qt::OnWriteAxisFloat()
 	m_pWorkFlow->SetRegisterVal(startAddr++, data.u_Int16[0]);
 	m_pWorkFlow->SetRegisterVal(startAddr++, data.u_Int16[1]);
 
-	ui->text_CommLog->append(QString("轴位置浮点写入成功: X=%1, Y=%2, Angle=%3 (地址:%4)")
+	UpdateLogDisplay(QString("轴位置浮点写入成功: X=%1, Y=%2, Angle=%3 (地址:%4)")
 		.arg(xFloat).arg(yFloat).arg(angleFloat).arg(startAddr));
 
 	UpdateTableInfo(ui->edit_RegisterAddr->text().toUInt());
@@ -1804,29 +1813,84 @@ void CommTest_Qt::OnWriteAxisFloat()
 
 void CommTest_Qt::OnShowAboutDialog()
 {
-	QMessageBox aboutBox(this);
-	aboutBox.setWindowTitle("关于CommTest_Qt");
-	
-	// 获取编译时间
-	QString compileDate = QString::fromLatin1(__DATE__);
-	QString compileTime = QString::fromLatin1(__TIME__);
-	
-	// 设置信息内容
-	QString aboutText = QString(
-		"<h2>CommTest_Qt</h2>"
-		"<p><b>版本：</b> Version 1.0.0</p>"
-		"<p><b>编译日期：</b> %1</p>"
-		"<p><b>编译时间：</b> %2</p>"
-		"<p><b>作者：</b> Wang Mao</p>"
-		"<hr>"
-		"<p>一个基于Qt6的通信测试平台.支持Lua脚本操作</p>"
-	).arg(compileDate).arg(compileTime);
-	
-	aboutBox.setText(aboutText);
-	aboutBox.setIcon(QMessageBox::Information);
-	aboutBox.setStandardButtons(QMessageBox::Ok);
-	
-	aboutBox.exec();
+	QDialog aboutDialog(this);
+	aboutDialog.setWindowTitle(QString("关于 %1").arg(APP_NAME));
+	aboutDialog.setFixedSize(400, 320);
+	aboutDialog.setWindowFlags(aboutDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+	QVBoxLayout* mainLayout = new QVBoxLayout(&aboutDialog);
+	mainLayout->setSpacing(15);
+	mainLayout->setContentsMargins(30, 25, 30, 20);
+
+	// 图标显示（居中）
+	QLabel* iconLabel = new QLabel(&aboutDialog);
+	QPixmap iconPixmap(":/CommTest_Qt/PLC_Simulator.ico");
+	iconLabel->setPixmap(iconPixmap.scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+	iconLabel->setAlignment(Qt::AlignCenter);
+	mainLayout->addWidget(iconLabel);
+
+	// 应用名称（居中）
+	QLabel* nameLabel = new QLabel(APP_NAME, &aboutDialog);
+	nameLabel->setAlignment(Qt::AlignCenter);
+	nameLabel->setStyleSheet("font-size: 18pt; font-weight: bold; color: #333333;");
+	mainLayout->addWidget(nameLabel);
+
+	// 版本信息（居中）
+	QString compileDate = QString::fromLatin1(APP_COMPILE_DATE);
+	QString compileTime = QString::fromLatin1(APP_COMPILE_TIME);
+	QString versionInfo = QString("Version: %1\nCompile Time: %2 %3\nAuthor: %4")
+		.arg(APP_VERSION)
+		.arg(compileDate)
+		.arg(compileTime)
+		.arg(APP_AUTHOR);
+	QLabel* versionLabel = new QLabel(versionInfo, &aboutDialog);
+	versionLabel->setAlignment(Qt::AlignCenter);
+	versionLabel->setStyleSheet("font-size: 10pt; color: #666666;");
+	mainLayout->addWidget(versionLabel);
+
+	// 分隔线
+	QFrame* line = new QFrame(&aboutDialog);
+	line->setFrameShape(QFrame::HLine);
+	line->setFrameShadow(QFrame::Sunken);
+	line->setStyleSheet("background-color: #CCCCCC;");
+	mainLayout->addWidget(line);
+
+	// 应用描述（靠左）
+	QLabel* descLabel = new QLabel(APP_DESCRIPTION, &aboutDialog);
+	descLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+	descLabel->setWordWrap(true);
+	descLabel->setStyleSheet("font-size: 10pt; color: #333333;");
+	mainLayout->addWidget(descLabel);
+
+	mainLayout->addStretch();
+
+	// 确定按钮（居中）
+	QPushButton* okButton = new QPushButton("确定", &aboutDialog);
+	okButton->setFixedSize(80, 30);
+	okButton->setStyleSheet(
+		"QPushButton {"
+		"    background-color: #4CA3E0;"
+		"    color: white;"
+		"    border: none;"
+		"    border-radius: 4px;"
+		"    font-size: 10pt;"
+		"}"
+		"QPushButton:hover {"
+		"    background-color: #3A8BC8;"
+		"}"
+		"QPushButton:pressed {"
+		"    background-color: #2E7BA8;"
+		"}"
+	);
+	connect(okButton, &QPushButton::clicked, &aboutDialog, &QDialog::accept);
+
+	QHBoxLayout* buttonLayout = new QHBoxLayout();
+	buttonLayout->addStretch();
+	buttonLayout->addWidget(okButton);
+	buttonLayout->addStretch();
+	mainLayout->addLayout(buttonLayout);
+
+	aboutDialog.exec();
 }
 
 void CommTest_Qt::InitialGuiStyle()
@@ -1942,8 +2006,8 @@ void CommTest_Qt::InitialGuiStyle()
 	}
 	
 	// 应用组合框样式
-	//if (ui->cmbBox_ProtocolType != nullptr) ui->cmbBox_ProtocolType->setStyleSheet(inputStyleSheet);
-	//if (ui->cmbBox_DataType != nullptr) ui->cmbBox_DataType->setStyleSheet(inputStyleSheet);
+	if (ui->cmbBox_ProtocolType != nullptr) ui->cmbBox_ProtocolType->setStyleSheet(inputStyleSheet);
+	if (ui->cmbBox_DataType != nullptr) ui->cmbBox_DataType->setStyleSheet(inputStyleSheet);
 	
 	// 定义文本编辑框和表格的样式表
 	const QString textEditStyleSheet = 
@@ -2051,4 +2115,32 @@ void CommTest_Qt::InitialGuiStyle()
 		"";
 	
 	if (ui->menuBar != nullptr) ui->menuBar->setStyleSheet(menuBarStyleSheet);
+}
+
+bool CommTest_Qt::eventFilter(QObject* watched, QEvent* event)
+{
+	if (watched == ui->table_RegisterData)
+	{
+		return QMainWindow::eventFilter(watched, event);
+	}
+	return QMainWindow::eventFilter(watched, event);
+}
+
+void CommTest_Qt::UpdateLogDisplay(QString strNewLog)
+{
+	QTextDocument *document = ui->text_CommLog->document();
+
+	//获取当前行数
+	int lineCount = document->blockCount();
+	//如果行数超过最大限制，则清空
+	int nMaxLogLines = 5000;
+	if (lineCount > nMaxLogLines)
+	{
+		ui->text_CommLog->clear();
+	}
+
+	//添加新日志，自动滚动到最底部
+	ui->text_CommLog->append(strNewLog);
+	ui->text_CommLog->moveCursor(QTextCursor::End);
+
 }

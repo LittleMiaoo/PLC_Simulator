@@ -1,4 +1,4 @@
-﻿#ifndef COMM_SOCKET_H
+#ifndef COMM_SOCKET_H
 #define COMM_SOCKET_H
 #include "CommBase.h"
 
@@ -10,6 +10,9 @@
 #include <QTimer>
 #include <QDateTime>
 #include <QUuid>
+#include <QThreadPool>
+#include <QSet>
+#include <functional>
 
 class CommSocket : public CommBase
 {
@@ -50,7 +53,7 @@ public:
 	};
 
 public:
-	explicit CommSocket(QObject* pParent);
+    explicit CommSocket(QObject* pParent);
 	CommSocket(const CommSocket&) = delete;
 	CommSocket& operator=(const CommSocket&) = delete;
 	virtual ~CommSocket();
@@ -61,7 +64,7 @@ public:
 	virtual bool Close() override;													// 关闭连接
 	virtual bool SendData(const QByteArray& strData) override;							// 发送数据
 	//virtual CommStatus RecieveData(QString& strData);						// 接收数据
-	virtual bool IsOpen() override { return m_bConnected; }
+    virtual bool IsOpen() override { return m_bConnected; }
 
 private:
 	bool initializeServer();	//服务器初始化
@@ -70,8 +73,7 @@ private:
 private:
 	void Cleanup();
 	
-	void ProcessNextRequest();
-	void AddToRequestQueue(const QString& clientId, const QByteArray& data);
+    void ProcessNextRequest();
 
 	QString GetClientId(QTcpSocket* client) const
 	{
@@ -81,30 +83,14 @@ private:
 	}
 
 
-	struct PendingRequest {
-		QString clientId;		 // 客户端标识
-        QByteArray requestData;  // 请求数据
-        QDateTime timestamp;     // 时间戳
-        bool isProcessing;       // 是否正在处理
-        bool requiresResponse;   // 是否需要回复（新增）
-        int timeoutMs;           // 超时时间（新增）
-	};
-
-	SocketCommInfo m_SocketInfo;		//网络通信的信息
-	QTcpServer* m_Server;				//网络通信类型为服务器时使用
-	QTcpSocket* m_Client;				//网络通信类型为客户端时使用
-	QMap<QString, QTcpSocket*> m_ClientMap;	//连接到服务器的客户端
+    SocketCommInfo m_SocketInfo;		//网络通信的信息
+    QTcpServer* m_Server;				//网络通信类型为服务器时使用
+    QTcpSocket* m_Client;				//网络通信类型为客户端时使用
+    QMap<QString, QTcpSocket*> m_ClientMap;	//连接到服务器的客户端
 
 	bool m_bConnected;	//当前是否已有链接
 
-	//请求队列管理
-	QQueue<PendingRequest> m_requestQueue;
-	QMutex m_queueMutex;
-	bool m_processingRequest = false;
-	QString m_currentClientId;                   // 当前正在处理的客户端ID
-
-	int m_requestTimeout ; // 默认5秒超时
-	QTimer* m_timeoutTimer;      // 超时定时器
+    bool SendDataToEndpoint(const QString& clientId, const QByteArray& strData) override;
 };
 
 #endif	//COMM_SOCKET_H

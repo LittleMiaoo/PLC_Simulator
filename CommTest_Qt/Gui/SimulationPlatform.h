@@ -22,11 +22,17 @@
 #include <QPalette>
 #include <QScreen>
 #include <QFont>
+#include <QTabWidget>
+#include <QPushButton>
+#include <QImage>
+#include <QWheelEvent>
+#include <QMouseEvent>
 #include <cmath>
 
 
 // 前置声明
 class CanvasWidget;
+class ImageViewerWidget;
 
 class SimulationPlatform : public QWidget
 {
@@ -40,6 +46,8 @@ public:
     // 平台控制公共接口
     void SetRealTimePlatformAbs(double x, double y, double angle);  // 绝对位置移动
     void SetRealTimePlatformRelative(double x, double y, double angle);  // 相对位置移动
+
+    //void SetSimulationPlatformParams(double distance,double ratio);
     
     // 获取实时平台数据
     void GetRealTimePlatformData(double& x, double& y, double& angle) const;
@@ -89,6 +97,26 @@ private:
     QRadioButton* ShowPlatformUR;
     QRadioButton* ShowPlatformDL;
     QRadioButton* ShowPlatformDR;
+
+    // 页面切换相关
+    QTabWidget* tabWidget;
+    QWidget* simulationPage;      // 模拟平台页面
+    QWidget* pictureShowPage;     // 图片显示页面 (PictureShow)
+
+    // 图片显示页面控件
+    ImageViewerWidget* imageViewer;
+    QPushButton* setImageBtn;
+    QLineEdit* zoomRatioEdit;  // 缩放倍率输入框
+    QRadioButton* picShowPlatformUL;
+    QRadioButton* picShowPlatformUR;
+    QRadioButton* picShowPlatformDL;
+    QRadioButton* picShowPlatformDR;
+
+    void setupPictureShowPage();
+    void loadDefaultImage();
+    void onSetImageClicked();
+    void onTabChanged(int index);
+
     // 数据
     struct Platform {
         double x;
@@ -120,6 +148,7 @@ private:
     void setupUI();
     void setupValidators();
     void setupConnections();
+    void applyStyle();
     void updateOriginAndScale();
     void drawCoordinateSystem(QPainter &painter);
     void drawPlatform(QPainter &painter, const Platform &platform, QColor color);

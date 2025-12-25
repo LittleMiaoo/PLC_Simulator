@@ -1,0 +1,40 @@
+// Windows 应用程序版本信息资源文件
+#include <windows.h>
+#include "version.h"
+
+// 版本信息资源
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     APP_VERSION_RC
+PRODUCTVERSION  APP_VERSION_RC
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+FILEFLAGS       VS_FF_DEBUG
+#else
+FILEFLAGS       0x0L
+#endif
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"  // Simplified Chinese (0804), Unicode (04b0)
+        BEGIN
+            VALUE "CompanyName",      APP_ORGANIZATION
+            VALUE "FileDescription",  APP_DESCRIPTION_RC
+            VALUE "FileVersion",      APP_VERSION_RC_STR
+            VALUE "InternalName",     APP_INTERNAL_NAME
+            VALUE "LegalCopyright",   APP_COPYRIGHT_RC
+            VALUE "OriginalFilename", APP_ORIGINAL_NAME
+            VALUE "ProductName",      APP_NAME_RC
+            VALUE "ProductVersion",   APP_VERSION_RC_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200  // Simplified Chinese, Unicode
+    END
+END
+
+// 应用程序图标 (如果存在)
+// IDI_ICON1 ICON "resources/app.ico"

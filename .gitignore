@@ -1,11 +1,25 @@
+# CMake 构建目录
 /build/
+**/build/
+
+# 输出目录
 /Bin/
 /Temp/
+
+# IDE 配置目录
 /.vscode/
 /.qoder/
+/.trae/
+/.vs/
+
+# 压缩包
 /*.zip
-/CMakeCache.txt
-/CMakeFiles/
+
+# CMake 生成文件
+CMakeCache.txt
+CMakeFiles/
+
+# Visual Studio 编译产物
 *.obj
 *.pdb
 *.ilk
@@ -17,5 +31,17 @@
 *.recipe
 *.lastbuildstate
 *.exe
+*.idb
+*.iobj
+*.ipdb
+
+# Qt 生成文件
+*_autogen/
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# 文档和临时文件
 /markdown-img/
 VS2022项目迁移CMake.md
+/Docs/

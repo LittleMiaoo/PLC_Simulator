@@ -19,6 +19,8 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QAction>
+#include <QDialog>
+#include <QFrame>
 
 #define REGISTER_TABLE_COLUMN_COUNT 10
 #define REGISTER_TABLE_ROW_COUNT	21
@@ -29,13 +31,14 @@ QT_END_NAMESPACE
 
 class CommTest_Qt : public QMainWindow
 {
-	Q_OBJECT
-
+    Q_OBJECT
+signals:
+//执行lua脚本
+	void executeLuaScript(int buttonId,QString luaPath);
 public:
 	CommTest_Qt(QWidget* parent = nullptr);
 	~CommTest_Qt();
 
-	//void InitialSocketPort();
 private:
 
 	void InitializeMember();
@@ -72,16 +75,18 @@ private:
 	
 	void InitialGuiStyle();             // 添加界面样式设置函数
 
-	Ui::CommTest_QtClass* ui;
+    Ui::CommTest_QtClass* ui;
 
 	std::unique_ptr<SubMainWindow> m_subWindow; // 小窗口实例
-    //std::unique_ptr<SimulationPlatform> m_simulationPlatform;   // 模拟平台窗口实例
-	SimulationPlatform* m_simulationPlatform;
+    SimulationPlatform* m_simulationPlatform;
+    bool m_bShouldFlash; // 是否允许触发表格闪烁效果
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 	ConfigManager* m_configManager;
 private:
 
 	MainWorkFlow* m_pWorkFlow;
-	//CommSocket::SocketCommInfo* m_CurInfo;
+	std::unique_ptr<MainWorkFlow::IBaseController> m_PlatformController;
 	std::unique_ptr<CommBase::CommInfoBase> m_CurInfo; //内存自动管理
 
 	//列表刷新相关
@@ -89,7 +94,6 @@ private:
 	QMap<QTableWidgetItem*, QString> m_lastTextValues;
 
 	void CreateCurrentProtocol();
-	//QMap<ProtocolType,QString> m_ProtocolTypeMap;
 
 	int m_nLogStat;
 	int m_nIntStat;
@@ -147,7 +151,8 @@ private:
     //显示Double类型数据
     void DisplayRegisterVals_Double();
 
-
+	//更新日志显示
+	void UpdateLogDisplay(QString strNewLog);
 };
 
 #endif

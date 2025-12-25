@@ -9,6 +9,8 @@
 #include <memory>
 #include "Comm/CommBase.h"
 
+struct CommConfig;
+
 class ConfigManager : public QObject
 {
     Q_OBJECT
@@ -28,14 +30,14 @@ public:
      * @param commInfo 通信参数基类指针，支持多态保存
      * @return 保存是否成功
      */
-    bool SaveCommInfo(CommBase::CommInfoBase* commInfo);
+    bool SaveCommInfo(CommConfig* commInfo);
 
     /**
      * @brief 加载通信参数配置
      * @param commInfo 用于存储加载结果的通信参数基类指针引用
      * @return 加载是否成功
      */
-    bool LoadCommInfo(CommBase::CommInfoBase*& commInfo);
+    bool LoadCommInfo(std::unique_ptr<CommConfig>& commInfo);
 
     // ==================== 协议类型相关接口 ====================
     
@@ -155,7 +157,7 @@ private:
      * @param commInfo 用于存储结果的通信参数基类指针引用
      * @return 解析是否成功
      */
-    bool ParseCommInfoFromJson(const QJsonObject& jsonObj, CommBase::CommInfoBase*& commInfo);
+    bool ParseCommInfoFromJson(const QJsonObject& jsonObj, std::unique_ptr<CommConfig>& commConfig);
 
     /**
      * @brief 将通信参数信息序列化为JSON对象
@@ -163,7 +165,7 @@ private:
      * @param jsonObj 用于存储结果的JSON对象引用
      * @return 序列化是否成功
      */
-    bool SerializeCommInfoToJson(CommBase::CommInfoBase* commInfo, QJsonObject& jsonObj);
+    bool SerializeCommInfoToJson(CommConfig* commInfo, QJsonObject& jsonObj);
 
     /**
      * @brief 获取配置文件的完整路径
