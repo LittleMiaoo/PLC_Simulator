@@ -19,6 +19,8 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QAction>
+#include <QDialog>
+#include <QFrame>
 
 #define REGISTER_TABLE_COLUMN_COUNT 10
 #define REGISTER_TABLE_ROW_COUNT	21
