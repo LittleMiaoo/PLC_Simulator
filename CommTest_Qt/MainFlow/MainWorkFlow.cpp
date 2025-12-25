@@ -2,6 +2,60 @@
 #include "CommTest_Qt.h"
 #include "Comm/Socket/CommSocket.h"
 
+// ScriptRunner 实现 - 用于 ScriptEditor 的异步脚本执行
+class ScriptRunnerImpl : public IScriptRunner
+{
+public:
+    ScriptRunnerImpl(MainWorkFlow* workflow, int luaIndex)
+        : m_pWorkFlow(workflow), m_nLuaIndex(luaIndex) {}
+
+    void RunScriptAsync(const QString& scriptContent,
+                        std::function<void(bool success, const QString& errorMsg)> onFinished) override
+    {
+        if (!m_pWorkFlow) {
+            if (onFinished) onFinished(false, "Workflow not available");
+            return;
+        }
+
+        LuaScript* pLuaScript = m_pWorkFlow->GetLuaScript(m_nLuaIndex);
+        if (!pLuaScript) {
+            if (onFinished) onFinished(false, "LuaScript instance not found");
+            return;
+        }
+
+        // 创建异步任务
+        class EditorScriptTask : public QRunnable {
+        public:
+            LuaScript* lua;
+            QString content;
+            std::function<void(bool, const QString&)> callback;
+            QMutex* mutex;
+
+            EditorScriptTask(LuaScript* l, const QString& c,
+                           std::function<void(bool, const QString&)> cb, QMutex* m)
+                : lua(l), content(c), callback(std::move(cb)), mutex(m) {}
+
+            void run() override {
+                QMutexLocker locker(mutex);
+                QString err;
+                bool ok = lua->RunLuaScriptWithEditor(content, err);
+                if (callback) {
+                    callback(ok, err);
+                }
+            }
+        };
+
+        EditorScriptTask* task = new EditorScriptTask(
+            pLuaScript, scriptContent, std::move(onFinished),
+            m_pWorkFlow->m_vLuaMutex[m_nLuaIndex].get());
+        task->setAutoDelete(true);
+        m_pWorkFlow->m_luaThreadPool->start(task);
+    }
+
+private:
+    MainWorkFlow* m_pWorkFlow;
+    int m_nLuaIndex;
+};
 
 //初始化静态实例
 MainWorkFlow* MainWorkFlow::s_pInstance = nullptr;
@@ -146,16 +200,18 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
         }
     };
     m_dataProvider = std::make_unique<RegisterProvider>(this);
+    m_luaThreadPool = new QThreadPool(this);
+    m_luaThreadPool->setMaxThreadCount(QThread::idealThreadCount());
+
+    m_vScriptRunners.resize(LUA_SCRIPT_NUM);
     for (int i = 0; i < LUA_SCRIPT_NUM; ++i)
     {
         m_vpLuaScript[i] = std::unique_ptr<LuaScript>(LuaScript::InitialLuaScript());
         m_vpLuaScript[i]->SetDataProvider(m_dataProvider.get());
         ConnectLuaSignalSlot(m_vpLuaScript[i]);
         m_vLuaMutex[i] = std::make_unique<QMutex>();
+        m_vScriptRunners[i] = std::make_unique<ScriptRunnerImpl>(this, i);
     }
-
-    m_luaThreadPool = new QThreadPool(this);
-    m_luaThreadPool->setMaxThreadCount(QThread::idealThreadCount());
 }
 
 // 析构函数：确保所有资源正确释放
@@ -639,8 +695,14 @@ bool MainWorkFlow::RunLuaScriptAsync(int nLuaIndex, const QString &strLuaFile)
 LuaScript* MainWorkFlow::GetLuaScript(int nIndex)
 {
     if (nIndex >= m_vpLuaScript.size()) return nullptr;
-	
+
 	return m_vpLuaScript[nIndex].get();
+}
+
+IScriptRunner* MainWorkFlow::GetScriptRunner(int nIndex)
+{
+    if (nIndex < 0 || nIndex >= static_cast<int>(m_vScriptRunners.size())) return nullptr;
+    return m_vScriptRunners[nIndex].get();
 }
 
 // bool MainWorkFlow::WorkProcess_AnalyzeReceiveInfo(QByteArray& strRecevie,CmdType& CurCmdType)

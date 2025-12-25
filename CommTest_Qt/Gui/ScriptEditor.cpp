@@ -22,11 +22,11 @@
 // public:
 
 
-ScriptEditor::ScriptEditor(QWidget *parent,LuaScript* pLuaScript)
+ScriptEditor::ScriptEditor(QWidget *parent, IScriptRunner* pScriptRunner)
     : QMainWindow(parent)
     , editor(new QPlainTextEdit(this))
     , highlighter(new LuaHighlighter(editor->document()))
-    , m_pLuaScript(pLuaScript)
+    , m_pScriptRunner(pScriptRunner)
 {
 //     if (pLuaScript != nullptr)
 //     {
@@ -212,21 +212,107 @@ void ScriptEditor::compileScript()
 
 void ScriptEditor::executeScript()
 {
-    if (!m_pLuaScript) return;
-    // 先编译
+    if (!m_pScriptRunner) {
+        QMessageBox::warning(this, tr("Error"), tr("Script runner not configured."));
+        return;
+    }
+
+    if (m_bExecuting) {
+        return; // 防止重复执行
+    }
+
+    // 先编译检查
     QString scriptContent = editor->toPlainText();
-    QString strError ;
-    if (!LuaScript::CheckLuaScript(scriptContent,strError)) {
+    QString strError;
+    if (!LuaScript::CheckLuaScript(scriptContent, strError)) {
         QMessageBox::critical(this, tr("Compile Error"), strError);
         return;
     }
-    
-    // 执行脚本
-    if (m_pLuaScript->RunLuaScriptWithEditor(scriptContent,strError)) {
-        QMessageBox::information(this, tr("Execute"), tr("Script executed successfully."));
-    } else {
-        QMessageBox::critical(this, tr("Execution Error"), strError);
+
+    // 禁用界面并显示运行提示
+    m_bExecuting = true;
+    setEditorEnabled(false);
+    showRunningDialog();
+
+    // 异步执行脚本
+    m_pScriptRunner->RunScriptAsync(scriptContent,
+        [this](bool success, const QString& errorMsg) {
+            // 回调在主线程执行
+            QMetaObject::invokeMethod(this, [this, success, errorMsg]() {
+                // 隐藏运行提示并恢复界面
+                hideRunningDialog();
+                setEditorEnabled(true);
+                m_bExecuting = false;
+
+                if (success) {
+                    QMessageBox::information(this, tr("Execute"), tr("Script executed successfully."));
+                } else {
+                    QMessageBox::critical(this, tr("Execution Error"), errorMsg);
+                }
+            }, Qt::QueuedConnection);
+        });
+}
+
+void ScriptEditor::showRunningDialog()
+{
+    m_nRunningSeconds = 0;
+
+    // 创建不可关闭的对话框
+    m_pRunningDialog = new QDialog(this);
+    m_pRunningDialog->setWindowTitle(tr("Script Running"));
+    m_pRunningDialog->setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+    m_pRunningDialog->setModal(true);
+    m_pRunningDialog->setFixedSize(280, 80);
+
+    // 创建标签
+    m_pRunningLabel = new QLabel(tr("Lua is Running, Use-Time: 0 s......"), m_pRunningDialog);
+    m_pRunningLabel->setAlignment(Qt::AlignCenter);
+
+    QVBoxLayout* layout = new QVBoxLayout(m_pRunningDialog);
+    layout->addWidget(m_pRunningLabel);
+    m_pRunningDialog->setLayout(layout);
+
+    // 创建计时器
+    m_pRunningTimer = new QTimer(this);
+    connect(m_pRunningTimer, &QTimer::timeout, this, &ScriptEditor::updateRunningTime);
+    m_pRunningTimer->start(1000); // 每秒更新
+
+    m_pRunningDialog->show();
+}
+
+void ScriptEditor::hideRunningDialog()
+{
+    // 停止计时器
+    if (m_pRunningTimer) {
+        m_pRunningTimer->stop();
+        delete m_pRunningTimer;
+        m_pRunningTimer = nullptr;
     }
+
+    // 关闭并删除对话框
+    if (m_pRunningDialog) {
+        m_pRunningDialog->close();
+        delete m_pRunningDialog;
+        m_pRunningDialog = nullptr;
+        m_pRunningLabel = nullptr; // 已随对话框删除
+    }
+}
+
+void ScriptEditor::updateRunningTime()
+{
+    m_nRunningSeconds++;
+    if (m_pRunningLabel) {
+        m_pRunningLabel->setText(tr("Lua Running, UseTime: %1 S......").arg(m_nRunningSeconds));
+    }
+}
+
+void ScriptEditor::setEditorEnabled(bool enabled)
+{
+    // 禁用/启用编辑器
+    editor->setEnabled(enabled);
+
+    // 禁用/启用菜单栏
+    menuBar()->setEnabled(enabled);
 }
 
 void ScriptEditor::insertFunction(const QString &function)
@@ -258,8 +344,11 @@ void ScriptEditor::insertFunction(const QString &function)
 
 void ScriptEditor::closeEvent(QCloseEvent *event)
 {
-    // 可以在这里添加保存提示逻辑
-    //event->accept();
+    // 脚本执行中不允许关闭窗口
+    if (m_bExecuting) {
+        event->ignore();
+        return;
+    }
     QMainWindow::closeEvent(event);
 }
 

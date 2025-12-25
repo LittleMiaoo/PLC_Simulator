@@ -1,7 +1,217 @@
 #include "SimulationPlatform.h"
+#include <QFileDialog>
+#include <QDir>
+#include <QCoreApplication>
+#include <QMessageBox>
 
 #define MARK_RECT_WIDTH 3
 #define MARK_RECT_HEIGHT 8
+
+// 图像查看器控件 - 支持鼠标滚轮缩放
+class ImageViewerWidget : public QWidget
+{
+    Q_OBJECT
+
+signals:
+    void scaleChanged(double scale);
+
+public:
+    ImageViewerWidget(QWidget* parent = nullptr) : QWidget(parent)
+    {
+        setMinimumSize(200, 200);
+        setMouseTracking(true);
+        m_scale = 1.0;
+        m_minScale = 0.1;
+        m_maxScale = 10.0;
+        m_offset = QPointF(0, 0);
+    }
+
+    void setImage(const QImage& image)
+    {
+        m_image = image;
+        m_offset = QPointF(0, 0);
+        // 自动计算缩放比例使图像完整显示
+        fitToWindow();
+    }
+
+    // 使图像适应窗口大小（完整显示）
+    void fitToWindow()
+    {
+        if (m_image.isNull() || width() <= 0 || height() <= 0) {
+            m_scale = 1.0;
+            emit scaleChanged(m_scale);
+            update();
+            return;
+        }
+
+        // 计算使图像完整显示所需的缩放比例
+        double scaleX = static_cast<double>(width()) / m_image.width();
+        double scaleY = static_cast<double>(height()) / m_image.height();
+        m_scale = qMin(scaleX, scaleY);
+
+        // 确保缩放比例在有效范围内
+        m_scale = qBound(m_minScale, m_scale, m_maxScale);
+
+        m_offset = QPointF(0, 0);
+        emit scaleChanged(m_scale);
+        update();
+    }
+
+    bool hasImage() const { return !m_image.isNull(); }
+
+    const QImage& image() const { return m_image; }
+
+    double scale() const { return m_scale; }
+
+    void setScale(double scale)
+    {
+        double newScale = qBound(m_minScale, scale, m_maxScale);
+        if (qFuzzyCompare(newScale, m_scale)) return;
+        m_scale = newScale;
+        update();
+        emit scaleChanged(m_scale);
+    }
+
+protected:
+    void paintEvent(QPaintEvent* event) override
+    {
+        Q_UNUSED(event);
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::SmoothPixmapTransform);
+
+        // 绘制灰白棋盘格背景
+        drawCheckerboard(painter);
+
+        if (m_image.isNull()) {
+            painter.setPen(Qt::darkGray);
+            painter.drawText(rect(), Qt::AlignCenter, "No Image Loaded");
+            return;
+        }
+
+        // 计算缩放后的图像尺寸
+        QSizeF scaledSize = m_image.size() * m_scale;
+
+        // 计算绘制位置（居中 + 偏移）
+        QPointF center(width() / 2.0, height() / 2.0);
+        QPointF topLeft = center - QPointF(scaledSize.width() / 2.0, scaledSize.height() / 2.0) + m_offset;
+
+        // 绘制图像
+        painter.drawImage(QRectF(topLeft, scaledSize), m_image);
+    }
+
+    // 绘制灰白棋盘格背景
+    void drawCheckerboard(QPainter& painter)
+    {
+        const int gridSize = 10;  // 棋盘格单元大小
+        const QColor lightColor(255, 255, 255);  // 白色
+        const QColor darkColor(204, 204, 204);   // 浅灰色
+
+        for (int y = 0; y < height(); y += gridSize) {
+            for (int x = 0; x < width(); x += gridSize) {
+                bool isLight = ((x / gridSize) + (y / gridSize)) % 2 == 0;
+                painter.fillRect(x, y, gridSize, gridSize, isLight ? lightColor : darkColor);
+            }
+        }
+    }
+
+    void wheelEvent(QWheelEvent* event) override
+    {
+        if (m_image.isNull()) return;
+
+        // 获取鼠标位置（相对于控件）
+        QPointF mousePos = event->position();
+
+        // 计算鼠标位置相对于图像中心的偏移（缩放前）
+        QPointF center(width() / 2.0, height() / 2.0);
+        QPointF relativePos = mousePos - center - m_offset;
+
+        // 计算新的缩放比例
+        double oldScale = m_scale;
+        double delta = event->angleDelta().y() / 120.0;
+        double factor = 1.0 + delta * 0.1;
+        m_scale *= factor;
+        m_scale = qBound(m_minScale, m_scale, m_maxScale);
+
+        // 调整偏移以保持鼠标位置不变
+        double scaleRatio = m_scale / oldScale;
+        m_offset = mousePos - center - relativePos * scaleRatio;
+
+        update();
+        emit scaleChanged(m_scale);
+        event->accept();
+    }
+
+    void mousePressEvent(QMouseEvent* event) override
+    {
+        if (event->button() == Qt::LeftButton) {
+            m_lastMousePos = event->pos();
+            m_dragging = true;
+            setCursor(Qt::ClosedHandCursor);
+        }
+    }
+
+    void mouseMoveEvent(QMouseEvent* event) override
+    {
+        if (m_dragging) {
+            QPointF delta = event->pos() - m_lastMousePos;
+            m_offset += delta;
+            m_lastMousePos = event->pos();
+            update();
+        }
+    }
+
+    void mouseReleaseEvent(QMouseEvent* event) override
+    {
+        if (event->button() == Qt::LeftButton) {
+            m_dragging = false;
+            setCursor(Qt::ArrowCursor);
+        }
+    }
+
+    void mouseDoubleClickEvent(QMouseEvent* event) override
+    {
+        Q_UNUSED(event);
+        // 双击恢复图像完整显示
+        fitToWindow();
+    }
+
+    void resizeEvent(QResizeEvent* event) override
+    {
+        QSize oldSize = event->oldSize();
+        QSize newSize = event->size();
+
+        // 仅当有图像且旧尺寸有效时进行比例调整
+        if (!m_image.isNull() && oldSize.isValid() && oldSize.width() > 0 && oldSize.height() > 0) {
+            // 计算窗口尺寸变化比例
+            double ratioX = static_cast<double>(newSize.width()) / oldSize.width();
+            double ratioY = static_cast<double>(newSize.height()) / oldSize.height();
+            // 取较小的比例以保持显示内容一致
+            double ratio = qMin(ratioX, ratioY);
+
+            // 按比例调整缩放值
+            double newScale = m_scale * ratio;
+            m_scale = qBound(m_minScale, newScale, m_maxScale);
+
+            // 按比例调整偏移量
+            m_offset *= ratio;
+
+            emit scaleChanged(m_scale);
+        }
+
+        QWidget::resizeEvent(event);
+        update();
+    }
+
+private:
+    QImage m_image;
+    double m_scale;
+    double m_minScale;
+    double m_maxScale;
+    QPointF m_offset;
+    QPointF m_lastMousePos;
+    bool m_dragging = false;
+};
+
 // Canvas widget for drawing
 class CanvasWidget : public QWidget
 {
@@ -135,12 +345,18 @@ void SimulationPlatform::setupUI()
 {
     // 创建主布局
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    
+
+    // 创建 TabWidget 用于页面切换
+    tabWidget = new QTabWidget(this);
+    mainLayout->addWidget(tabWidget, 1);
+
+    // ========== 模拟平台页面 ==========
+    simulationPage = new QWidget(this);
+    QVBoxLayout* simLayout = new QVBoxLayout(simulationPage);
+
     // 创建画布区域
     canvas = new CanvasWidget(this);
-    mainLayout->addWidget(canvas, 1); // 画布占主要空间
-    
-   
+    simLayout->addWidget(canvas, 1); // 画布占主要空间
 
     // 创建控制区域
     controlGroup = new QGroupBox("Controls");
@@ -252,23 +468,33 @@ void SimulationPlatform::setupUI()
     controlLayout->addWidget(mark1Group);
     controlLayout->addWidget(mark2Group);
     controlLayout->addWidget(otherGroup);
-    
-    // 添加控制组到主布局
-    mainLayout->addWidget(controlGroup);
-    
+
+    // 添加控制组到模拟平台页面布局
+    simLayout->addWidget(controlGroup);
+
+    // 将模拟平台页面添加到 TabWidget
+    tabWidget->addTab(simulationPage, "模拟平台");
+
+    // ========== 图片显示页面 ==========
+    setupPictureShowPage();
+    tabWidget->addTab(pictureShowPage, "图片显示");
+
+    // 连接 Tab 切换信号
+    connect(tabWidget, &QTabWidget::currentChanged, this, &SimulationPlatform::onTabChanged);
+
     // 设置初始值
     basePlatformXEdit->setText(QString::number(basePlatform.x));
     basePlatformYEdit->setText(QString::number(basePlatform.y));
     basePlatformAngleEdit->setText(QString::number(basePlatform.angle));
-    
+
     realTimePlatformXEdit->setText(QString::number(realTimePlatform.x));
     realTimePlatformYEdit->setText(QString::number(realTimePlatform.y));
     realTimePlatformAngleEdit->setText(QString::number(realTimePlatform.angle));
-    
+
     mark1XEdit->setText(QString::number(mark1.x));
     mark1YEdit->setText(QString::number(mark1.y));
     mark1AngleEdit->setText(QString::number(mark1.angle));
-    
+
     mark2XEdit->setText(QString::number(mark2.x));
     mark2YEdit->setText(QString::number(mark2.y));
     mark2AngleEdit->setText(QString::number(mark2.angle));
@@ -777,3 +1003,257 @@ QPointF SimulationPlatform::inverseTransformPoint(const QPointF &point)
     return QPointF((point.x() - m_origin.x()) / m_scale,
                    (m_origin.y() - point.y()) / m_scale); // 注意Y轴翻转
 }
+
+void SimulationPlatform::setupPictureShowPage()
+{
+    pictureShowPage = new QWidget(this);
+    QVBoxLayout* picLayout = new QVBoxLayout(pictureShowPage);
+
+    // 图像显示区域
+    imageViewer = new ImageViewerWidget(this);
+    picLayout->addWidget(imageViewer, 1);
+
+    // 功能区域
+    QGroupBox* funcGroup = new QGroupBox("功能", this);
+    QHBoxLayout* funcLayout = new QHBoxLayout(funcGroup);
+
+    // 设置图像按钮
+    setImageBtn = new QPushButton("设置图像", this);
+    connect(setImageBtn, &QPushButton::clicked, this, &SimulationPlatform::onSetImageClicked);
+    funcLayout->addWidget(setImageBtn);
+
+    // 缩放倍率输入框
+    QLabel* zoomLabel = new QLabel("缩放倍率:", this);
+    funcLayout->addWidget(zoomLabel);
+
+    zoomRatioEdit = new QLineEdit(this);
+    zoomRatioEdit->setFixedWidth(60);
+    zoomRatioEdit->setText("1.00");
+    QDoubleValidator* zoomValidator = new QDoubleValidator(0.1, 10.0, 2, this);
+    zoomValidator->setNotation(QDoubleValidator::StandardNotation);
+    zoomRatioEdit->setValidator(zoomValidator);
+    funcLayout->addWidget(zoomRatioEdit);
+
+    // 输入框编辑完成时更新图像缩放
+    connect(zoomRatioEdit, &QLineEdit::editingFinished, this, [this]() {
+        bool ok;
+        double scale = zoomRatioEdit->text().toDouble(&ok);
+        if (ok && imageViewer) {
+            imageViewer->setScale(scale);
+        }
+    });
+
+    // 图像缩放变化时更新输入框
+    connect(imageViewer, &ImageViewerWidget::scaleChanged, this, [this](double scale) {
+        zoomRatioEdit->setText(QString::number(scale, 'f', 2));
+    });
+
+    funcLayout->addStretch();
+
+    // 窗口位置按钮组
+    picShowPlatformUL = new QRadioButton("左上显示", this);
+    picShowPlatformUR = new QRadioButton("右上显示", this);
+    picShowPlatformDL = new QRadioButton("左下显示", this);
+    picShowPlatformDR = new QRadioButton("右下显示", this);
+
+    QButtonGroup* picPosGroup = new QButtonGroup(this);
+    picPosGroup->addButton(picShowPlatformUL);
+    picPosGroup->addButton(picShowPlatformUR);
+    picPosGroup->addButton(picShowPlatformDL);
+    picPosGroup->addButton(picShowPlatformDR);
+    picShowPlatformUL->setChecked(true);
+
+    funcLayout->addWidget(picShowPlatformUL);
+    funcLayout->addWidget(picShowPlatformUR);
+    funcLayout->addWidget(picShowPlatformDL);
+    funcLayout->addWidget(picShowPlatformDR);
+
+    picLayout->addWidget(funcGroup);
+
+    // 连接位置按钮信号
+    connect(picPosGroup, &QButtonGroup::buttonToggled, this, [=](QAbstractButton* button, bool checked) {
+        if (checked) {
+            QRect frameGeometry = this->frameGeometry();
+            int totalHeight = frameGeometry.height();
+            int totalWidth = frameGeometry.width();
+
+            int screenWidth = QGuiApplication::primaryScreen()->availableGeometry().width();
+            int screenHeight = QGuiApplication::primaryScreen()->availableGeometry().height();
+
+            if (button == picShowPlatformUL) {
+                this->move(0, 0);
+            } else if (button == picShowPlatformUR) {
+                this->move(screenWidth - totalWidth, 0);
+            } else if (button == picShowPlatformDL) {
+                this->move(0, screenHeight - totalHeight);
+            } else if (button == picShowPlatformDR) {
+                this->move(screenWidth - totalWidth, screenHeight - totalHeight);
+            }
+        }
+    });
+
+    // 应用样式
+    const QString buttonStyleSheet =
+        "QPushButton {"
+        "    background-color: #4CA3E0;"
+        "    color: white;"
+        "    border: none;"
+        "    border-radius: 4px;"
+        "    padding: 6px 12px;"
+        "    font-size: 10pt;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #3A8BC8;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #2E7BA8;"
+        "}";
+    setImageBtn->setStyleSheet(buttonStyleSheet);
+
+    const QString inputStyleSheet =
+        "QLineEdit {"
+        "    background-color: #FFFFFF;"
+        "    color: #212121;"
+        "    border: 1px solid #CCCCCC;"
+        "    border-radius: 4px;"
+        "    padding: 4px 6px;"
+        "    font-size: 10pt;"
+        "}"
+        "QLineEdit:focus {"
+        "    border: 2px solid #4CA3E0;"
+        "    background-color: #FFFEF5;"
+        "}";
+    zoomRatioEdit->setStyleSheet(inputStyleSheet);
+
+    const QString checkboxStyleSheet =
+        "QRadioButton {"
+        "    color: #212121;"
+        "    spacing: 6px;"
+        "    font-size: 10pt;"
+        "}"
+        "QRadioButton::indicator {"
+        "    width: 16px;"
+        "    height: 16px;"
+        "    border: 1px solid #CCCCCC;"
+        "    border-radius: 8px;"
+        "    background-color: #FFFFFF;"
+        "}"
+        "QRadioButton::indicator:checked {"
+        "    background-color: #4CA3E0;"
+        "    border: 1px solid #2E7BA8;"
+        "}"
+        "QRadioButton::indicator:hover {"
+        "    border: 1px solid #4CA3E0;"
+        "}";
+    picShowPlatformUL->setStyleSheet(checkboxStyleSheet);
+    picShowPlatformUR->setStyleSheet(checkboxStyleSheet);
+    picShowPlatformDL->setStyleSheet(checkboxStyleSheet);
+    picShowPlatformDR->setStyleSheet(checkboxStyleSheet);
+
+    const QString groupBoxStyleSheet =
+        "QGroupBox {"
+        "    background-color: #F0F0F0;"
+        "    color: #212121;"
+        "    border: 1px solid #CCCCCC;"
+        "    border-radius: 6px;"
+        "    margin-top: 8px;"
+        "}"
+        "QGroupBox::title {"
+        "    subcontrol-origin: margin;"
+        "    subcontrol-position: top left;"
+        "    padding: 0 6px;"
+        "    font-weight: 600;"
+        "}";
+    funcGroup->setStyleSheet(groupBoxStyleSheet);
+
+    // 加载默认图像
+    loadDefaultImage();
+}
+
+void SimulationPlatform::loadDefaultImage()
+{
+    QString appDir = QCoreApplication::applicationDirPath();
+    QString configDir = appDir + "/Config";
+
+    QDir dir(configDir);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+        return;
+    }
+
+    // 查找包含 'SimulationImage' 的图像文件
+    QStringList filters;
+    filters << "SimulationImage*.bmp" << "SimulationImage*.png"
+            << "SimulationImage*.jpg" << "SimulationImage*.jpeg"
+            << "SimulationImage*.tiff" << "SimulationImage*.tif";
+
+    QStringList files = dir.entryList(filters, QDir::Files, QDir::Name);
+
+    if (!files.isEmpty()) {
+        QString imagePath = configDir + "/" + files.first();
+        QImage image(imagePath);
+        if (!image.isNull()) {
+            imageViewer->setImage(image);
+        }
+    }
+}
+
+void SimulationPlatform::onSetImageClicked()
+{
+    QString appDir = QCoreApplication::applicationDirPath();
+    QString configDir = appDir + "/Config";
+
+    // 确保目录存在
+    QDir dir(configDir);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    // 打开文件对话框
+    QString filter = "图像文件 (*.bmp *.png *.jpg *.jpeg *.tiff *.tif)";
+    QString filePath = QFileDialog::getOpenFileName(this, "选择图像", configDir, filter);
+
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    // 加载图像
+    QImage image(filePath);
+    if (image.isNull()) {
+        QMessageBox::warning(this, "错误", "无法加载所选图像文件。");
+        return;
+    }
+
+    // 显示图像
+    imageViewer->setImage(image);
+
+    // 获取原文件的扩展名
+    QFileInfo fileInfo(filePath);
+    QString suffix = fileInfo.suffix().toLower();
+
+    // 保存到 Config 目录，命名为 SimulationImage
+    QString destPath = configDir + "/SimulationImage." + suffix;
+
+    // 如果已存在同名文件（包括不同扩展名），先删除旧的
+    QStringList oldFiles = dir.entryList(QStringList() << "SimulationImage.*", QDir::Files);
+    for (const QString& oldFile : oldFiles) {
+        QFile::remove(configDir + "/" + oldFile);
+    }
+
+    // 复制文件到目标位置
+    if (!QFile::copy(filePath, destPath)) {
+        // 如果复制失败，尝试直接保存
+        if (!image.save(destPath)) {
+            QMessageBox::warning(this, "警告", "图像加载成功，但无法保存到配置目录。");
+        }
+    }
+}
+
+void SimulationPlatform::onTabChanged(int index)
+{
+    Q_UNUSED(index);
+    // 页面切换时的处理逻辑（如有需要可以在这里添加）
+}
+
+// 包含 moc 文件，用于处理 .cpp 文件中定义的 Q_OBJECT 类
+#include "SimulationPlatform.moc"

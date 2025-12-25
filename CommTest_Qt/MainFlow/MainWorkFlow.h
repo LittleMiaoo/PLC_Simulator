@@ -27,6 +27,8 @@
 #include <vector>
 #include <functional>
 
+#include "Gui/ScriptEditor.h"  // for IScriptRunner
+
 //lua脚本数量
 #define LUA_SCRIPT_NUM 6
 
@@ -38,9 +40,13 @@ struct CommConfig {
 	CommConfig() : type(CommBase::CommType::eSocket) {}
 };
 
+class ScriptRunnerImpl;  // 前向声明
+
 class MainWorkFlow :public QObject
 {
 	Q_OBJECT
+    friend class ScriptRunnerImpl;  // 友元声明，允许访问私有成员
+
 public:
 	MainWorkFlow(const MainWorkFlow& WorkFlow) = delete;				//禁用拷贝构造
 	MainWorkFlow& operator= (const MainWorkFlow& WorkFlow) = delete;	//禁用赋值构造
@@ -79,8 +85,9 @@ public:
 	bool RunLuaScriptAsync(int nLuaIndex,const QString& strLuaFile);
 
     LuaScript* GetLuaScript(int nIndex);
-    
 
+    // 获取指定索引的脚本执行器（实现 IScriptRunner 接口）
+    IScriptRunner* GetScriptRunner(int nIndex);
 
     bool ConfigureComm(const CommConfig& cfg);
     void SetRequestProcessor(std::function<bool(const QByteArray&, QByteArray&)> fn);
@@ -106,6 +113,7 @@ private:
 	std::vector<std::unique_ptr<LuaScript>> m_vpLuaScript;
     std::vector<std::unique_ptr<QMutex>> m_vLuaMutex;
 	QThreadPool* m_luaThreadPool;
+    std::vector<std::unique_ptr<IScriptRunner>> m_vScriptRunners;  // 脚本执行器
 
 	//链接lua信号槽
 	void ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript);
