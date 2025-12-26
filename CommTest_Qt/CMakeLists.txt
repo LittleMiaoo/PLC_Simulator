@@ -11,7 +11,7 @@ set(SOURCE_FILES
 set(RESOURCE_FILES
     Resource_Files/CommTest_Qt.qrc
     Resource_Files/CommTest_Qt.rc
-    Resource_Files/CommTest_Qt.ico
+    Resource_Files/PLC_Simulator.ico
     app.rc
     version.h
 )
@@ -60,6 +60,10 @@ set(GUI_SOURCES
     Gui/SubMainWindow.cpp
     Gui/ScriptEditor.cpp
     Gui/SimulationPlatform.cpp
+    Gui/ImageViewerWidget.cpp
+    Gui/CanvasWidget.cpp
+    Gui/RegisterTableManager.cpp
+    Gui/ScriptManager.cpp
 )
 
 set(GUI_HEADERS
@@ -67,6 +71,10 @@ set(GUI_HEADERS
     Gui/SubMainWindow.h
     Gui/ScriptEditor.h
     Gui/SimulationPlatform.h
+    Gui/ImageViewerWidget.h
+    Gui/CanvasWidget.h
+    Gui/RegisterTableManager.h
+    Gui/ScriptManager.h
 )
 
 # MainFlow 模块
