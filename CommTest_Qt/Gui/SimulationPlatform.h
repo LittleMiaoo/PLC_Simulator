@@ -29,10 +29,9 @@
 #include <QMouseEvent>
 #include <cmath>
 
-
-// 前置声明
-class CanvasWidget;
-class ImageViewerWidget;
+// 包含拆分出的控件头文件
+#include "CanvasWidget.h"
+#include "ImageViewerWidget.h"
 
 class SimulationPlatform : public QWidget
 {
@@ -53,6 +52,12 @@ public:
     void GetRealTimePlatformData(double& x, double& y, double& angle) const;
 
     void SetSimulationPlatformParams(double distance,double ratio);
+
+    /**
+     * @brief 供 CanvasWidget 调用的画布绘制方法
+     * @param painter 绘图对象
+     */
+    void drawCanvas(QPainter& painter);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -157,9 +162,6 @@ private:
     QPointF rotatePoint(const QPointF &point, double angle);
     QPointF transformPoint(const QPointF &point);
     QPointF inverseTransformPoint(const QPointF &point);
-    
-    // 声明友元类，以便CanvasWidget可以访问SimulationPlatform的私有成员
-    friend class CanvasWidget;
 };
 
 #endif // SIMULATIONPLATFORM_H

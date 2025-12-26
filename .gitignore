@@ -45,3 +45,11 @@ qrc_*.cpp
 /markdown-img/
 VS2022项目迁移CMake.md
 /Docs/
+
+# Claude Code 本地配置
+CLAUDE.local.md
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+
+项目类关系梳理与MainWorkFlow性能优化方案.md
