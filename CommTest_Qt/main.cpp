@@ -13,11 +13,9 @@
 #endif
 #endif
 
-#ifdef _WIN32
-#ifdef _DEBUG
+#ifdef VLD_ENABLED
 #define VLD_FORCE_ENABLE
 #include <vld.h>
-#endif
 #endif
 
 const QString SHARED_MEM_KEY = "PLC_Simulation_Shared_Memory";

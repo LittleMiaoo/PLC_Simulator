@@ -169,9 +169,13 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 # ========== 第二步：仅在 Debug 配置下链接 VLD（适配多配置生成器） ==========
 if(WIN32 AND VLD_FOUND)
     # 生成器表达式 $<CONFIG:Debug>：仅在 Debug 配置时生效
-    target_link_libraries(${PROJECT_NAME} 
-        PRIVATE 
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
         $<$<CONFIG:Debug>:VLD::VLD>  # 核心：动态判断 Debug 配置
+    )
+    # 定义 VLD_ENABLED 宏，让代码知道 VLD 可用
+    target_compile_definitions(${TARGET_NAME} PRIVATE
+        $<$<CONFIG:Debug>:VLD_ENABLED>
     )
     # 可选：打印验证信息（构建阶段才会输出，因为依赖配置）
     message(STATUS "VLD will be linked in Debug configuration")
