@@ -51,6 +51,9 @@ public:
     // 获取实时平台数据
     void GetRealTimePlatformData(double& x, double& y, double& angle) const;
 
+    // 获取基准平台数据
+    void GetBasePlatformData(double& x, double& y, double& angle) const;
+
     void SetSimulationPlatformParams(double distance,double ratio);
 
     /**

@@ -53,6 +53,10 @@ private:
     void OnWriteAxisDoubleWord();
     void OnWriteAxisFloat();
 
+    // 自动写入相关
+    void OnWritePosAutoEnableChanged(int state);
+    void OnPlatformPositionChanged();
+
     // 菜单栏相关
     void OnShowAboutDialog();
 
@@ -86,6 +90,15 @@ private:
 
     // 日志显示状态
     int m_nLogStat;
+
+    // 自动写入相关
+    double m_lastRealTimeX;
+    double m_lastRealTimeY;
+    double m_lastRealTimeAngle;
+    double m_lastBaseX;
+    double m_lastBaseY;
+    double m_lastBaseAngle;
+    QTimer* m_positionCheckTimer;
 };
 
 #endif // COMMTEST_QT_H

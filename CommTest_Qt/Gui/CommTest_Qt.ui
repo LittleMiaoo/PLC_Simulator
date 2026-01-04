@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1340</width>
-    <height>980</height>
+    <width>1350</width>
+    <height>971</height>
    </rect>
   </property>
   <property name="maximumSize">
@@ -453,15 +453,15 @@
             <string>脚本</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_4">
-            <item row="3" column="3">
-             <widget class="QCheckBox" name="ChkBox_LoopEnable_4">
+            <item row="5" column="3">
+             <widget class="QCheckBox" name="ChkBox_LoopEnable_6">
               <property name="text">
-               <string>Lua Loop4 启用</string>
+               <string>Lua Loop6 启用</string>
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
-             <widget class="QPushButton" name="Btn_Execute_3">
+            <item row="0" column="2">
+             <widget class="QPushButton" name="Btn_Edit_1">
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -474,7 +474,7 @@
                </font>
               </property>
               <property name="text">
-               <string>执行脚本3</string>
+               <string>编辑脚本1</string>
               </property>
              </widget>
             </item>
@@ -496,6 +496,24 @@
               </property>
              </widget>
             </item>
+            <item row="0" column="1">
+             <widget class="QPushButton" name="Btn_Execute_1">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>执行脚本1</string>
+              </property>
+             </widget>
+            </item>
             <item row="3" column="1">
              <widget class="QPushButton" name="Btn_Execute_4">
               <property name="minimumSize">
@@ -514,101 +532,6 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="3">
-             <widget class="QCheckBox" name="ChkBox_LoopEnable_2">
-              <property name="text">
-               <string>Lua Loop2 启用</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLineEdit" name="edit_ScriptName_1">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>脚本1</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignmentFlag::AlignCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="3">
-             <widget class="QCheckBox" name="ChkBox_LoopEnable_5">
-              <property name="text">
-               <string>Lua Loop5 启用</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QPushButton" name="Btn_Execute_2">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>执行脚本2</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLineEdit" name="edit_ScriptName_2">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>脚本2</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignmentFlag::AlignCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLineEdit" name="edit_ScriptName_5">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>脚本5</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignmentFlag::AlignCenter</set>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="3">
              <widget class="QCheckBox" name="ChkBox_LoopEnable_1">
               <property name="text">
@@ -616,10 +539,21 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="3">
-             <widget class="QCheckBox" name="ChkBox_LoopEnable_3">
+            <item row="2" column="1">
+             <widget class="QPushButton" name="Btn_Execute_3">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
               <property name="text">
-               <string>Lua Loop3 启用</string>
+               <string>执行脚本3</string>
               </property>
              </widget>
             </item>
@@ -641,8 +575,8 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
-             <widget class="QPushButton" name="Btn_Execute_1">
+            <item row="1" column="0">
+             <widget class="QLineEdit" name="edit_ScriptName_2">
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -655,53 +589,7 @@
                </font>
               </property>
               <property name="text">
-               <string>执行脚本1</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="3">
-             <widget class="QCheckBox" name="ChkBox_LoopEnable_6">
-              <property name="text">
-               <string>Lua Loop6 启用</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QLineEdit" name="edit_ScriptName_6">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>脚本6</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignmentFlag::AlignCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLineEdit" name="edit_ScriptName_3">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>脚本3</string>
+               <string>脚本2</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -729,24 +617,6 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="2">
-             <widget class="QPushButton" name="Btn_Edit_1">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>编辑脚本1</string>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="2">
              <widget class="QPushButton" name="Btn_Edit_2">
               <property name="minimumSize">
@@ -762,6 +632,48 @@
               </property>
               <property name="text">
                <string>编辑脚本2</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLineEdit" name="edit_ScriptName_5">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>脚本5</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLineEdit" name="edit_ScriptName_6">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>脚本6</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -783,8 +695,8 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="2">
-             <widget class="QPushButton" name="Btn_Edit_4">
+            <item row="2" column="0">
+             <widget class="QLineEdit" name="edit_ScriptName_3">
               <property name="minimumSize">
                <size>
                 <width>0</width>
@@ -797,7 +709,52 @@
                </font>
               </property>
               <property name="text">
-               <string>编辑脚本4</string>
+               <string>脚本3</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLineEdit" name="edit_ScriptName_1">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>脚本1</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="3">
+             <widget class="QCheckBox" name="ChkBox_LoopEnable_4">
+              <property name="text">
+               <string>Lua Loop4 启用</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="3">
+             <widget class="QCheckBox" name="ChkBox_LoopEnable_3">
+              <property name="text">
+               <string>Lua Loop3 启用</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="3">
+             <widget class="QCheckBox" name="ChkBox_LoopEnable_5">
+              <property name="text">
+               <string>Lua Loop5 启用</string>
               </property>
              </widget>
             </item>
@@ -837,6 +794,49 @@
               </property>
              </widget>
             </item>
+            <item row="3" column="2">
+             <widget class="QPushButton" name="Btn_Edit_4">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>编辑脚本4</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="3">
+             <widget class="QCheckBox" name="ChkBox_LoopEnable_2">
+              <property name="text">
+               <string>Lua Loop2 启用</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QPushButton" name="Btn_Execute_2">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>执行脚本2</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>
@@ -852,6 +852,34 @@
             <string>平台模拟</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_5">
+            <item row="6" column="1">
+             <widget class="QRadioButton" name="Radio_AxisPos_Float">
+              <property name="text">
+               <string>浮点写入</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1" colspan="2">
+             <widget class="QLineEdit" name="edit_AxisPosRegisterAddr_2">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>120</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
             <item row="3" column="0">
              <widget class="QLabel" name="label_10">
               <property name="sizePolicy">
@@ -861,11 +889,24 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>轴位置地址:</string>
+               <string>对象平台轴位置地址:</string>
               </property>
              </widget>
             </item>
-            <item row="2" column="2">
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_9">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>D单位幂:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1" colspan="2">
              <widget class="QLineEdit" name="edit_Unit_D">
               <property name="minimumSize">
                <size>
@@ -886,27 +927,6 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="2">
-             <widget class="QLineEdit" name="edit_AxisPosRegisterAddr">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>114</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignmentFlag::AlignCenter</set>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="0">
              <widget class="QLabel" name="label_8">
               <property name="sizePolicy">
@@ -920,25 +940,7 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="0" colspan="3">
-             <widget class="QPushButton" name="Btn_WriteAxisFloat">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>轴位置浮点写入</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0" colspan="3">
+            <item row="8" column="0">
              <widget class="QPushButton" name="Btn_ShowPlatform">
               <property name="minimumSize">
                <size>
@@ -952,30 +954,12 @@
                </font>
               </property>
               <property name="text">
-               <string>显示模拟平台</string>
+               <string>显示平台</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="0" colspan="3">
-             <widget class="QPushButton" name="Btn_WriteAxisDoubleWord">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>30</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>轴位置双字写入</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_9">
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_13">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -983,11 +967,11 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>D单位幂:</string>
+               <string>目标平台轴位置地址:</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="2">
+            <item row="1" column="1" colspan="2">
              <widget class="QLineEdit" name="edit_Unit_XY">
               <property name="minimumSize">
                <size>
@@ -1008,6 +992,77 @@
               </property>
              </widget>
             </item>
+            <item row="6" column="0">
+             <widget class="QCheckBox" name="ChkBox_WritePosAutoEnable">
+              <property name="text">
+               <string>自动写入轴位置</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1" colspan="2">
+             <widget class="QLineEdit" name="edit_AxisPosRegisterAddr">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>114</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="2">
+             <widget class="QRadioButton" name="Radio_AxisPos_Int32">
+              <property name="text">
+               <string>双字写入</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="2">
+             <widget class="QPushButton" name="Btn_WriteAxisDoubleWord">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>双字写入</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="1">
+             <widget class="QPushButton" name="Btn_WriteAxisFloat">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>浮点写入</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>
@@ -1023,7 +1078,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1340</width>
+     <width>1350</width>
      <height>33</height>
     </rect>
    </property>

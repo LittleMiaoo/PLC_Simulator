@@ -3,8 +3,8 @@
 
 // 版本号定义
 #define APP_VERSION_MAJOR   1
-#define APP_VERSION_MINOR   3
-#define APP_VERSION_PATCH   2
+#define APP_VERSION_MINOR   4
+#define APP_VERSION_PATCH   0
 #define APP_VERSION_BUILD   0
 
 // 版本字符串拼接宏
