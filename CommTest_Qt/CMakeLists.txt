@@ -58,10 +58,6 @@ set(COMM_PROTOCOL_HEADERS
 set(GUI_SOURCES
     Gui/CommTest_Qt.cpp
     Gui/SubMainWindow.cpp
-    Gui/ScriptEditor.cpp
-    Gui/SimulationPlatform.cpp
-    Gui/ImageViewerWidget.cpp
-    Gui/CanvasWidget.cpp
     Gui/RegisterTableManager.cpp
     Gui/ScriptManager.cpp
 )
@@ -69,12 +65,34 @@ set(GUI_SOURCES
 set(GUI_HEADERS
     Gui/CommTest_Qt.h
     Gui/SubMainWindow.h
-    Gui/ScriptEditor.h
-    Gui/SimulationPlatform.h
-    Gui/ImageViewerWidget.h
-    Gui/CanvasWidget.h
     Gui/RegisterTableManager.h
     Gui/ScriptManager.h
+)
+
+# Gui\ScriptEditor 模块
+set(GUI_SCRIPTEDITOR_SOURCES
+    Gui/ScriptEditor/ScriptEditor.cpp
+    Gui/ScriptEditor/CodeEditor.cpp
+    Gui/ScriptEditor/LuaHighlighter.cpp
+)
+
+set(GUI_SCRIPTEDITOR_HEADERS
+    Gui/ScriptEditor/ScriptEditor.h
+    Gui/ScriptEditor/CodeEditor.h
+    Gui/ScriptEditor/LuaHighlighter.h
+)
+
+# Gui\SimulationPlatform 模块
+set(GUI_SIMULATIONPLATFORM_SOURCES
+    Gui/SimulationPlatform/SimulationPlatform.cpp
+    Gui/SimulationPlatform/CanvasWidget.cpp
+    Gui/SimulationPlatform/ImageViewerWidget.cpp
+)
+
+set(GUI_SIMULATIONPLATFORM_HEADERS
+    Gui/SimulationPlatform/SimulationPlatform.h
+    Gui/SimulationPlatform/CanvasWidget.h
+    Gui/SimulationPlatform/ImageViewerWidget.h
 )
 
 # MainFlow 模块
@@ -109,6 +127,8 @@ set(SOURCES
     ${COMM_SOCKET_SOURCES}
     ${COMM_PROTOCOL_SOURCES}
     ${GUI_SOURCES}
+    ${GUI_SCRIPTEDITOR_SOURCES}
+    ${GUI_SIMULATIONPLATFORM_SOURCES}
     ${MAINFLOW_SOURCES}
     ${LUA_SOURCES}
     ${CONFIG_SOURCES}
@@ -119,8 +139,11 @@ set(HEADERS
     ${COMM_SOCKET_HEADERS}
     ${COMM_PROTOCOL_HEADERS}
     ${GUI_HEADERS}
+    ${GUI_SCRIPTEDITOR_HEADERS}
+    ${GUI_SIMULATIONPLATFORM_HEADERS}
     ${MAINFLOW_HEADERS}
     ${LUA_HEADERS}
+    ${CONFIG_HEADERS}
 )
 
 # 创建可执行目标
@@ -151,8 +174,11 @@ source_group("Comm" FILES ${COMM_SOURCES} ${COMM_HEADERS})
 source_group("Comm\\\\Socket" FILES ${COMM_SOCKET_SOURCES} ${COMM_SOCKET_HEADERS})
 source_group("Comm\\\\Protocol" FILES ${COMM_PROTOCOL_SOURCES} ${COMM_PROTOCOL_HEADERS})
 source_group("Gui" FILES ${GUI_SOURCES} ${GUI_HEADERS})
+source_group("Gui\\\\ScriptEditor" FILES ${GUI_SCRIPTEDITOR_SOURCES} ${GUI_SCRIPTEDITOR_HEADERS})
+source_group("Gui\\\\SimulationPlatform" FILES ${GUI_SIMULATIONPLATFORM_SOURCES} ${GUI_SIMULATIONPLATFORM_HEADERS})
 source_group("MainFlow" FILES ${MAINFLOW_SOURCES} ${MAINFLOW_HEADERS})
 source_group("LuaScript" FILES ${LUA_SOURCES} ${LUA_HEADERS})
+source_group("Config" FILES ${CONFIG_SOURCES} ${CONFIG_HEADERS})
 
 endif()
 
@@ -186,6 +212,8 @@ target_include_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/Gui
+    ${CMAKE_CURRENT_SOURCE_DIR}/Gui/ScriptEditor
+    ${CMAKE_CURRENT_SOURCE_DIR}/Gui/SimulationPlatform
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm/Socket
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm/Protocol

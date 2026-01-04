@@ -27,7 +27,7 @@
 #include <vector>
 #include <functional>
 
-#include "Gui/ScriptEditor.h"  // for IScriptRunner
+#include "Gui/ScriptEditor/ScriptEditor.h"  // for IScriptRunner
 
 //lua脚本数量
 #define LUA_SCRIPT_NUM 6

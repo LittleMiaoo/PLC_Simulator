@@ -3,7 +3,7 @@
 
 #include "ui_CommTest_Qt.h"
 #include "SubMainWindow.h"
-#include "SimulationPlatform.h"
+#include "SimulationPlatform/SimulationPlatform.h"
 #include "RegisterTableManager.h"
 #include "ScriptManager.h"
 #include "Config/ConfigManager.h"
