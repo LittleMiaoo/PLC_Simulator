@@ -71,7 +71,15 @@ void ImageViewerWidget::paintEvent(QPaintEvent* event)
 {
     Q_UNUSED(event);
     QPainter painter(this);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+
+    // 根据缩放比例选择合适的插值算法
+    // 放大时（scale > 1.0）：使用最近邻插值，保持清晰锐利
+    // 缩小时（scale < 1.0）：使用双线性插值，避免锯齿
+    if (m_scale < 1.0) {
+        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    } else {
+        painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+    }
 
     // 绘制灰白棋盘格背景
     drawCheckerboard(painter);
@@ -194,3 +202,84 @@ void ImageViewerWidget::resizeEvent(QResizeEvent* event)
     QWidget::resizeEvent(event);
     update();
 }
+
+
+
+
+/*************************************
+ // 可选的高级方案：添加用户可切换的渲染模式
+// 这个文件仅供参考，不会被编译
+
+// ============= 在 ImageViewerWidget.h 中添加 =============
+
+public:
+    enum InterpolationMode {
+        NearestNeighbor,  // 最近邻（清晰但有锯齿）
+        Smooth,           // 平滑（无锯齿但可能模糊）
+        Auto              // 自动（当前实现的方式）
+    };
+
+    void setInterpolationMode(InterpolationMode mode);
+    InterpolationMode interpolationMode() const;
+
+private:
+    InterpolationMode m_interpolationMode = Auto;
+
+
+// ============= 在 ImageViewerWidget.cpp 中实现 =============
+
+void ImageViewerWidget::setInterpolationMode(InterpolationMode mode)
+{
+    if (m_interpolationMode != mode) {
+        m_interpolationMode = mode;
+        update();
+    }
+}
+
+ImageViewerWidget::InterpolationMode ImageViewerWidget::interpolationMode() const
+{
+    return m_interpolationMode;
+}
+
+// 修改 paintEvent 中的逻辑
+void ImageViewerWidget::paintEvent(QPaintEvent* event)
+{
+    Q_UNUSED(event);
+    QPainter painter(this);
+
+    // 根据用户选择的模式设置插值算法
+    bool useSmooth = false;
+    switch (m_interpolationMode) {
+        case NearestNeighbor:
+            useSmooth = false;  // 始终使用最近邻
+            break;
+        case Smooth:
+            useSmooth = true;   // 始终使用平滑
+            break;
+        case Auto:
+            useSmooth = (m_scale < 1.0);  // 自动选择
+            break;
+    }
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, useSmooth);
+
+    // 其余代码保持不变...
+}
+
+
+// ============= 在 UI 中添加切换按钮 =============
+
+// 例如在 SimulationPlatform.cpp 中添加：
+QComboBox* interpolationCombo = new QComboBox();
+interpolationCombo->addItem("自动", ImageViewerWidget::Auto);
+interpolationCombo->addItem("清晰（像素化）", ImageViewerWidget::NearestNeighbor);
+interpolationCombo->addItem("平滑（抗锯齿）", ImageViewerWidget::Smooth);
+
+connect(interpolationCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+        [this](int index) {
+    auto mode = static_cast<ImageViewerWidget::InterpolationMode>(
+        interpolationCombo->itemData(index).toInt()
+    );
+    m_imageViewer->setInterpolationMode(mode);
+});
+
+ */

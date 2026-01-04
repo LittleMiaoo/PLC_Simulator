@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QTimer>
 #include <QEventLoop>
+#include <QDebug>
 #include "Lua.hpp"
 
 class LuaScript :public QObject
@@ -128,6 +129,7 @@ private:
 	static void InitialCompileLuaState();	//初始化脚本编译检查状态机
 
 public:
+	static void ReleaseCompileLuaState();	//释放脚本编译检查状态机
 	static bool CheckLuaScript(const QString& strLuaFile,QString& strErrorInfo);	//检查脚本是否正常
 	static QStringList getRegisteredFunctions() {
         // 这应该返回实际注册到Lua状态机的函数列表

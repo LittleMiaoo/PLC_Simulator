@@ -24,14 +24,22 @@ const QString SEMAPHORE_KEY = "PLC_Simulation_Semaphore";
 int main(int argc, char *argv[])
 {
 
-#ifdef _WIN32
-#ifdef _DEBUG
-	// 启用内存泄漏检测
-	MemoryLeakDetector::EnableMemoryLeakChecks();
-	
-	// 如果知道特定的内存分配编号，可以设置断点
-	 //MemoryLeakDetector::SetBreakAlloc(15370);
-#endif
+#ifndef VLD_ENABLED
+	// 如果没有启用VLD，则使用CRT内存检测
+	#ifdef _WIN32
+	#ifdef _DEBUG
+		// 启用内存泄漏检测
+		MemoryLeakDetector::EnableMemoryLeakChecks();
+
+		// 创建初始内存快照(在创建任何对象之前)
+		_CrtMemState memStateStart;
+		_CrtMemCheckpoint(&memStateStart);
+
+		// 设置断点在第一个泄漏的内存分配上
+		// 从最新的泄漏报告中选择最早的泄漏块编号
+		//MemoryLeakDetector::SetBreakAlloc(178);
+	#endif
+	#endif
 #endif
 
     //int* testLeak = new int(42);  // 故意制造内存泄漏以测试检测功能
@@ -71,8 +79,35 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    CommTest_Qt window;
-    window.show();
-    
-    return app.exec();
+    int result = 0;
+    {
+        CommTest_Qt window;
+        window.show();
+
+        result = app.exec();
+
+        // window析构发生在这里
+    }
+
+    // 确保QApplication完全清理
+    // app析构将在return之前发生
+
+#ifndef VLD_ENABLED
+	// 如果没有启用VLD，则使用CRT内存检测
+	#ifdef _WIN32
+	#ifdef _DEBUG
+		// 创建结束内存快照
+		_CrtMemState memStateEnd, memStateDiff;
+		_CrtMemCheckpoint(&memStateEnd);
+
+		// 比较开始和结束的内存状态,只报告差异
+		if (_CrtMemDifference(&memStateDiff, &memStateStart, &memStateEnd))
+		{
+			_CrtMemDumpStatistics(&memStateDiff);
+		}
+	#endif
+	#endif
+#endif
+
+    return result;
 }

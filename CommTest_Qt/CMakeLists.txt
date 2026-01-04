@@ -195,7 +195,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 # ========== 第二步：仅在 Debug 配置下链接 VLD（适配多配置生成器） ==========
 if(WIN32 AND VLD_FOUND)
     # 生成器表达式 $<CONFIG:Debug>：仅在 Debug 配置时生效
-    target_link_libraries(${PROJECT_NAME}
+    target_link_libraries(${TARGET_NAME}
         PRIVATE
         $<$<CONFIG:Debug>:VLD::VLD>  # 核心：动态判断 Debug 配置
     )
@@ -203,8 +203,36 @@ if(WIN32 AND VLD_FOUND)
     target_compile_definitions(${TARGET_NAME} PRIVATE
         $<$<CONFIG:Debug>:VLD_ENABLED>
     )
+
+    # 复制VLD的DLL和manifest到输出目录和Bin/dbg_env目录（仅Debug需要）
+    get_filename_component(VLD_BIN_DIR "${VLD_INCLUDE_DIR}/../bin/Win64" ABSOLUTE)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        # 确保dbg_env目录存在
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/Bin/dbg_env"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/vld_x64.dll"
+            "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/dbghelp.dll"
+            "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/Microsoft.DTfW.DHL.manifest"
+            "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/vld_x64.dll"
+            "${CMAKE_SOURCE_DIR}/Bin/dbg_env/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/dbghelp.dll"
+            "${CMAKE_SOURCE_DIR}/Bin/dbg_env/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/Microsoft.DTfW.DHL.manifest"
+            "${CMAKE_SOURCE_DIR}/Bin/dbg_env/"
+        COMMENT "Copying VLD DLLs and manifest to output and Bin/dbg_env directories"
+    )
+
     # 可选：打印验证信息（构建阶段才会输出，因为依赖配置）
     message(STATUS "VLD will be linked in Debug configuration")
+    message(STATUS "VLD DLLs will be copied from: ${VLD_BIN_DIR}")
 endif()
 
 # 包含目录
@@ -249,17 +277,20 @@ target_link_options(${TARGET_NAME} PRIVATE
 
 if(MSVC)
 set_target_properties(${TARGET_NAME} PROPERTIES
-    VS_DEBUGGER_COMMAND "${CMAKE_SOURCE_DIR}/Bin/x64/$<TARGET_FILE_NAME:${TARGET_NAME}>"
-    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/Bin/x64"
+    VS_DEBUGGER_COMMAND "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/$<TARGET_FILE_NAME:${TARGET_NAME}>"
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
 )
 endif()
 
-# 后期构建步骤：复制到Bin目录
+# 后期构建步骤：根据配置复制到不同目录
+# Debug版本复制到Bin/dbg_env，Release版本复制到Bin/x64
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    # 先确保目标目录存在
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:${TARGET_NAME}>
-        ${CMAKE_SOURCE_DIR}/Bin/x64/
-    COMMENT "Copying executable to Bin/x64 directory"
+        ${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/
+    COMMENT "Copying executable to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64> directory"
 )
 
 # 自动部署 Qt 运行时与插件（优先使用 windeployqt）
@@ -278,7 +309,7 @@ if(WINDEPLOYQT_PATH)
             $<$<CONFIG:Debug>:--debug>
             $<$<CONFIG:Release>:--release>
             --no-compiler-runtime
-            --dir "${CMAKE_SOURCE_DIR}/Bin/x64"
+            --dir "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
             "$<TARGET_FILE:${TARGET_NAME}>"
         COMMENT "Deploying Qt runtime with windeployqt"
     )
@@ -291,7 +322,16 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Lua/Lib/ScriptRunner.dll")
     add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/Lua/Lib/ScriptRunner.dll"
-            "${CMAKE_SOURCE_DIR}/Bin/x64/"
-        COMMENT "Copying ScriptRunner.dll to Bin/x64"
+            "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/"
+        COMMENT "Copying ScriptRunner.dll to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
     )
 endif()
+
+# Release构建后清理不需要的文件，减小发布包体积
+add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DBUILD_CONFIG=$<CONFIG>
+        -DBIN_DIR=${CMAKE_SOURCE_DIR}/Bin
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cleanup_release_unnecessary.cmake
+    COMMENT "Cleaning unnecessary files from Release package (if Release mode)"
+)

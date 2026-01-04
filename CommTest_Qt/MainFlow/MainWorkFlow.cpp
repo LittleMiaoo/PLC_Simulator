@@ -217,6 +217,21 @@ MainWorkFlow::MainWorkFlow(QObject* pParent /*= nullptr*/)
 // 析构函数：确保所有资源正确释放
 MainWorkFlow::~MainWorkFlow()
 {
+	// 等待所有线程池任务完成，避免访问已释放的LuaScript
+	if (m_luaThreadPool != nullptr)
+	{
+		m_luaThreadPool->waitForDone();
+	}
+
+	// 显式清理脚本执行器（在LuaScript之前）
+	m_vScriptRunners.clear();
+
+	// 显式清理LuaScript实例
+	m_vpLuaScript.clear();
+
+	// 释放全局编译检查状态机
+	LuaScript::ReleaseCompileLuaState();
+
 	// 关闭通信
 	if (m_pComm != nullptr)
 	{
@@ -224,16 +239,15 @@ MainWorkFlow::~MainWorkFlow()
 		delete m_pComm;
 		m_pComm = nullptr;
 	}
-	
+
 	// 释放协议实例
 	if (m_pComProBase != nullptr)
 	{
 		delete m_pComProBase;
 		m_pComProBase = nullptr;
 	}
-	
+
 	// m_pCommInfo 会自动释放（unique_ptr）
-	// m_vpLuaScript 会自动释放（vector的unique_ptr）
 }
 
 void MainWorkFlow::ConnectLuaSignalSlot(std::unique_ptr<LuaScript> &pLuaScript)
