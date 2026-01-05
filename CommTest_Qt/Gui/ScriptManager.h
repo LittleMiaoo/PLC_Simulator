@@ -11,7 +11,7 @@
 #include <QTextStream>
 #include <QCoreApplication>
 
-#include "ScriptEditor.h"
+#include "ScriptEditor/ScriptEditor.h"
 #include "../MainFlow/MainWorkFlow.h"
 
 /**

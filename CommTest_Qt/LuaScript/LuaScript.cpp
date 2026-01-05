@@ -13,8 +13,8 @@ LuaScript* LuaScript::InitialLuaScript(QObject* pParent /*= nullptr*/)
 
 bool LuaScript::RunLuaScript(const QString& strLuaFile,QString& errorMsg)
 {
-	
-	if (luaL_dofile(m_pLua, strLuaFile.toLocal8Bit().constData()) != LUA_OK)
+	QByteArray filePathData = strLuaFile.toLocal8Bit();
+	if (luaL_dofile(m_pLua, filePathData.constData()) != LUA_OK)
 	{
 		const char* error_msg = lua_tostring(m_pLua, -1);
 		lua_pop(m_pLua, 1); // 弹出错误信息
@@ -27,7 +27,8 @@ bool LuaScript::RunLuaScript(const QString& strLuaFile,QString& errorMsg)
 
 bool LuaScript::RunLuaScriptWithEditor(const QString &strLuaContent,QString& errorMsg)
 {
-	if (luaL_dostring(m_pLua, strLuaContent.toLocal8Bit().constData()) != LUA_OK)
+	QByteArray contentData = strLuaContent.toLocal8Bit();
+	if (luaL_dostring(m_pLua, contentData.constData()) != LUA_OK)
 	{
 		const char* error_msg = lua_tostring(m_pLua, -1);
 		lua_pop(m_pLua, 1); // 弹出错误信息
@@ -43,15 +44,13 @@ LuaScript::~LuaScript()
 {
 	if (m_pLua)
 	{
-        lua_close(m_pLua); 
+        lua_close(m_pLua);
+		m_pLua = nullptr;
 		nLuaScriptNum--;
 	}
 
-	if (nLuaScriptNum == 0 && g_LuaCompileState)
-	{
-		lua_close(g_LuaCompileState);
-		g_LuaCompileState = nullptr;
-	}
+	// g_LuaCompileState 由 ReleaseCompileLuaState() 统一释放
+	// 不在析构函数中自动释放,避免多线程/析构顺序问题
 }
 
 LuaScript::LuaScript(QObject* parent /*= nullptr*/)
@@ -410,7 +409,8 @@ int LuaScript::GetStringWrapper(lua_State* L)
 	}
 
 	QString value = pThis->GetString(nAddr);
-	lua_pushstring(L, value.toUtf8().constData());
+	QByteArray utf8Data = value.toUtf8();
+	lua_pushstring(L, utf8Data.constData());
 	return 1;
 }
 
@@ -785,13 +785,23 @@ bool LuaScript::ParseRegisterAddr(const char* strAddr, int& nAddr, int nMinVal /
 	return true;
 }
 
+// 静态C函数用于编译检查
+static int DummyLuaFunc(lua_State* L) {
+	return 0;
+}
+
+static int DummyLuaFuncReturn1(lua_State* L) {
+	lua_pushinteger(L, 0);
+	return 1;
+}
+
 void LuaScript::InitialCompileLuaState()
 {
 	static std::once_flag initFlag;
 
 	auto onceFunc = [](){
 	//检查全局静态状态机是否为空
-	if (g_LuaCompileState == nullptr)	
+	if (g_LuaCompileState == nullptr)
 	{
 		g_LuaCompileState = luaL_newstate();
 		if (g_LuaCompileState == nullptr)
@@ -800,72 +810,75 @@ void LuaScript::InitialCompileLuaState()
 		}
 		luaL_openlibs(g_LuaCompileState);
 
-		auto LamdaFunc =  [](lua_State* L) -> int {
-				//qDebug() << "[Check] Function called during syntax check";
-					return 0;};
-		auto LamdaFuncReturn1 =  [](lua_State* L) -> int {
-				//qDebug() << "[Check] Function called during syntax check";
-					return 1;};
 		//注册Set系列函数
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "SetInt16");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "SetInt32");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "SetFloat");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "SetDouble");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "SetString");
 
 		//注册Get系列函数
-		lua_pushcfunction(g_LuaCompileState,LamdaFuncReturn1);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFuncReturn1);
 		lua_setglobal(g_LuaCompileState, "GetInt16");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFuncReturn1);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFuncReturn1);
 		lua_setglobal(g_LuaCompileState, "GetInt32");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFuncReturn1);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFuncReturn1);
 		lua_setglobal(g_LuaCompileState, "GetFloat");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFuncReturn1);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFuncReturn1);
 		lua_setglobal(g_LuaCompileState, "GetDouble");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFuncReturn1);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFuncReturn1);
 		lua_setglobal(g_LuaCompileState, "GetString");
 
 		//注册循环状态函数
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "IsLoopValid");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "sleep");
 		//注册平台控制函数
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "MoveAbsInt32");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "MoveAbsFloat");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "MoveRelativeInt32");
 
-		lua_pushcfunction(g_LuaCompileState,LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "MoveRelativeFloat");
 
-		lua_pushcfunction(g_LuaCompileState, LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "WriteCurrentPosInt32");
 
-		lua_pushcfunction(g_LuaCompileState, LamdaFunc);
+		lua_pushcfunction(g_LuaCompileState, DummyLuaFunc);
 		lua_setglobal(g_LuaCompileState, "WriteCurrentPosFloat");
 		 //qDebug() << "Compilation Lua state initialized";
 	}};
 
 	std::call_once(initFlag, onceFunc);
+}
+
+void LuaScript::ReleaseCompileLuaState()
+{
+	if (g_LuaCompileState != nullptr)
+	{
+		lua_close(g_LuaCompileState);
+		g_LuaCompileState = nullptr;
+	}
 }
 
 bool LuaScript::CheckLuaScript(const QString &strLuaFile,QString& strErrorInfo)
@@ -874,7 +887,8 @@ bool LuaScript::CheckLuaScript(const QString &strLuaFile,QString& strErrorInfo)
 
 	//if (strLuaFile.isEmpty()) return false;
 
-	if(luaL_dostring(g_LuaCompileState, strLuaFile.toLatin1().data()) != LUA_OK)
+	QByteArray scriptData = strLuaFile.toLatin1();
+	if(luaL_dostring(g_LuaCompileState, scriptData.data()) != LUA_OK)
 	{
 		const char* error_msg = lua_tostring(g_LuaCompileState, -1);
 		lua_pop(g_LuaCompileState, 1);
@@ -885,5 +899,5 @@ bool LuaScript::CheckLuaScript(const QString &strLuaFile,QString& strErrorInfo)
 	}
 
 	return true;
-	
+
 }

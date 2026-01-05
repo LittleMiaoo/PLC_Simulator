@@ -58,10 +58,6 @@ set(COMM_PROTOCOL_HEADERS
 set(GUI_SOURCES
     Gui/CommTest_Qt.cpp
     Gui/SubMainWindow.cpp
-    Gui/ScriptEditor.cpp
-    Gui/SimulationPlatform.cpp
-    Gui/ImageViewerWidget.cpp
-    Gui/CanvasWidget.cpp
     Gui/RegisterTableManager.cpp
     Gui/ScriptManager.cpp
 )
@@ -69,12 +65,34 @@ set(GUI_SOURCES
 set(GUI_HEADERS
     Gui/CommTest_Qt.h
     Gui/SubMainWindow.h
-    Gui/ScriptEditor.h
-    Gui/SimulationPlatform.h
-    Gui/ImageViewerWidget.h
-    Gui/CanvasWidget.h
     Gui/RegisterTableManager.h
     Gui/ScriptManager.h
+)
+
+# Gui\ScriptEditor 模块
+set(GUI_SCRIPTEDITOR_SOURCES
+    Gui/ScriptEditor/ScriptEditor.cpp
+    Gui/ScriptEditor/CodeEditor.cpp
+    Gui/ScriptEditor/LuaHighlighter.cpp
+)
+
+set(GUI_SCRIPTEDITOR_HEADERS
+    Gui/ScriptEditor/ScriptEditor.h
+    Gui/ScriptEditor/CodeEditor.h
+    Gui/ScriptEditor/LuaHighlighter.h
+)
+
+# Gui\SimulationPlatform 模块
+set(GUI_SIMULATIONPLATFORM_SOURCES
+    Gui/SimulationPlatform/SimulationPlatform.cpp
+    Gui/SimulationPlatform/CanvasWidget.cpp
+    Gui/SimulationPlatform/ImageViewerWidget.cpp
+)
+
+set(GUI_SIMULATIONPLATFORM_HEADERS
+    Gui/SimulationPlatform/SimulationPlatform.h
+    Gui/SimulationPlatform/CanvasWidget.h
+    Gui/SimulationPlatform/ImageViewerWidget.h
 )
 
 # MainFlow 模块
@@ -109,6 +127,8 @@ set(SOURCES
     ${COMM_SOCKET_SOURCES}
     ${COMM_PROTOCOL_SOURCES}
     ${GUI_SOURCES}
+    ${GUI_SCRIPTEDITOR_SOURCES}
+    ${GUI_SIMULATIONPLATFORM_SOURCES}
     ${MAINFLOW_SOURCES}
     ${LUA_SOURCES}
     ${CONFIG_SOURCES}
@@ -119,8 +139,11 @@ set(HEADERS
     ${COMM_SOCKET_HEADERS}
     ${COMM_PROTOCOL_HEADERS}
     ${GUI_HEADERS}
+    ${GUI_SCRIPTEDITOR_HEADERS}
+    ${GUI_SIMULATIONPLATFORM_HEADERS}
     ${MAINFLOW_HEADERS}
     ${LUA_HEADERS}
+    ${CONFIG_HEADERS}
 )
 
 # 创建可执行目标
@@ -151,8 +174,11 @@ source_group("Comm" FILES ${COMM_SOURCES} ${COMM_HEADERS})
 source_group("Comm\\\\Socket" FILES ${COMM_SOCKET_SOURCES} ${COMM_SOCKET_HEADERS})
 source_group("Comm\\\\Protocol" FILES ${COMM_PROTOCOL_SOURCES} ${COMM_PROTOCOL_HEADERS})
 source_group("Gui" FILES ${GUI_SOURCES} ${GUI_HEADERS})
+source_group("Gui\\\\ScriptEditor" FILES ${GUI_SCRIPTEDITOR_SOURCES} ${GUI_SCRIPTEDITOR_HEADERS})
+source_group("Gui\\\\SimulationPlatform" FILES ${GUI_SIMULATIONPLATFORM_SOURCES} ${GUI_SIMULATIONPLATFORM_HEADERS})
 source_group("MainFlow" FILES ${MAINFLOW_SOURCES} ${MAINFLOW_HEADERS})
 source_group("LuaScript" FILES ${LUA_SOURCES} ${LUA_HEADERS})
+source_group("Config" FILES ${CONFIG_SOURCES} ${CONFIG_HEADERS})
 
 endif()
 
@@ -169,12 +195,44 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 # ========== 第二步：仅在 Debug 配置下链接 VLD（适配多配置生成器） ==========
 if(WIN32 AND VLD_FOUND)
     # 生成器表达式 $<CONFIG:Debug>：仅在 Debug 配置时生效
-    target_link_libraries(${PROJECT_NAME} 
-        PRIVATE 
+    target_link_libraries(${TARGET_NAME}
+        PRIVATE
         $<$<CONFIG:Debug>:VLD::VLD>  # 核心：动态判断 Debug 配置
     )
+    # 定义 VLD_ENABLED 宏，让代码知道 VLD 可用
+    target_compile_definitions(${TARGET_NAME} PRIVATE
+        $<$<CONFIG:Debug>:VLD_ENABLED>
+    )
+
+    # 复制VLD的DLL和manifest到输出目录和Bin/dbg_env目录（仅Debug需要）
+    get_filename_component(VLD_BIN_DIR "${VLD_INCLUDE_DIR}/../bin/Win64" ABSOLUTE)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        # 确保dbg_env目录存在
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/Bin/dbg_env"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/vld_x64.dll"
+            "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/dbghelp.dll"
+            "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/Microsoft.DTfW.DHL.manifest"
+            "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/vld_x64.dll"
+            "${CMAKE_SOURCE_DIR}/Bin/dbg_env/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/dbghelp.dll"
+            "${CMAKE_SOURCE_DIR}/Bin/dbg_env/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VLD_BIN_DIR}/Microsoft.DTfW.DHL.manifest"
+            "${CMAKE_SOURCE_DIR}/Bin/dbg_env/"
+        COMMENT "Copying VLD DLLs and manifest to output and Bin/dbg_env directories"
+    )
+
     # 可选：打印验证信息（构建阶段才会输出，因为依赖配置）
     message(STATUS "VLD will be linked in Debug configuration")
+    message(STATUS "VLD DLLs will be copied from: ${VLD_BIN_DIR}")
 endif()
 
 # 包含目录
@@ -182,6 +240,8 @@ target_include_directories(${TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/Gui
+    ${CMAKE_CURRENT_SOURCE_DIR}/Gui/ScriptEditor
+    ${CMAKE_CURRENT_SOURCE_DIR}/Gui/SimulationPlatform
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm/Socket
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm/Protocol
@@ -217,17 +277,20 @@ target_link_options(${TARGET_NAME} PRIVATE
 
 if(MSVC)
 set_target_properties(${TARGET_NAME} PROPERTIES
-    VS_DEBUGGER_COMMAND "${CMAKE_SOURCE_DIR}/Bin/x64/$<TARGET_FILE_NAME:${TARGET_NAME}>"
-    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/Bin/x64"
+    VS_DEBUGGER_COMMAND "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/$<TARGET_FILE_NAME:${TARGET_NAME}>"
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
 )
 endif()
 
-# 后期构建步骤：复制到Bin目录
+# 后期构建步骤：根据配置复制到不同目录
+# Debug版本复制到Bin/dbg_env，Release版本复制到Bin/x64
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    # 先确保目标目录存在
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:${TARGET_NAME}>
-        ${CMAKE_SOURCE_DIR}/Bin/x64/
-    COMMENT "Copying executable to Bin/x64 directory"
+        ${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/
+    COMMENT "Copying executable to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64> directory"
 )
 
 # 自动部署 Qt 运行时与插件（优先使用 windeployqt）
@@ -246,7 +309,7 @@ if(WINDEPLOYQT_PATH)
             $<$<CONFIG:Debug>:--debug>
             $<$<CONFIG:Release>:--release>
             --no-compiler-runtime
-            --dir "${CMAKE_SOURCE_DIR}/Bin/x64"
+            --dir "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
             "$<TARGET_FILE:${TARGET_NAME}>"
         COMMENT "Deploying Qt runtime with windeployqt"
     )
@@ -259,7 +322,44 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Lua/Lib/ScriptRunner.dll")
     add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/Lua/Lib/ScriptRunner.dll"
-            "${CMAKE_SOURCE_DIR}/Bin/x64/"
-        COMMENT "Copying ScriptRunner.dll to Bin/x64"
+            "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/"
+        COMMENT "Copying ScriptRunner.dll to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
     )
 endif()
+
+# 复制文档文件到发布目录
+if(EXISTS "${CMAKE_SOURCE_DIR}/THIRD_PARTY_LICENSES.txt")
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/THIRD_PARTY_LICENSES.txt"
+            "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/"
+        COMMENT "Copying THIRD_PARTY_LICENSES.txt to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
+    )
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/LICENSE")
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/LICENSE"
+            "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/"
+        COMMENT "Copying LICENSE to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
+    )
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/ChangeLog.txt")
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/ChangeLog.txt"
+            "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/"
+        COMMENT "Copying ChangeLog.txt to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
+    )
+endif()
+
+# Release构建后清理不需要的文件，减小发布包体积
+add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        -DBUILD_CONFIG=$<CONFIG>
+        -DBIN_DIR=${CMAKE_SOURCE_DIR}/Bin
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cleanup_release_unnecessary.cmake
+    COMMENT "Cleaning unnecessary files from Release package (if Release mode)"
+)

@@ -2,23 +2,19 @@
 #define SCRIPTEDITOR_H
 
 #include <QMainWindow>
-#include <QTextEdit>
-#include <QSyntaxHighlighter>
-#include <QTextCharFormat>
-#include <QCompleter>
 #include <QMap>
 #include <QStringList>
-#include <QPlainTextEdit>
-#include <QRegularExpression>
 #include <functional>
 #include <QTimer>
 #include <QDialog>
 #include <QLabel>
 
-class LuaHighlighter;
+#include "CodeEditor.h"
+#include "LuaHighlighter.h"
+
 class LuaScript;
 
-// 脚本执行器接口，用于解耦 ScriptEditor 与具体执行实现
+// 脚本执行器接口,用于解耦 ScriptEditor 与具体执行实现
 class IScriptRunner
 {
 public:
@@ -26,7 +22,7 @@ public:
 
     // 异步执行脚本内容
     // scriptContent: 脚本代码
-    // onFinished: 执行完成回调，参数为 (是否成功, 错误信息)
+    // onFinished: 执行完成回调,参数为 (是否成功, 错误信息)
     virtual void RunScriptAsync(const QString& scriptContent,
                                 std::function<void(bool success, const QString& errorMsg)> onFinished) = 0;
 };
@@ -39,7 +35,7 @@ public:
     explicit ScriptEditor(QWidget *parent = nullptr, IScriptRunner* pScriptRunner = nullptr);
     ~ScriptEditor();
 
-    // 设置脚本执行器（依赖注入）
+    // 设置脚本执行器(依赖注入)
     void setScriptRunner(IScriptRunner* runner) { m_pScriptRunner = runner; }
 
     void setScriptName(const QString &name);
@@ -48,30 +44,38 @@ public:
 
 private slots:
     void saveScript();
+    void saveScriptAs();   // 另存为
+    void loadScriptFrom(); // 从文件加载
     void compileScript();
     void executeScript();
     void insertFunction(const QString &function);
+    void onTextChanged();  // 文本修改时的槽函数
 
 protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
     void createMenus();
-    //void createToolBar();
     void setupHighlighter();
     void updateFunctionMenu();
-    //QStringList getRegisteredFunctions() const;
-    
-    QPlainTextEdit *editor;
+    void updateWindowTitle();  // 更新窗口标题(添加/移除星号)
+
+    CodeEditor *editor;
     LuaHighlighter *highlighter;
     QString scriptFileName;
     QMap<QString, QString> functionTemplates;
-    
+
+    // 文件修改状态跟踪
+    bool m_isModified;       // 文件是否被修改
+    QString m_savedContent;  // 上次保存的内容
+
     // 菜单动作
     QAction *saveAction;
+    QAction *saveAsAction;
+    QAction *loadFromAction;
     QAction *compileAction;
     QAction *executeAction;
-    
+
     // 菜单
     QMenu *fileMenu;
     QMenu *editMenu;
@@ -86,42 +90,12 @@ private:
     QDialog* m_pRunningDialog = nullptr; // 运行提示对话框
     QLabel* m_pRunningLabel = nullptr;   // 运行提示标签
     QTimer* m_pRunningTimer = nullptr;   // 计时器
-    int m_nRunningSeconds = 0;           // 运行时间（秒）
+    int m_nRunningSeconds = 0;           // 运行时间(秒)
 
     void showRunningDialog();            // 显示运行提示
     void hideRunningDialog();            // 隐藏运行提示
     void updateRunningTime();            // 更新运行时间
     void setEditorEnabled(bool enabled); // 设置编辑器启用状态
-};
-
-class LuaHighlighter : public QSyntaxHighlighter
-{
-    Q_OBJECT
-
-public:
-    LuaHighlighter(QTextDocument *parent = nullptr);
-
-    void setCustomFunctions(const QStringList &functions);
-
-protected:
-    void highlightBlock(const QString &text) override;
-
-private:
-    struct HighlightingRule
-    {
-        QRegularExpression pattern;
-        QTextCharFormat format;
-    };
-    QVector<HighlightingRule> highlightingRules;
-
-    QRegularExpression commentStartExpression;
-    QRegularExpression commentEndExpression;
-
-    QTextCharFormat keywordFormat;
-    QTextCharFormat classFormat;
-    QTextCharFormat singleLineCommentFormat;
-    QTextCharFormat quotationFormat;
-    QTextCharFormat functionFormat;
 };
 
 #endif // SCRIPTEDITOR_H

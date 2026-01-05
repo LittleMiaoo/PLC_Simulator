@@ -1,3 +1,27 @@
+/*
+MIT License
+
+Copyright (c) 2025-2026 Wang Mao <mao.wang.dev@foxmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #include "CommTest_Qt.h"
 #include "version.h"
 #include <QtWidgets/QApplication>
@@ -13,11 +37,9 @@
 #endif
 #endif
 
-#ifdef _WIN32
-#ifdef _DEBUG
+#ifdef VLD_ENABLED
 #define VLD_FORCE_ENABLE
 #include <vld.h>
-#endif
 #endif
 
 const QString SHARED_MEM_KEY = "PLC_Simulation_Shared_Memory";
@@ -26,14 +48,22 @@ const QString SEMAPHORE_KEY = "PLC_Simulation_Semaphore";
 int main(int argc, char *argv[])
 {
 
-#ifdef _WIN32
-#ifdef _DEBUG
-	// 启用内存泄漏检测
-	MemoryLeakDetector::EnableMemoryLeakChecks();
-	
-	// 如果知道特定的内存分配编号，可以设置断点
-	 //MemoryLeakDetector::SetBreakAlloc(15370);
-#endif
+#ifndef VLD_ENABLED
+	// 如果没有启用VLD，则使用CRT内存检测
+	#ifdef _WIN32
+	#ifdef _DEBUG
+		// 启用内存泄漏检测
+		MemoryLeakDetector::EnableMemoryLeakChecks();
+
+		// 创建初始内存快照(在创建任何对象之前)
+		_CrtMemState memStateStart;
+		_CrtMemCheckpoint(&memStateStart);
+
+		// 设置断点在第一个泄漏的内存分配上
+		// 从最新的泄漏报告中选择最早的泄漏块编号
+		//MemoryLeakDetector::SetBreakAlloc(178);
+	#endif
+	#endif
 #endif
 
     //int* testLeak = new int(42);  // 故意制造内存泄漏以测试检测功能
@@ -73,8 +103,35 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    CommTest_Qt window;
-    window.show();
-    
-    return app.exec();
+    int result = 0;
+    {
+        CommTest_Qt window;
+        window.show();
+
+        result = app.exec();
+
+        // window析构发生在这里
+    }
+
+    // 确保QApplication完全清理
+    // app析构将在return之前发生
+
+#ifndef VLD_ENABLED
+	// 如果没有启用VLD，则使用CRT内存检测
+	#ifdef _WIN32
+	#ifdef _DEBUG
+		// 创建结束内存快照
+		_CrtMemState memStateEnd, memStateDiff;
+		_CrtMemCheckpoint(&memStateEnd);
+
+		// 比较开始和结束的内存状态,只报告差异
+		if (_CrtMemDifference(&memStateDiff, &memStateStart, &memStateEnd))
+		{
+			_CrtMemDumpStatistics(&memStateDiff);
+		}
+	#endif
+	#endif
+#endif
+
+    return result;
 }
