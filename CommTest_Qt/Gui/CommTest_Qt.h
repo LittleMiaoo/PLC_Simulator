@@ -59,6 +59,7 @@ private:
 
     // 菜单栏相关
     void OnShowAboutDialog();
+    void OnShowChangeLog();
 
     // 日志显示
     void UpdateLogDisplay(QString strNewLog);

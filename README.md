@@ -77,3 +77,61 @@ cmake --build . --config Release
 2. 支持配置网络连接参数或串口参数
 3. 可以通过 Lua 脚本编写自定义测试逻辑
 4. 提供模拟运动平台功能，可用于测试设备控制指令
+
+## 许可证
+
+本项目采用 **MIT License** 开源许可证。详细信息请查看 [LICENSE](LICENSE) 文件。
+
+```
+MIT License
+
+Copyright (c) 2025-2026 Wang Mao <mao.wang.dev@foxmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### 第三方许可证
+
+本项目使用了以下开源库，它们各自遵循其相应的开源许可证：
+
+#### Qt Framework
+- **许可证**: GNU Lesser General Public License v3 (LGPL v3)
+- **版权**: The Qt Company Ltd. and other contributors
+- **官方网站**: https://www.qt.io/
+- **说明**: 本软件通过动态链接方式使用Qt框架，符合LGPL v3许可证要求
+
+#### Lua
+- **许可证**: MIT License
+- **版权**: Lua.org, PUC-Rio
+- **官方网站**: https://www.lua.org/
+
+详细的第三方许可证信息请查看 [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) 文件。
+
+## 贡献
+
+欢迎提交问题报告、功能建议或代码贡献。
+
+## 联系方式
+
+- **作者**: WangMao
+- **邮箱**: mao.wang.dev@foxmail.com
+
+## 免责声明
+
+本软件按"现状"提供，不提供任何明示或暗示的保证。使用本软件所产生的风险由使用者自行承担。作者不对因使用本软件而造成的任何损失承担责任。

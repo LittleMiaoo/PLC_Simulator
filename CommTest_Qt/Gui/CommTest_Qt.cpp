@@ -66,8 +66,7 @@ CommTest_Qt::CommTest_Qt(QWidget *parent)
 	const QString datetime = QStringLiteral("%1 %2").arg(APP_COMPILE_DATE).arg(APP_COMPILE_TIME);
 
 	QLabel *label = new QLabel(this);
-	label->setText(QStringLiteral("Author:%1 Version:%2 Compile Time: %3")
-					   .arg(APP_AUTHOR)
+	label->setText(QStringLiteral("Version:%1 Compile Time: %2")
 					   .arg(APP_VERSION)
 					   .arg(datetime));
 	ui->statusBar->addPermanentWidget(label);
@@ -405,8 +404,9 @@ void CommTest_Qt::InitialSignalConnect()
 	// 初始化菜单栏
 	QMenu *helpMenu = ui->menuBar->addMenu("帮助(&H)");
 	QAction *aboutAction = helpMenu->addAction("关于(&A)");
+	QAction *changelogAction = helpMenu->addAction("更新日志(&U)");
 	connect(aboutAction, &QAction::triggered, this, &CommTest_Qt::OnShowAboutDialog);
-
+	connect(changelogAction, &QAction::triggered, this, &CommTest_Qt::OnShowChangeLog);
 	// 连接小窗口的显示主窗口信号到主窗口的show()槽
 	connect(m_subWindow.get(), &SubMainWindow::showMainWindow, this, &CommTest_Qt::show);
 
@@ -1056,7 +1056,7 @@ void CommTest_Qt::OnShowAboutDialog()
 {
 	QDialog aboutDialog(this);
 	aboutDialog.setWindowTitle(QString("关于 %1").arg(APP_NAME));
-	aboutDialog.setFixedSize(400, 320);
+	aboutDialog.setFixedSize(420, 500);
 	aboutDialog.setWindowFlags(aboutDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
 	QVBoxLayout *mainLayout = new QVBoxLayout(&aboutDialog);
@@ -1084,6 +1084,7 @@ void CommTest_Qt::OnShowAboutDialog()
 							  .arg(compileDate)
 							  .arg(compileTime)
 							  .arg(APP_AUTHOR);
+							  
 	QLabel *versionLabel = new QLabel(versionInfo, &aboutDialog);
 	versionLabel->setAlignment(Qt::AlignCenter);
 	versionLabel->setStyleSheet("font-size: 10pt; color: #666666;");
@@ -1105,10 +1106,8 @@ void CommTest_Qt::OnShowAboutDialog()
 
 	mainLayout->addStretch();
 
-	// 确定按钮（居中）
-	QPushButton *okButton = new QPushButton("确定", &aboutDialog);
-	okButton->setFixedSize(80, 30);
-	okButton->setStyleSheet(
+	// 按钮样式
+	QString buttonStyle =
 		"QPushButton {"
 		"    background-color: #4CA3E0;"
 		"    color: white;"
@@ -1121,16 +1120,138 @@ void CommTest_Qt::OnShowAboutDialog()
 		"}"
 		"QPushButton:pressed {"
 		"    background-color: #2E7BA8;"
-		"}");
-	connect(okButton, &QPushButton::clicked, &aboutDialog, &QDialog::accept);
+		"}";
+
+	// 第三方许可按钮
+	QPushButton *licenseButton = new QPushButton("第三方许可", &aboutDialog);
+	licenseButton->setFixedSize(100, 30);
+	licenseButton->setStyleSheet(buttonStyle);
+	connect(licenseButton, &QPushButton::clicked, [this, buttonStyle]() {
+		// 读取第三方许可证文件（与可执行文件在同一目录）
+		QString licensePath = QCoreApplication::applicationDirPath() + "/THIRD_PARTY_LICENSES.txt";
+		QFile licenseFile(licensePath);
+
+		QString licenseContent;
+		if (licenseFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			QTextStream in(&licenseFile);
+			in.setEncoding(QStringConverter::Utf8);
+			licenseContent = in.readAll();
+			licenseFile.close();
+		} else {
+			licenseContent = "无法读取第三方许可证文件。\n\n"
+							 "本软件使用了以下第三方库：\n"
+							 "1. Qt Framework (LGPL v3)\n"
+							 "2. Lua 5.4 (MIT License)\n\n"
+							 "详细信息请查看 THIRD_PARTY_LICENSES.txt 文件。";
+		}
+
+		// 显示许可证对话框
+		QDialog *licenseDialog = new QDialog(this);
+		licenseDialog->setWindowTitle("第三方许可证");
+		licenseDialog->setFixedSize(620, 520);
+		licenseDialog->setAttribute(Qt::WA_DeleteOnClose);
+
+		QVBoxLayout *layout = new QVBoxLayout(licenseDialog);
+
+		QTextEdit *textEdit = new QTextEdit(licenseDialog);
+		textEdit->setReadOnly(true);
+		textEdit->setPlainText(licenseContent);
+		textEdit->setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 9pt;");
+		layout->addWidget(textEdit);
+
+		QPushButton *closeBtn = new QPushButton("关闭", licenseDialog);
+		closeBtn->setFixedSize(80, 30);
+		closeBtn->setStyleSheet(buttonStyle);
+		connect(closeBtn, &QPushButton::clicked, licenseDialog, &QDialog::accept);
+
+		QHBoxLayout *btnLayout = new QHBoxLayout();
+		btnLayout->addStretch();
+		btnLayout->addWidget(closeBtn);
+		btnLayout->addStretch();
+		layout->addLayout(btnLayout);
+
+		licenseDialog->exec();
+	});
+
+	// // 确定按钮
+	// QPushButton *okButton = new QPushButton("确定", &aboutDialog);
+	// okButton->setFixedSize(80, 30);
+	// okButton->setStyleSheet(buttonStyle);
+	// connect(okButton, &QPushButton::clicked, &aboutDialog, &QDialog::accept);
 
 	QHBoxLayout *buttonLayout = new QHBoxLayout();
 	buttonLayout->addStretch();
-	buttonLayout->addWidget(okButton);
+	buttonLayout->addWidget(licenseButton);
+	//buttonLayout->addWidget(okButton);
 	buttonLayout->addStretch();
 	mainLayout->addLayout(buttonLayout);
 
+	// 版权信息
+	QLabel *copyrightLabel = new QLabel(APP_COPYRIGHT_RC, &aboutDialog);
+	copyrightLabel->setAlignment(Qt::AlignCenter);
+	copyrightLabel->setStyleSheet("font-size: 8pt; color: #808080;");
+	mainLayout->addWidget(copyrightLabel);
+
 	aboutDialog.exec();
+}
+
+void CommTest_Qt::OnShowChangeLog()
+{
+	QString changeLogPath = QCoreApplication::applicationDirPath() + "/ChangeLog.txt";
+		QFile licenseFile(changeLogPath);
+
+		QString LogContent;
+		if (licenseFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			QTextStream in(&licenseFile);
+			in.setEncoding(QStringConverter::Utf8);
+			LogContent = in.readAll();
+			licenseFile.close();
+		} else {
+			LogContent = "There is no changeog.";
+		}
+
+		// 按钮样式
+	QString buttonStyle =
+		"QPushButton {"
+		"    background-color: #4CA3E0;"
+		"    color: white;"
+		"    border: none;"
+		"    border-radius: 4px;"
+		"    font-size: 10pt;"
+		"}"
+		"QPushButton:hover {"
+		"    background-color: #3A8BC8;"
+		"}"
+		"QPushButton:pressed {"
+		"    background-color: #2E7BA8;"
+		"}";
+
+	// 显示许可证对话框
+	QDialog *licenseDialog = new QDialog(this);
+	licenseDialog->setWindowTitle("更新日志");
+	licenseDialog->setFixedSize(520, 500);
+	licenseDialog->setAttribute(Qt::WA_DeleteOnClose);
+
+	QVBoxLayout *layout = new QVBoxLayout(licenseDialog);
+
+	QTextEdit *textEdit = new QTextEdit(licenseDialog);
+	textEdit->setReadOnly(true);
+	textEdit->setPlainText(LogContent);
+	textEdit->setStyleSheet("font-family: 'Consolas', 'Courier New', monospace; font-size: 9pt;");
+	layout->addWidget(textEdit);
+
+	QPushButton *closeBtn = new QPushButton("关闭", licenseDialog);
+	closeBtn->setFixedSize(80, 30);
+	closeBtn->setStyleSheet(buttonStyle);
+	connect(closeBtn, &QPushButton::clicked, licenseDialog, &QDialog::accept);
+
+	QHBoxLayout *btnLayout = new QHBoxLayout();
+	btnLayout->addStretch();
+	btnLayout->addWidget(closeBtn);
+	btnLayout->addStretch();
+	layout->addLayout(btnLayout);
+
+	licenseDialog->exec();
 }
 
 void CommTest_Qt::InitialGuiStyle()

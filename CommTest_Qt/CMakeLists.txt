@@ -327,6 +327,34 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/Lua/Lib/ScriptRunner.dll")
     )
 endif()
 
+# 复制文档文件到发布目录
+if(EXISTS "${CMAKE_SOURCE_DIR}/THIRD_PARTY_LICENSES.txt")
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/THIRD_PARTY_LICENSES.txt"
+            "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/"
+        COMMENT "Copying THIRD_PARTY_LICENSES.txt to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
+    )
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/LICENSE")
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/LICENSE"
+            "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/"
+        COMMENT "Copying LICENSE to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
+    )
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/ChangeLog.txt")
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/ChangeLog.txt"
+            "${CMAKE_SOURCE_DIR}/Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>/"
+        COMMENT "Copying ChangeLog.txt to Bin/$<IF:$<CONFIG:Debug>,dbg_env,x64>"
+    )
+endif()
+
 # Release构建后清理不需要的文件，减小发布包体积
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND}

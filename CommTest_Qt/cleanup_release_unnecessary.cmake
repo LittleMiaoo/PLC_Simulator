@@ -5,7 +5,7 @@ if("${BUILD_CONFIG}" STREQUAL "Release")
     message(STATUS "Cleaning unnecessary files from Release package...")
 
     # 删除触摸设备插件（如果不需要触摸屏支持）
-    file(REMOVE_RECURSE "${BIN_DIR}/x64/generic")
+    #file(REMOVE_RECURSE "${BIN_DIR}/x64/generic")
 
     # 删除TLS/SSL插件（如果不使用HTTPS或加密网络）
     file(REMOVE_RECURSE "${BIN_DIR}/x64/tls")
@@ -19,10 +19,10 @@ if("${BUILD_CONFIG}" STREQUAL "Release")
 
     # 删除不常用的图片格式插件
     file(REMOVE
-        "${BIN_DIR}/x64/imageformats/qicns.dll"
-        "${BIN_DIR}/x64/imageformats/qtga.dll"
-        "${BIN_DIR}/x64/imageformats/qwbmp.dll"
-        "${BIN_DIR}/x64/imageformats/qico.dll"
+        #"${BIN_DIR}/x64/imageformats/qicns.dll"
+        #"${BIN_DIR}/x64/imageformats/qtga.dll"
+        #"${BIN_DIR}/x64/imageformats/qwbmp.dll"
+        #"${BIN_DIR}/x64/imageformats/qico.dll"
         "${BIN_DIR}/x64/imageformats/qpdf.dll"
     )
 
