@@ -1,4 +1,12 @@
-﻿#ifndef COMM_PROTOCOL_MITSUBISHIQBINARY_H 
+﻿/*
+ * PLC Simulator - Industrial Communication Protocol Testing Tool
+ * Copyright (c) 2025-2026 Wang Mao <mao.wang.dev@foxmail.com>
+ *
+ * This file is part of PLC Simulator.
+ * Licensed under the MIT License. See LICENSE file in the project root.
+ */
+
+#ifndef COMM_PROTOCOL_MITSUBISHIQBINARY_H
 #define COMM_PROTOCOL_MITSUBISHIQBINARY_H
 #include "CommProtocolBase.h"
 class CommProMitsubishiQBinary :
