@@ -1196,9 +1196,13 @@ void CommTest_Qt::OnShowAboutDialog()
 
 	// 版权信息
 	QLabel *copyrightLabel = new QLabel(APP_COPYRIGHT_RC, &aboutDialog);
+	QLabel *linkLabel = new QLabel(APP_DOMAIN, &aboutDialog);
 	copyrightLabel->setAlignment(Qt::AlignCenter);
 	copyrightLabel->setStyleSheet("font-size: 8pt; color: #808080;");
+	linkLabel->setAlignment(Qt::AlignCenter);
+	linkLabel->setStyleSheet("font-size: 8pt; color: #808080;");
 	mainLayout->addWidget(copyrightLabel);
+	mainLayout->addWidget(linkLabel);
 
 	aboutDialog.exec();
 }

@@ -37,7 +37,7 @@
 #define APP_NAME            "PLC通信模拟器"
 #define APP_VERSION         APP_VERSION_STRING
 #define APP_AUTHOR          APP_ORGANIZATION
-#define APP_DOMAIN          " "
+#define APP_DOMAIN          "https://github.com/LittleMiaoo/PLC_Simulator"
 #define APP_DESCRIPTION     "一个基于Qt6的PLC模拟通信测试软件.\n"\
                             "支持基恩士上位链路协议&三菱Q系列MC协议二进制通信.\n"\
                             "支持通过Lua脚本语言实现自动化.\n"\
