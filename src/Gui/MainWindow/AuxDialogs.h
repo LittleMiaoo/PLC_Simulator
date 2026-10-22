@@ -9,6 +9,7 @@
 #ifndef AUXDIALOGS_H
 #define AUXDIALOGS_H
 
+#include <QCoreApplication>
 #include <QString>
 #include <QSize>
 #include <QVariantMap>
@@ -22,6 +23,8 @@ class QWidget;
  */
 class AuxDialogs
 {
+    Q_DECLARE_TR_FUNCTIONS(AuxDialogs)   // 非 QObject 类提供 tr()(翻译上下文 "AuxDialogs")
+
 public:
     /// 平台参数包:单位幂次与轴写入起始地址
     struct PlatformParams {

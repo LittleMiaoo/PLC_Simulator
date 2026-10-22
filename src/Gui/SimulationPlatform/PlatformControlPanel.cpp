@@ -17,6 +17,7 @@
 #include <QLabel>
 #include <QDoubleValidator>
 #include <QSignalBlocker>
+#include <QEvent>
 
 PlatformControlPanel::PlatformControlPanel(PlatformScene* scene, QWidget* parent)
     : QWidget(parent)
@@ -45,38 +46,38 @@ PlatformControlPanel::PlatformControlPanel(PlatformScene* scene, QWidget* parent
 
 void PlatformControlPanel::buildUi()
 {
-    // 创建所有输入控件
+    // 创建所有输入控件(复选框/分组标题等可翻译文案统一在 retranslateUi 设置)
     m_baseXEdit    = new QLineEdit(this);
     m_baseYEdit    = new QLineEdit(this);
     m_baseAngleEdit = new QLineEdit(this);
-    m_showBaseCheck = new QCheckBox(QStringLiteral("显示"), this);
+    m_showBaseCheck = new QCheckBox(this);
     m_showBaseCheck->setChecked(true);
 
     m_liveXEdit    = new QLineEdit(this);
     m_liveYEdit    = new QLineEdit(this);
     m_liveAngleEdit = new QLineEdit(this);
-    m_showLiveCheck = new QCheckBox(QStringLiteral("显示"), this);
+    m_showLiveCheck = new QCheckBox(this);
     m_showLiveCheck->setChecked(true);
 
     m_baseMarkXEdit    = new QLineEdit(this);
     m_baseMarkYEdit    = new QLineEdit(this);
     m_baseMarkAngleEdit = new QLineEdit(this);
-    m_baseMarkFollowCheck = new QCheckBox(QStringLiteral("跟随平台"), this);
+    m_baseMarkFollowCheck = new QCheckBox(this);
     m_baseMarkFollowCheck->setChecked(true);
-    m_showBaseMarkCheck = new QCheckBox(QStringLiteral("显示"), this);
+    m_showBaseMarkCheck = new QCheckBox(this);
     m_showBaseMarkCheck->setChecked(true);
 
     m_liveMarkXEdit    = new QLineEdit(this);
     m_liveMarkYEdit    = new QLineEdit(this);
     m_liveMarkAngleEdit = new QLineEdit(this);
-    m_liveMarkFollowCheck = new QCheckBox(QStringLiteral("跟随平台"), this);
+    m_liveMarkFollowCheck = new QCheckBox(this);
     m_liveMarkFollowCheck->setChecked(true);
-    m_showLiveMarkCheck = new QCheckBox(QStringLiteral("显示"), this);
+    m_showLiveMarkCheck = new QCheckBox(this);
     m_showLiveMarkCheck->setChecked(true);
 
     m_virtualMarkXEdit = new QLineEdit(this);
     m_virtualMarkYEdit = new QLineEdit(this);
-    m_showVirtualMarkCheck = new QCheckBox(QStringLiteral("显示"), this);
+    m_showVirtualMarkCheck = new QCheckBox(this);
     m_showVirtualMarkCheck->setChecked(false);  // 虚拟Mark 默认整体关闭
 
     // 数值输入框统一限宽,居中对齐
@@ -105,7 +106,6 @@ void PlatformControlPanel::buildUi()
 
     // ---- 基准平台 ----
     m_baseGroup = new CollapsibleGroupBox(this);
-    m_baseGroup->setTitle(QStringLiteral("基准平台 (mm)"));
     {
         QGridLayout* g = new QGridLayout(m_baseGroup); tighten(g); int row = 0;
         g->addWidget(rlbl(QStringLiteral("X:")), row, 0);          g->addWidget(m_baseXEdit, row++, 1);
@@ -116,7 +116,6 @@ void PlatformControlPanel::buildUi()
 
     // ---- 实时平台 ----
     m_liveGroup = new CollapsibleGroupBox(this);
-    m_liveGroup->setTitle(QStringLiteral("实时平台 (mm)"));
     {
         QGridLayout* g = new QGridLayout(m_liveGroup); tighten(g); int row = 0;
         g->addWidget(rlbl(QStringLiteral("X:")), row, 0);          g->addWidget(m_liveXEdit, row++, 1);
@@ -127,7 +126,6 @@ void PlatformControlPanel::buildUi()
 
     // ---- 基准Mark ----
     m_baseMarkGroup = new CollapsibleGroupBox(this);
-    m_baseMarkGroup->setTitle(QStringLiteral("基准Mark (mm)"));
     {
         QGridLayout* g = new QGridLayout(m_baseMarkGroup); tighten(g); int row = 0;
         g->addWidget(rlbl(QStringLiteral("X:")), row, 0);          g->addWidget(m_baseMarkXEdit, row++, 1);
@@ -138,7 +136,6 @@ void PlatformControlPanel::buildUi()
 
     // ---- 实时Mark ----
     m_liveMarkGroup = new CollapsibleGroupBox(this);
-    m_liveMarkGroup->setTitle(QStringLiteral("实时Mark (mm)"));
     {
         QGridLayout* g = new QGridLayout(m_liveMarkGroup); tighten(g); int row = 0;
         g->addWidget(rlbl(QStringLiteral("X:")), row, 0);          g->addWidget(m_liveMarkXEdit, row++, 1);
@@ -149,11 +146,12 @@ void PlatformControlPanel::buildUi()
 
     // ---- 虚拟Mark ----
     m_virtualMarkGroup = new CollapsibleGroupBox(this);
-    m_virtualMarkGroup->setTitle(QStringLiteral("虚拟Mark (mm)"));
     {
         QGridLayout* g = new QGridLayout(m_virtualMarkGroup); tighten(g);
-        g->addWidget(rlbl(QStringLiteral("X偏移:")), 0, 0); g->addWidget(m_virtualMarkXEdit, 0, 1);
-        g->addWidget(rlbl(QStringLiteral("Y偏移:")), 1, 0); g->addWidget(m_virtualMarkYEdit, 1, 1);
+        m_virtualMarkXLabel = rlbl(QString());
+        m_virtualMarkYLabel = rlbl(QString());
+        g->addWidget(m_virtualMarkXLabel, 0, 0); g->addWidget(m_virtualMarkXEdit, 0, 1);
+        g->addWidget(m_virtualMarkYLabel, 1, 0); g->addWidget(m_virtualMarkYEdit, 1, 1);
         g->addWidget(m_showVirtualMarkCheck, 2, 0, 1, 2);
     }
 
@@ -163,6 +161,32 @@ void PlatformControlPanel::buildUi()
     for (CollapsibleGroupBox* g : { m_baseGroup, m_liveGroup, m_baseMarkGroup, m_liveMarkGroup, m_virtualMarkGroup })
         layout->addWidget(g, 0, Qt::AlignTop);
     layout->addStretch(1);
+
+    retranslateUi();
+}
+
+void PlatformControlPanel::retranslateUi()
+{
+    m_baseGroup->setTitle(tr("基准平台 (mm)"));
+    m_liveGroup->setTitle(tr("实时平台 (mm)"));
+    m_baseMarkGroup->setTitle(tr("基准Mark (mm)"));
+    m_liveMarkGroup->setTitle(tr("实时Mark (mm)"));
+    m_virtualMarkGroup->setTitle(tr("虚拟Mark (mm)"));
+
+    for (QCheckBox* c : { m_showBaseCheck, m_showLiveCheck, m_showBaseMarkCheck, m_showLiveMarkCheck, m_showVirtualMarkCheck })
+        c->setText(tr("显示"));
+    for (QCheckBox* c : { m_baseMarkFollowCheck, m_liveMarkFollowCheck })
+        c->setText(tr("跟随平台"));
+
+    m_virtualMarkXLabel->setText(tr("X偏移:"));
+    m_virtualMarkYLabel->setText(tr("Y偏移:"));
+}
+
+void PlatformControlPanel::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        retranslateUi();
+    QWidget::changeEvent(event);
 }
 
 void PlatformControlPanel::setupValidators()

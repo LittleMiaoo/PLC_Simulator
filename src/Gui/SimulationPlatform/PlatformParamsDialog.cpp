@@ -21,7 +21,7 @@ PlatformParamsDialog::PlatformParamsDialog(PlatformScene* scene, QWidget* parent
     const double origSpacing = m_scene->markCenterDistance();
     const double origRatio   = m_scene->screenRatio();
 
-    setWindowTitle(QStringLiteral("参数设置"));
+    setWindowTitle(tr("参数设置"));
 
     QLineEdit* sizeEdit  = new QLineEdit(this);
     QLineEdit* ratioEdit = new QLineEdit(this);
@@ -51,8 +51,8 @@ PlatformParamsDialog::PlatformParamsDialog(PlatformScene* scene, QWidget* parent
     connect(ratioEdit, &QLineEdit::textEdited, this, [=](const QString&) { onEdited(); });
 
     QFormLayout* form = new QFormLayout();
-    form->addRow(QStringLiteral("产品尺寸 (mm):"), sizeEdit);
-    form->addRow(QStringLiteral("缩放比 (px/mm):"), ratioEdit);
+    form->addRow(tr("产品尺寸 (mm):"), sizeEdit);
+    form->addRow(tr("缩放比 (px/mm):"), ratioEdit);
 
     QDialogButtonBox* box = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(box, &QDialogButtonBox::accepted, this, &QDialog::accept);

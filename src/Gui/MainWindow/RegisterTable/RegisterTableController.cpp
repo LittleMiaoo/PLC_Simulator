@@ -102,3 +102,9 @@ void RegisterTableController::setNumberBase(bool hex)
 {
     if (m_model) m_model->setNumberBase(hex);
 }
+
+void RegisterTableController::retranslateHeaders()
+{
+    if (m_model)
+        m_model->refreshHeaders();
+}

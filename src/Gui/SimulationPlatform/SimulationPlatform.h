@@ -10,9 +10,11 @@
 #define SIMULATIONPLATFORM_H
 
 #include <QMainWindow>
+#include <QEvent>
 #include <QSize>
 #include <QString>
 #include <QVariantMap>
+#include <QVector>
 #include "Core/PlatformTypes.h"   // 信号参数 Pose / Platform
 
 // 成员均为指针,前向声明即可;完整定义在 .cpp 中包含
@@ -20,6 +22,7 @@ class QStackedWidget;
 class QMenu;
 class QAction;
 class QLabel;
+class QPushButton;
 class PlatformCanvas;
 class PlatformControlPanel;
 class PlatformScene;
@@ -60,14 +63,23 @@ private:
     QStackedWidget* m_stack;
     QAction* m_actPageSim;
     QAction* m_actPagePic;
+    QMenu* m_viewMenu = nullptr;
+    QMenu* m_posMenu = nullptr;
     QMenu* m_simMenu;
     QMenu* m_imageMenu;
+    QAction* m_actParam = nullptr;
+    QAction* m_actLoadImage = nullptr;
+    QAction* m_cornerPosActions[5] = {};
+    QVector<QAction*> m_groupToggleActions;
+    QPushButton* m_panelToggleBtn = nullptr;
     QSize m_pageSize[2];   // 各页窗口尺寸的会话内记忆(0=模拟页 1=图片页),不落盘
     void buildMenuBar();
     void showPage(int index);
     void moveToScreenCorner(int corner);
     void bindGroupToggle(CollapsibleGroupBox* g, const QString& title, bool visible = true);
     void openParamDialog();
+    void retranslateUi();
+    void changeEvent(QEvent* event) override;
 
     // 页面切换相关
     QWidget* m_simulationPage;      // 模拟平台页面

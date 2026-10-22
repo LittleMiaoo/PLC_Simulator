@@ -39,6 +39,11 @@ public:
     void setClosable(bool closable);          // 开启后标题栏右侧显示 × 关闭按钮
     bool isClosable() const { return m_closable; }
 
+    // 隐藏 QGroupBox::setTitle(非虚):记录原始标题并保留 ▾/▸ 前缀。
+    // uic 的 retranslateUi 以本类指针调用,切换语言后箭头不丢、折叠时也不会退回旧标题;
+    // 经 QGroupBox* 调用会绕过本函数,勿那样设置标题
+    void setTitle(const QString& title);
+
 signals:
     void closed();                            // 点击 × 时发出
 
@@ -46,6 +51,7 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     bool event(QEvent* e) override;
+    void changeEvent(QEvent* event) override;
 
 private:
     void refreshTitlePrefix();

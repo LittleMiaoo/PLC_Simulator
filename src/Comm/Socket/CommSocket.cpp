@@ -7,6 +7,7 @@
  */
 
 #include "CommSocket.h"
+#include <QCoreApplication>
 #include <QThread>
 #include <QEventLoop>
 
@@ -65,7 +66,7 @@ bool CommSocket::initializeServer()
 	}
 
 	//记录日志
-	emit logRecord(QString("[%1:%2] 服务器创建成功,开始监听客户端链接...")
+	emit logRecord(QCoreApplication::translate("CommSocket", "[%1:%2] 服务器创建成功,开始监听客户端链接...")
 		.arg(m_Server->serverAddress().toString())
 		.arg(m_Server->serverPort()));
 
@@ -85,7 +86,7 @@ bool CommSocket::initializeServer()
 			/*m_clientList.append(Cursocket);*/
 
 			//激活信号,将新建立连接的客户端信息发送出去
-			emit logRecord(QString("[%1:%2] 新客户端链接")
+			emit logRecord(QCoreApplication::translate("CommSocket", "[%1:%2] 新客户端链接")
 				.arg(Cursocket->peerAddress().toString())
 				.arg(Cursocket->peerPort()));
 			emit clientsChanged(m_ClientMap.keys());	//状态栏:客户端快照
@@ -104,7 +105,7 @@ bool CommSocket::initializeServer()
 			connect(Cursocket, &QAbstractSocket::errorOccurred, [this, Cursocket](QAbstractSocket::SocketError) {
 
 				//发送错误信息
-				emit logRecord(QString("[%1:%2] 客户端错误:%3")
+				emit logRecord(QCoreApplication::translate("CommSocket", "[%1:%2] 客户端错误:%3")
 					.arg(Cursocket->peerAddress().toString())
 					.arg(Cursocket->peerPort())
 					.arg(Cursocket->errorString()));
@@ -116,7 +117,7 @@ bool CommSocket::initializeServer()
 				Cursocket->deleteLater();
 
 				//发送断开连接信息
-				emit logRecord(QString("[%1]:客户端断开链接").arg(GetClientId(Cursocket)));
+				emit logRecord(QCoreApplication::translate("CommSocket", "[%1]:客户端断开链接").arg(GetClientId(Cursocket)));
 
 				m_ClientMap.remove(GetClientId(Cursocket));
 				emit clientsChanged(m_ClientMap.keys());	//状态栏:客户端快照
@@ -130,7 +131,7 @@ bool CommSocket::initializeServer()
 	//server的错误信息
 	connect(m_Server, &QTcpServer::acceptError, [this](QAbstractSocket::SocketError) {
 
-		emit logRecord(QString("服务器错误:%1").arg(m_Server->errorString()));
+		emit logRecord(QCoreApplication::translate("CommSocket", "服务器错误:%1").arg(m_Server->errorString()));
 		});
 
 	return true;
@@ -144,10 +145,10 @@ bool CommSocket::initializeClient()
 void CommSocket::Cleanup()
 {
 
-	emit logRecord(QString("即将断开所有客户端链接,当前链接客户端数量[%1]").arg(m_ClientMap.size()));
+	emit logRecord(QCoreApplication::translate("CommSocket", "即将断开所有客户端链接,当前链接客户端数量[%1]").arg(m_ClientMap.size()));
 	// 清理客户端连接
 	for (QTcpSocket* client : m_ClientMap.values()) {
-		emit logRecord(QString("[%1:%2] 客户端即将断开").arg(client->peerAddress().toString())
+		emit logRecord(QCoreApplication::translate("CommSocket", "[%1:%2] 客户端即将断开").arg(client->peerAddress().toString())
 			.arg(client->peerPort()));
 
 		client->disconnectFromHost();
@@ -155,7 +156,7 @@ void CommSocket::Cleanup()
 	}
 
 	if (m_Server) {
-		emit logRecord(QString("[%1:%2] 即将关闭服务器...")
+		emit logRecord(QCoreApplication::translate("CommSocket", "[%1:%2] 即将关闭服务器...")
 			.arg(m_Server->serverAddress().toString())
 			.arg(m_Server->serverPort()));
 
@@ -170,7 +171,7 @@ void CommSocket::Cleanup()
 
 	// 清理客户端socket
 	if (m_Client) {
-		emit logRecord(QString("[%1:%2] 即将关闭网络连接...").arg(GetClientId(m_Client)));
+		emit logRecord(QCoreApplication::translate("CommSocket", "[%1:%2] 即将关闭网络连接...").arg(GetClientId(m_Client)));
 
 		m_Client->close();
 		m_Client->deleteLater();

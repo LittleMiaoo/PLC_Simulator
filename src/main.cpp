@@ -23,9 +23,11 @@ SOFTWARE.
 */
 
 #include "MainWindow.h"
+#include "I18n/LanguageManager.h"
 #include "version.h"
 #include <QtWidgets/QApplication>
 
+#include <QCoreApplication>
 #include <QMessageBox>
 #include <QSharedMemory>
 #include <QSystemSemaphore>
@@ -48,6 +50,8 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(APP_ORGANIZATION);
     QCoreApplication::setOrganizationDomain(APP_DOMAIN);
 
+    applyLanguage(app, resolveStartupLanguage());
+
     // 步骤1：创建系统信号量（防止多实例同时检查共享内存）
     QSystemSemaphore semaphore(SEMAPHORE_KEY, 1);
     semaphore.acquire(); // 加锁，独占检查
@@ -60,7 +64,9 @@ int main(int argc, char *argv[])
         if (sharedMem.create(1)) {
             isNewInstance = true;
         } else {
-            QMessageBox::critical(nullptr, "错误", "创建共享内存失败！");
+            QMessageBox::critical(nullptr,
+                                  QCoreApplication::translate("main", "错误"),
+                                  QCoreApplication::translate("main", "创建共享内存失败！"));
             semaphore.release(); // 释放信号量
             return 1;
         }
@@ -70,7 +76,9 @@ int main(int argc, char *argv[])
 
     // 步骤3：已有实例，退出
     if (!isNewInstance) {
-        QMessageBox::warning(nullptr, "提示", "程序正在运行！请勿重复启动！");
+        QMessageBox::warning(nullptr,
+                             QCoreApplication::translate("main", "提示"),
+                             QCoreApplication::translate("main", "程序正在运行！请勿重复启动！"));
         return 0;
     }
 

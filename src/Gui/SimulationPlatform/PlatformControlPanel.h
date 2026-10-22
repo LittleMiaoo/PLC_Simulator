@@ -16,6 +16,7 @@ class PlatformScene;
 class CollapsibleGroupBox;
 class QLineEdit;
 class QCheckBox;
+class QLabel;
 
 /**
  * @brief 模拟平台右侧控制面板:5 组可折叠控件,读写 PlatformScene
@@ -40,8 +41,12 @@ private slots:
     void pushVirtualMarkToScene();
     void refreshFromScene();   // scene.changed → 回填输入框(blockSignals 防抖)
 
+protected:
+    void changeEvent(QEvent* event) override;
+
 private:
     void buildUi();
+    void retranslateUi();      // 可翻译文案唯一设置处(构建末尾 + 语言切换共用)
     void wireConnections();
     void setupValidators();
 
@@ -63,6 +68,7 @@ private:
     QCheckBox* m_liveMarkFollowCheck = nullptr;  QCheckBox* m_showLiveMarkCheck = nullptr;
     QLineEdit* m_virtualMarkXEdit = nullptr;  QLineEdit* m_virtualMarkYEdit = nullptr;
     QCheckBox* m_showVirtualMarkCheck = nullptr;
+    QLabel* m_virtualMarkXLabel = nullptr;  QLabel* m_virtualMarkYLabel = nullptr;
 };
 
 #endif // PLATFORMCONTROLPANEL_H

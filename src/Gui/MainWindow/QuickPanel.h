@@ -13,6 +13,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QCloseEvent>
+#include <QEvent>
 #include <QVector>
 
 class QuickPanel :
@@ -32,10 +33,8 @@ signals:
 
 protected:
 	// 重写关闭事件：直接关闭小窗时退出程序
-	void closeEvent(QCloseEvent* event) override {
-		Q_UNUSED(event);
-		qApp->quit(); // 退出整个应用程序
-	}
+	void closeEvent(QCloseEvent* event) override;
+	void changeEvent(QEvent* event) override;
 
 private:
     QVector<QPushButton*> btn;      // 脚本按钮

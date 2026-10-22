@@ -31,7 +31,7 @@
 void AuxDialogs::showAbout(QWidget* parent)
 {
     QDialog aboutDialog(parent);
-    aboutDialog.setWindowTitle(QString("关于 %1").arg(APP_NAME));
+    aboutDialog.setWindowTitle(tr("关于 %1").arg(QCoreApplication::translate("AppInfo", APP_NAME)));
     aboutDialog.setFixedSize(420, 500);
     aboutDialog.setWindowFlags(aboutDialog.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
@@ -49,7 +49,7 @@ void AuxDialogs::showAbout(QWidget* parent)
     mainLayout->addWidget(iconLabel);
 
     // 应用名称（居中）
-    QLabel *nameLabel = new QLabel(APP_NAME, &aboutDialog);
+    QLabel *nameLabel = new QLabel(QCoreApplication::translate("AppInfo", APP_NAME), &aboutDialog);
     nameLabel->setAlignment(Qt::AlignCenter);
     nameLabel->setStyleSheet("font-size: 18pt; font-weight: bold;");
     mainLayout->addWidget(nameLabel);
@@ -74,7 +74,7 @@ void AuxDialogs::showAbout(QWidget* parent)
     mainLayout->addWidget(line);
 
     // 应用描述（靠左）
-    QLabel *descLabel = new QLabel(APP_DESCRIPTION, &aboutDialog);
+    QLabel *descLabel = new QLabel(QCoreApplication::translate("AppInfo", APP_DESCRIPTION), &aboutDialog);
     descLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     descLabel->setWordWrap(true);
     mainLayout->addWidget(descLabel);
@@ -82,16 +82,16 @@ void AuxDialogs::showAbout(QWidget* parent)
     mainLayout->addStretch();
 
     // 第三方许可按钮(样式跟随全局主题)
-    QPushButton *licenseButton = new QPushButton("第三方许可", &aboutDialog);
+    QPushButton *licenseButton = new QPushButton(tr("第三方许可"), &aboutDialog);
     licenseButton->setFixedSize(100, 30);
     QObject::connect(licenseButton, &QPushButton::clicked, &aboutDialog, [parent]() {
-        const QString fallback =
+        const QString fallback = tr(
             "无法读取第三方许可证文件。\n\n"
             "本软件使用了以下第三方库：\n"
             "1. Qt Framework (LGPL v3)\n"
             "2. Lua 5.4 (MIT License)\n\n"
-            "详细信息请查看 THIRD_PARTY_LICENSES.txt 文件。";
-        showTextFileDialog(parent, "第三方许可证",
+            "详细信息请查看 THIRD_PARTY_LICENSES.txt 文件。");
+        showTextFileDialog(parent, tr("第三方许可证"),
                            QCoreApplication::applicationDirPath() + "/THIRD_PARTY_LICENSES.txt",
                            fallback, QSize(620, 520));
     });
@@ -117,7 +117,7 @@ void AuxDialogs::showAbout(QWidget* parent)
 
 void AuxDialogs::showChangeLog(QWidget* parent)
 {
-    showTextFileDialog(parent, "更新日志",
+    showTextFileDialog(parent, tr("更新日志"),
                        QCoreApplication::applicationDirPath() + "/ChangeLog.txt",
                        "There is no changeog.", QSize(520, 500));
 }
@@ -125,7 +125,7 @@ void AuxDialogs::showChangeLog(QWidget* parent)
 bool AuxDialogs::editPlatformParams(QWidget* parent, PlatformParams& params)
 {
     QDialog dlg(parent);
-    dlg.setWindowTitle("平台参数设置");
+    dlg.setWindowTitle(tr("平台参数设置"));
     dlg.setWindowFlags(dlg.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     QFormLayout* form = new QFormLayout(&dlg);
@@ -147,15 +147,15 @@ bool AuxDialogs::editPlatformParams(QWidget* parent, PlatformParams& params)
     editObjAddr->setValidator(new QIntValidator(0, addrMax, &dlg));
     editTgtAddr->setValidator(new QIntValidator(0, addrMax, &dlg));
 
-    form->addRow("XY单位幂:", editUnitXY);
-    form->addRow("D单位幂:", editUnitD);
-    form->addRow("对象平台轴位置地址:", editObjAddr);
-    form->addRow("目标平台轴位置地址:", editTgtAddr);
+    form->addRow(tr("XY单位幂:"), editUnitXY);
+    form->addRow(tr("D单位幂:"), editUnitD);
+    form->addRow(tr("对象平台轴位置地址:"), editObjAddr);
+    form->addRow(tr("目标平台轴位置地址:"), editTgtAddr);
 
     QDialogButtonBox* box = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
-    box->button(QDialogButtonBox::Ok)->setText("确定");
-    box->button(QDialogButtonBox::Cancel)->setText("取消");
+    box->button(QDialogButtonBox::Ok)->setText(tr("确定"));
+    box->button(QDialogButtonBox::Cancel)->setText(tr("取消"));
     form->addRow(box);
     QObject::connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
     QObject::connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
@@ -225,7 +225,7 @@ void AuxDialogs::showTextFileDialog(QWidget* parent, const QString& title,
     textEdit->setPlainText(content);
     layout->addWidget(textEdit);
 
-    QPushButton *closeBtn = new QPushButton("关闭", dialog);
+    QPushButton *closeBtn = new QPushButton(tr("关闭"), dialog);
     closeBtn->setFixedSize(80, 30);
     QObject::connect(closeBtn, &QPushButton::clicked, dialog, &QDialog::accept);
 

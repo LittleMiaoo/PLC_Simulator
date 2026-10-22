@@ -10,6 +10,7 @@
 #include "AuxDialogs.h"
 #include "SimulationPlatform/SimulationPlatform.h"
 #include "Theme/ThemeManager.h"
+#include "I18n/LanguageManager.h"
 #include "Core/RegisterStore.h"
 #include "Comm/Socket/CommSocket.h"
 #include "Comm/CommInfoFactory.h"
@@ -38,6 +39,8 @@
 #include <QColor>
 #include <QIcon>
 #include <QSize>
+#include <QCoreApplication>
+#include <QApplication>
 
 namespace
 {
@@ -94,7 +97,7 @@ MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent), ui(new Ui::MainWindow()), m_pWorkflow(nullptr), m_simulationPlatform(nullptr), m_configStore(nullptr)
 {
 	ui->setupUi(this);
-	setWindowTitle(QString("%1 - v%2").arg(APP_NAME).arg(APP_VERSION));
+	setWindowTitle(QString("%1 - v%2").arg(QCoreApplication::translate("AppInfo", APP_NAME)).arg(APP_VERSION));
 
 	// 启动尺寸:取当前屏可用区的 80%,且不超过 .ui 设计尺寸(1350x971),再居中。
 	// 固定像素尺寸在低逻辑分辨率显示器上会溢出屏幕(高度被任务栏/标题栏切掉),
@@ -128,6 +131,14 @@ MainWindow::~MainWindow()
 
 void MainWindow::loadConfigs()
 {
+	// 脚本默认名随启动语言;有持久化名称时下方覆盖。
+	// .ui 中名称框/IP/端口/地址文本标为 notr:否则切换语言时 retranslateUi 会把用户值写回默认值
+	{
+		const QVector<QLineEdit*> nameEdits = scriptNameEdits();
+		for (int i = 0; i < nameEdits.size(); ++i)
+			nameEdits[i]->setText(tr("脚本%1").arg(i + 1));
+	}
+
 	// 加载之前保存的配置
 	if (m_configStore)
 	{
@@ -206,12 +217,12 @@ void MainWindow::createMembers()
 
 	// 小窗口:标题栏保留标题与最小化按钮(支持任务栏最小化/还原),不显示最大化/关闭按钮
 	m_subWindow = std::make_unique<QuickPanel>();
-	m_subWindow->setWindowTitle(this->windowTitle() + " - 子窗口");
+	m_subWindow->setWindowTitle(this->windowTitle() + tr(" - 子窗口"));
 	m_subWindow->setWindowFlags(Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinimizeButtonHint);
 
 	// 模拟平台窗口
 	m_simulationPlatform = new SimulationPlatform(this);
-	m_simulationPlatform->setWindowTitle(this->windowTitle() + " - 模拟平台");
+	m_simulationPlatform->setWindowTitle(this->windowTitle() + tr(" - 模拟平台"));
 	m_simulationPlatform->setWindowFlags(
 		Qt::Dialog | Qt::WindowMinimizeButtonHint // 显示最小化按钮
 		| Qt::WindowMaximizeButtonHint			  // 显示最大化按钮
@@ -245,8 +256,8 @@ void MainWindow::setupUiContent()
 	// 协议类型下拉
 	{
 		QMap<ProtocolType, QString> protocolTypeMap;
-		protocolTypeMap[ProtocolType::eProRegKeyencePCLink] = "基恩士PC-LINK上位链路协议";
-		protocolTypeMap[ProtocolType::eProRegMitsubishiQBinary] = "三菱MC协议二进制通信";
+		protocolTypeMap[ProtocolType::eProRegKeyencePCLink] = tr("基恩士PC-LINK上位链路协议");
+		protocolTypeMap[ProtocolType::eProRegMitsubishiQBinary] = tr("三菱MC协议二进制通信");
 
 		for (auto it = protocolTypeMap.begin(); it != protocolTypeMap.end(); ++it)
 		{
@@ -269,11 +280,11 @@ void MainWindow::setupUiContent()
 	// 数据类型下拉
 	{
 		QMap<RegisterDataType, QString> dataTypeMap;
-		dataTypeMap[RegisterDataType::eDataTypeChar8] = "字符";
-		dataTypeMap[RegisterDataType::eDataTypeInt16] = "单字";
-		dataTypeMap[RegisterDataType::eDataTypeInt32] = "双字";
-		dataTypeMap[RegisterDataType::eDataTypeFloat] = "单精度";
-		dataTypeMap[RegisterDataType::eDataTypeDouble] = "双精度";
+		dataTypeMap[RegisterDataType::eDataTypeChar8] = tr("字符");
+		dataTypeMap[RegisterDataType::eDataTypeInt16] = tr("单字");
+		dataTypeMap[RegisterDataType::eDataTypeInt32] = tr("双字");
+		dataTypeMap[RegisterDataType::eDataTypeFloat] = tr("单精度");
+		dataTypeMap[RegisterDataType::eDataTypeDouble] = tr("双精度");
 
 		for (auto it = dataTypeMap.begin(); it != dataTypeMap.end(); ++it)
 		{
@@ -375,18 +386,25 @@ void MainWindow::connectSignals()
 void MainWindow::buildMenus()
 {
 	// 初始化菜单栏
-	QMenu *helpMenu = ui->menuBar->addMenu("帮助(&H)");
-	QAction *aboutAction = helpMenu->addAction("关于(&A)");
-	QAction *changelogAction = helpMenu->addAction("更新日志(&U)");
+	QMenu *helpMenu = ui->menuBar->addMenu(tr("帮助(&H)"));
+	m_helpMenu = helpMenu;
+	QAction *aboutAction = helpMenu->addAction(tr("关于(&A)"));
+	m_actAbout = aboutAction;
+	QAction *changelogAction = helpMenu->addAction(tr("更新日志(&U)"));
+	m_actChangelog = changelogAction;
 	connect(aboutAction, &QAction::triggered, this, [this]() { AuxDialogs::showAbout(this); });
 	connect(changelogAction, &QAction::triggered, this, [this]() { AuxDialogs::showChangeLog(this); });
 
 	// 视图菜单:主题切换
-	QMenu* viewMenu = ui->menuBar->addMenu("视图(&V)");
+	QMenu* viewMenu = ui->menuBar->addMenu(tr("视图(&V)"));
+	m_viewMenu = viewMenu;
 	ui->menuBar->insertMenu(helpMenu->menuAction(), viewMenu);
-	QMenu* themeMenu = viewMenu->addMenu("主题");
-	QAction* lightThemeAction = themeMenu->addAction("浅色");
-	QAction* darkThemeAction = themeMenu->addAction("深色");
+	QMenu* themeMenu = viewMenu->addMenu(tr("主题"));
+	m_themeMenu = themeMenu;
+	QAction* lightThemeAction = themeMenu->addAction(tr("浅色"));
+	QAction* darkThemeAction = themeMenu->addAction(tr("深色"));
+	m_actLightTheme = lightThemeAction;
+	m_actDarkTheme = darkThemeAction;
 	lightThemeAction->setCheckable(true);
 	darkThemeAction->setCheckable(true);
 	QActionGroup* themeGroup = new QActionGroup(this);
@@ -402,24 +420,41 @@ void MainWindow::buildMenus()
 	connect(lightThemeAction, &QAction::triggered, this, [this]() { OnThemeSelected(Theme::Light); });
 	connect(darkThemeAction, &QAction::triggered, this, [this]() { OnThemeSelected(Theme::Dark); });
 
+	m_langMenu = viewMenu->addMenu(tr("语言"));
+	m_actLangZh = m_langMenu->addAction(QStringLiteral("中文"));
+	m_actLangEn = m_langMenu->addAction(QStringLiteral("English"));
+	m_actLangZh->setCheckable(true);
+	m_actLangEn->setCheckable(true);
+	QActionGroup* langGroup = new QActionGroup(this);
+	langGroup->setExclusive(true);
+	langGroup->addAction(m_actLangZh);
+	langGroup->addAction(m_actLangEn);
+	const AppLanguage curLang = currentLanguage();
+	m_actLangZh->setChecked(curLang == AppLanguage::Chinese);
+	m_actLangEn->setChecked(curLang == AppLanguage::English);
+	connect(m_actLangZh, &QAction::triggered, this, [this]() { OnLanguageSelected(AppLanguage::Chinese); });
+	connect(m_actLangEn, &QAction::triggered, this, [this]() { OnLanguageSelected(AppLanguage::English); });
+
 	// 平台菜单(顺序:视图 | 平台 | 帮助)
-	QMenu* platformMenu = new QMenu("平台(&P)", this);
+	QMenu* platformMenu = new QMenu(tr("平台(&P)"), this);
+	m_platformMenu = platformMenu;
 	ui->menuBar->insertMenu(helpMenu->menuAction(), platformMenu);
 
-	m_actShowPlatform = platformMenu->addAction("显示平台");
+	m_actShowPlatform = platformMenu->addAction(tr("显示平台"));
 	m_actShowPlatform->setCheckable(true);
 	connect(m_actShowPlatform, &QAction::toggled, this, [this](bool on){
 		m_simulationPlatform->setVisible(on);
 	});
 
-	m_actAutoWrite = platformMenu->addAction("自动写入轴位置");
+	m_actAutoWrite = platformMenu->addAction(tr("自动写入轴位置"));
 	m_actAutoWrite->setCheckable(true);
 
-	QMenu* fmtMenu = platformMenu->addMenu("写入格式");
+	QMenu* fmtMenu = platformMenu->addMenu(tr("写入格式"));
+	m_fmtMenu = fmtMenu;
 	QActionGroup* fmtGroup = new QActionGroup(this);
 	fmtGroup->setExclusive(true);
-	m_actFmtFloat = fmtMenu->addAction("浮点写入");
-	m_actFmtInt32 = fmtMenu->addAction("双字写入");
+	m_actFmtFloat = fmtMenu->addAction(tr("浮点写入"));
+	m_actFmtInt32 = fmtMenu->addAction(tr("双字写入"));
 	m_actFmtFloat->setCheckable(true);
 	m_actFmtInt32->setCheckable(true);
 	fmtGroup->addAction(m_actFmtFloat);
@@ -428,7 +463,8 @@ void MainWindow::buildMenus()
 
 	platformMenu->addSeparator();
 
-	QAction* actPlatformParams = platformMenu->addAction("参数设置…");
+	QAction* actPlatformParams = platformMenu->addAction(tr("参数设置…"));
+	m_actPlatformParams = actPlatformParams;
 	connect(actPlatformParams, &QAction::triggered, this, [this]{
 		if (AuxDialogs::editPlatformParams(this, m_platformParams)) {
 			applyPlatformParams();
@@ -438,13 +474,14 @@ void MainWindow::buildMenus()
 	});
 
 	// 手动写入工具栏:图标+文字(两个按钮共用"写入"图标,文字区分格式,完整名进 tooltip)
-	QToolBar* platformToolBar = addToolBar("平台操作");
+	QToolBar* platformToolBar = addToolBar(tr("平台操作"));
+	m_platformToolBar = platformToolBar;
 	platformToolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 	platformToolBar->setIconSize(QSize(18, 18));
-	m_actManualFloat = platformToolBar->addAction("浮点");
-	m_actManualInt32 = platformToolBar->addAction("双字");
-	m_actManualFloat->setToolTip("浮点写入");
-	m_actManualInt32->setToolTip("双字写入");
+	m_actManualFloat = platformToolBar->addAction(tr("浮点"));
+	m_actManualInt32 = platformToolBar->addAction(tr("双字"));
+	m_actManualFloat->setToolTip(tr("浮点写入"));
+	m_actManualInt32->setToolTip(tr("双字写入"));
 	updateToolbarIcons();   // 按当前主题染色设置图标
 	connect(m_actManualFloat, &QAction::triggered, this, &MainWindow::OnWriteAxisFloat);
 	connect(m_actManualInt32, &QAction::triggered, this, &MainWindow::OnWriteAxisDoubleWord);
@@ -647,7 +684,7 @@ void MainWindow::openConnection()
 
 	if (!m_pWorkflow->OpenComm())
 	{
-		UpdateLogDisplay("打开连接失败!");
+		UpdateLogDisplay(tr("打开连接失败!"));
 		return;
 	}
 
@@ -670,7 +707,7 @@ void MainWindow::closeConnection()
 {
 	if (!m_pWorkflow->CloseComm())
 	{
-		UpdateLogDisplay("关闭连接失败!");
+		UpdateLogDisplay(tr("关闭连接失败!"));
 		return;
 	}
 	setCommControlsEnabled(true);
@@ -682,7 +719,7 @@ void MainWindow::setCommControlsEnabled(bool enabled)
 	ui->edit_IP->setEnabled(enabled);
 	ui->edit_Port->setEnabled(enabled);
 	ui->cmbBox_ProtocolType->setEnabled(enabled);
-	ui->Btn_Create->setText(enabled ? "打开链接" : "关闭链接");
+	ui->Btn_Create->setText(enabled ? tr("打开链接") : tr("关闭链接"));
 }
 
 void MainWindow::connectLog()
@@ -813,10 +850,10 @@ void MainWindow::writeAxisManual(PlatformController::NumFormat fmt)
     if (m_simulationPlatform == nullptr) return;
 
     int startAddr = m_platformParams.objAddr;
-    if (!axisStartAddrValid(startAddr)) { UpdateLogDisplay("错误: 寄存器地址超出范围"); return; }
+    if (!axisStartAddrValid(startAddr)) { UpdateLogDisplay(tr("错误: 寄存器地址超出范围")); return; }
 
     writeAxisPos(startAddr, fmt, Platform::Live);
-    UpdateLogDisplay(QString("轴位置写入成功 (地址:%1)").arg(startAddr));
+    UpdateLogDisplay(tr("轴位置写入成功 (地址:%1)").arg(startAddr));
 }
 
 void MainWindow::OnWriteAxisDoubleWord()
@@ -858,6 +895,120 @@ void MainWindow::OnThemeSelected(Theme theme)
 	{
 		m_configStore->SaveThemePref(static_cast<int>(theme));
 	}
+}
+
+void MainWindow::OnLanguageSelected(AppLanguage lang)
+{
+	if (lang == currentLanguage())
+		return;
+
+	switchLanguage(*qApp, lang);
+	if (m_configStore != nullptr)
+		m_configStore->SaveLanguagePref(languageToCode(lang));
+
+	if (m_actLangZh)
+		m_actLangZh->setChecked(lang == AppLanguage::Chinese);
+	if (m_actLangEn)
+		m_actLangEn->setChecked(lang == AppLanguage::English);
+}
+
+void MainWindow::changeEvent(QEvent* event)
+{
+	if (event->type() == QEvent::LanguageChange)
+	{
+		ui->retranslateUi(this);
+		retranslateDynamicUi();
+	}
+	QMainWindow::changeEvent(event);
+}
+
+void MainWindow::retranslateDynamicUi()
+{
+	const QString mainTitle = QStringLiteral("%1 - v%2")
+		.arg(QCoreApplication::translate("AppInfo", APP_NAME))
+		.arg(APP_VERSION);
+	setWindowTitle(mainTitle);
+
+	if (m_subWindow)
+		m_subWindow->setWindowTitle(mainTitle + tr(" - 子窗口"));
+	if (m_simulationPlatform)
+		m_simulationPlatform->setWindowTitle(mainTitle + tr(" - 模拟平台"));
+
+	{
+		QMap<ProtocolType, QString> protocolTypeMap;
+		protocolTypeMap[ProtocolType::eProRegKeyencePCLink] = tr("基恩士PC-LINK上位链路协议");
+		protocolTypeMap[ProtocolType::eProRegMitsubishiQBinary] = tr("三菱MC协议二进制通信");
+		for (int i = 0; i < ui->cmbBox_ProtocolType->count(); ++i)
+		{
+			const auto type = ui->cmbBox_ProtocolType->itemData(i).value<ProtocolType>();
+			ui->cmbBox_ProtocolType->setItemText(i, protocolTypeMap.value(type));
+		}
+	}
+
+	{
+		QMap<RegisterDataType, QString> dataTypeMap;
+		dataTypeMap[RegisterDataType::eDataTypeChar8] = tr("字符");
+		dataTypeMap[RegisterDataType::eDataTypeInt16] = tr("单字");
+		dataTypeMap[RegisterDataType::eDataTypeInt32] = tr("双字");
+		dataTypeMap[RegisterDataType::eDataTypeFloat] = tr("单精度");
+		dataTypeMap[RegisterDataType::eDataTypeDouble] = tr("双精度");
+		for (int i = 0; i < ui->cmbBox_DataType->count(); ++i)
+		{
+			const auto type = ui->cmbBox_DataType->itemData(i).value<RegisterDataType>();
+			ui->cmbBox_DataType->setItemText(i, dataTypeMap.value(type));
+		}
+	}
+
+	setCommControlsEnabled(ui->edit_IP->isEnabled());
+
+	if (m_helpMenu)
+		m_helpMenu->setTitle(tr("帮助(&H)"));
+	if (m_actAbout)
+		m_actAbout->setText(tr("关于(&A)"));
+	if (m_actChangelog)
+		m_actChangelog->setText(tr("更新日志(&U)"));
+	if (m_viewMenu)
+		m_viewMenu->setTitle(tr("视图(&V)"));
+	if (m_actLightTheme)
+		m_actLightTheme->setText(tr("浅色"));
+	if (m_actDarkTheme)
+		m_actDarkTheme->setText(tr("深色"));
+	if (m_platformMenu)
+		m_platformMenu->setTitle(tr("平台(&P)"));
+	if (m_themeMenu)
+		m_themeMenu->setTitle(tr("主题"));
+	if (m_langMenu)
+		m_langMenu->setTitle(tr("语言"));
+	if (m_fmtMenu)
+		m_fmtMenu->setTitle(tr("写入格式"));
+	if (m_actShowPlatform)
+		m_actShowPlatform->setText(tr("显示平台"));
+	if (m_actAutoWrite)
+		m_actAutoWrite->setText(tr("自动写入轴位置"));
+	if (m_actFmtFloat)
+		m_actFmtFloat->setText(tr("浮点写入"));
+	if (m_actFmtInt32)
+		m_actFmtInt32->setText(tr("双字写入"));
+	if (m_actPlatformParams)
+		m_actPlatformParams->setText(tr("参数设置…"));
+	if (m_platformToolBar)
+		m_platformToolBar->setWindowTitle(tr("平台操作"));
+	if (m_actManualFloat)
+	{
+		m_actManualFloat->setText(tr("浮点"));
+		m_actManualFloat->setToolTip(tr("浮点写入"));
+	}
+	if (m_actManualInt32)
+	{
+		m_actManualInt32->setText(tr("双字"));
+		m_actManualInt32->setToolTip(tr("双字写入"));
+	}
+
+	if (m_registerTableController)
+		m_registerTableController->retranslateHeaders();
+
+	if (m_statusBarController)
+		m_statusBarController->refreshAll();
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)

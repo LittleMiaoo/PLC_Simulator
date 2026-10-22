@@ -7,6 +7,8 @@
  */
 #include "LuaStaticCheck.h"
 
+#include <QCoreApplication>
+
 #include "lua.hpp"
 #include "lstate.h"     // gco2ts / gco2lcl 等 GCObject 转换宏（lobject.h 的 tsvalue 等依赖此文件）
 #include "lobject.h"    // Proto / LClosure / TString / TValue / getstr / tsvalue / ttisstring
@@ -83,7 +85,7 @@ namespace LuaStaticCheck {
 bool run(const QString& script, const QSet<QString>& knownFunctions, QString& errorMsg)
 {
     lua_State* L = luaL_newstate();
-    if (!L) { errorMsg = QStringLiteral("无法创建 Lua 状态机"); return false; }
+    if (!L) { errorMsg = QCoreApplication::translate("LuaStaticCheck", "无法创建 Lua 状态机"); return false; }
     luaL_openlibs(L);  // 仅用于识别标准库全局名
 
     // 1) 仅编译,不执行
@@ -100,7 +102,7 @@ bool run(const QString& script, const QSet<QString>& knownFunctions, QString& er
     // Lua 闭包返回 LClosure* 地址(版本已由文件顶部 static_assert 锁定)。
     // 不对未判型的值直接调用内部 clLvalue，避免 Debug 下 check_exp 断言。
     if (!lua_isfunction(L, -1)) {
-        errorMsg = QStringLiteral("编译产物非函数，无法静态检查");
+        errorMsg = QCoreApplication::translate("LuaStaticCheck", "编译产物非函数，无法静态检查");
         lua_close(L);
         return false;
     }
@@ -124,7 +126,7 @@ bool run(const QString& script, const QSet<QString>& knownFunctions, QString& er
 
     if (!unknown.isEmpty()) {
         unknown.sort();
-        errorMsg = QStringLiteral("未定义的函数/全局: %1").arg(unknown.join(QStringLiteral(", ")));
+        errorMsg = QCoreApplication::translate("LuaStaticCheck", "未定义的函数/全局: %1").arg(unknown.join(QStringLiteral(", ")));
         return false;
     }
     return true;

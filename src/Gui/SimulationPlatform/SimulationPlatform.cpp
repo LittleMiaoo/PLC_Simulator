@@ -28,7 +28,29 @@
 #include <QDialog>
 #include <QRect>
 #include <QGuiApplication>
+#include <QEvent>
 #include <QScreen>
+
+namespace
+{
+// 窗口位置菜单项(下标即 moveToScreenCorner 的 corner);QT_TRANSLATE_NOOP 供 lupdate 提取,构建与语言切换共用
+const char* const kCornerNames[] = {
+    QT_TRANSLATE_NOOP("SimulationPlatform", "左上"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "右上"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "左下"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "右下"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "居中"),
+};
+
+// "模拟平台"菜单中控制面板分组的开关项(顺序同 buildMenuBar 中 bindGroupToggle 调用),构建与语言切换共用
+const char* const kGroupToggleTitles[] = {
+    QT_TRANSLATE_NOOP("SimulationPlatform", "基准平台"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "实时平台"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "基准Mark"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "实时Mark"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "虚拟Mark"),
+};
+} // namespace
 
 SimulationPlatform::SimulationPlatform(QWidget *parent)
     : QMainWindow(parent)
@@ -55,7 +77,7 @@ SimulationPlatform::SimulationPlatform(QWidget *parent)
         update();
     });
 
-    setWindowTitle("Simulation Platform");
+    setWindowTitle(tr("模拟平台"));
     resize(800, 600);
 }
 
@@ -106,10 +128,10 @@ void SimulationPlatform::setupUI()
     simPageLayout->setContentsMargins(9, 6, 9, 9);  // 四周留白,避免画布贴左、面板贴右
 
     // 顶栏:收起/展开按钮(右对齐,提到画布与面板的共同上方;折叠后画布全宽时按钮仍在右上角)
-    QPushButton* panelToggleBtn = new QPushButton(QStringLiteral("收起 »"), this);
+    m_panelToggleBtn = new QPushButton(tr("收起 »"), this);
     QHBoxLayout* topBar = new QHBoxLayout();
     topBar->addStretch(1);
-    topBar->addWidget(panelToggleBtn);
+    topBar->addWidget(m_panelToggleBtn);
     simPageLayout->addLayout(topBar);
 
     QHBoxLayout *simLayout = new QHBoxLayout();  // 左:画布  右:控制面板
@@ -124,10 +146,10 @@ void SimulationPlatform::setupUI()
     simLayout->addWidget(m_controlPanel);
 
     // 顶栏按钮收起/展开整个右面板:折叠后画布水平铺满
-    connect(panelToggleBtn, &QPushButton::clicked, this, [=]() {
+    connect(m_panelToggleBtn, &QPushButton::clicked, this, [=]() {
         const bool show = !m_controlPanel->isVisible();
         m_controlPanel->setVisible(show);
-        panelToggleBtn->setText(show ? QStringLiteral("收起 »") : QStringLiteral("« 展开"));
+        m_panelToggleBtn->setText(show ? tr("收起 »") : tr("« 展开"));
     });
 
     // 模拟平台页加入栈
@@ -149,13 +171,13 @@ void SimulationPlatform::setupUI()
     // 图片缩放变化 → 状态栏右侧百分比(仅图片页显示)
     connect(m_imagePage, &ImagePage::scaleChanged, this, [this](double scale) {
         if (m_stack->currentIndex() == 1)
-            m_statusRight->setText(QStringLiteral("缩放: %1%").arg(QString::number(scale * 100.0, 'f', 0)));
+            m_statusRight->setText(tr("缩放: %1%").arg(QString::number(scale * 100.0, 'f', 0)));
     });
 
     // 图片路径变化 → 状态栏左侧路径更新(仅图片页显示)
     connect(m_imagePage, &ImagePage::imagePathChanged, this, [this](const QString& path) {
         if (m_stack->currentIndex() == 1)
-            m_statusLeft->setText(path.isEmpty() ? QStringLiteral("未加载图片") : path);
+            m_statusLeft->setText(path.isEmpty() ? tr("未加载图片") : path);
     });
 
     // 参数变化 → 模拟页状态栏文本刷新
@@ -179,12 +201,13 @@ void SimulationPlatform::buildMenuBar()
     QMenuBar* mbar = menuBar();
 
     // ===== 视图 =====
-    QMenu* viewMenu = mbar->addMenu(QStringLiteral("视图"));
+    QMenu* viewMenu = mbar->addMenu(tr("视图"));
+    m_viewMenu = viewMenu;
 
     QActionGroup* pageGroup = new QActionGroup(this);
     pageGroup->setExclusive(true);
-    m_actPageSim = viewMenu->addAction(QStringLiteral("模拟平台"));
-    m_actPagePic = viewMenu->addAction(QStringLiteral("图片显示"));
+    m_actPageSim = viewMenu->addAction(tr("模拟平台"));
+    m_actPagePic = viewMenu->addAction(tr("图片显示"));
     for (QAction* a : { m_actPageSim, m_actPagePic }) { a->setCheckable(true); pageGroup->addAction(a); }
     m_actPageSim->setChecked(true);
     connect(m_actPageSim, &QAction::triggered, this, [this]() { showPage(0); });
@@ -193,13 +216,14 @@ void SimulationPlatform::buildMenuBar()
     viewMenu->addSeparator();
 
     // 窗口位置(四角,单选,两页共用)
-    QMenu* posMenu = viewMenu->addMenu(QStringLiteral("窗口位置"));
+    QMenu* posMenu = viewMenu->addMenu(tr("窗口位置"));
+    m_posMenu = posMenu;
     QActionGroup* posGroup = new QActionGroup(this);
     posGroup->setExclusive(true);
-    const char* names[5] = { "左上", "右上", "左下", "右下", "居中" };
     for (int i = 0; i < 5; ++i)
     {
-        QAction* a = posMenu->addAction(QString::fromUtf8(names[i]));
+        QAction* a = posMenu->addAction(tr(kCornerNames[i]));
+        m_cornerPosActions[i] = a;
         a->setCheckable(true);
         posGroup->addAction(a);
         if (i == 0) a->setChecked(true);
@@ -207,20 +231,20 @@ void SimulationPlatform::buildMenuBar()
     }
 
     // ===== 模拟平台(仅模拟页可用)=====
-    m_simMenu = mbar->addMenu(QStringLiteral("模拟平台"));
-    QAction* actParam = m_simMenu->addAction(QStringLiteral("参数设置…"));
-    connect(actParam, &QAction::triggered, this, &SimulationPlatform::openParamDialog);
+    m_simMenu = mbar->addMenu(tr("模拟平台"));
+    m_actParam = m_simMenu->addAction(tr("参数设置…"));
+    connect(m_actParam, &QAction::triggered, this, &SimulationPlatform::openParamDialog);
     m_simMenu->addSeparator();
-    bindGroupToggle(m_controlPanel->baseGroup(),        QStringLiteral("基准平台"));
-    bindGroupToggle(m_controlPanel->liveGroup(),        QStringLiteral("实时平台"));
-    bindGroupToggle(m_controlPanel->baseMarkGroup(),    QStringLiteral("基准Mark"));
-    bindGroupToggle(m_controlPanel->liveMarkGroup(),    QStringLiteral("实时Mark"));
-    bindGroupToggle(m_controlPanel->virtualMarkGroup(), QStringLiteral("虚拟Mark"), false);  // 虚拟Mark 默认不显示
+    bindGroupToggle(m_controlPanel->baseGroup(),        tr(kGroupToggleTitles[0]));
+    bindGroupToggle(m_controlPanel->liveGroup(),        tr(kGroupToggleTitles[1]));
+    bindGroupToggle(m_controlPanel->baseMarkGroup(),    tr(kGroupToggleTitles[2]));
+    bindGroupToggle(m_controlPanel->liveMarkGroup(),    tr(kGroupToggleTitles[3]));
+    bindGroupToggle(m_controlPanel->virtualMarkGroup(), tr(kGroupToggleTitles[4]), false);  // 虚拟Mark 默认不显示
 
     // ===== 图像(仅图片页可用)=====
-    m_imageMenu = mbar->addMenu(QStringLiteral("图像"));
-    QAction* actLoad = m_imageMenu->addAction(QStringLiteral("加载图片…"));
-    connect(actLoad, &QAction::triggered, m_imagePage, &ImagePage::loadImage);
+    m_imageMenu = mbar->addMenu(tr("图像"));
+    m_actLoadImage = m_imageMenu->addAction(tr("加载图片…"));
+    connect(m_actLoadImage, &QAction::triggered, m_imagePage, &ImagePage::loadImage);
 }
 
 void SimulationPlatform::showPage(int index)
@@ -263,7 +287,7 @@ void SimulationPlatform::updateStatusBarForPage(int index)
     if (index == 0)
     {
         // 模拟页:产品尺寸 + 缩放比
-        m_statusLeft->setText(QStringLiteral("产品尺寸: %1 mm    缩放比: %2 px/mm")
+        m_statusLeft->setText(tr("产品尺寸: %1 mm    缩放比: %2 px/mm")
                                 .arg(QString::number(m_scene->markCenterDistance()))
                                 .arg(QString::number(m_scene->screenRatio())));
         m_statusRight->clear();
@@ -272,9 +296,9 @@ void SimulationPlatform::updateStatusBarForPage(int index)
     {
         // 图片页:路径 + 缩放百分比
         const QString path = m_imagePage ? m_imagePage->imagePath() : QString();
-        m_statusLeft->setText(path.isEmpty() ? QStringLiteral("未加载图片") : path);
+        m_statusLeft->setText(path.isEmpty() ? tr("未加载图片") : path);
         if (m_imagePage)
-            m_statusRight->setText(QStringLiteral("缩放: %1%")
+            m_statusRight->setText(tr("缩放: %1%")
                                      .arg(QString::number(m_imagePage->scale() * 100.0, 'f', 0)));
     }
 }
@@ -300,6 +324,7 @@ void SimulationPlatform::moveToScreenCorner(int corner)
 void SimulationPlatform::bindGroupToggle(CollapsibleGroupBox* g, const QString& title, bool visible)
 {
     QAction* a = m_simMenu->addAction(title);
+    m_groupToggleActions.push_back(a);
     a->setCheckable(true);
     a->setChecked(visible);   // 初始勾选状态(connect 前设置,不触发)
     g->setVisible(visible);   // 同步初始可见性
@@ -319,5 +344,52 @@ void SimulationPlatform::openParamDialog()
         emit sceneParamsChanged(m_scene->markCenterDistance(), m_scene->screenRatio());
     if (m_stack->currentIndex() == 0)
         updateStatusBarForPage(0);
+}
+
+void SimulationPlatform::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        retranslateUi();
+    QMainWindow::changeEvent(event);
+}
+
+void SimulationPlatform::retranslateUi()
+{
+    if (m_viewMenu)
+        m_viewMenu->setTitle(tr("视图"));
+    if (m_actPageSim)
+        m_actPageSim->setText(tr("模拟平台"));
+    if (m_actPagePic)
+        m_actPagePic->setText(tr("图片显示"));
+    if (m_posMenu)
+        m_posMenu->setTitle(tr("窗口位置"));
+
+    for (int i = 0; i < 5; ++i) {
+        if (m_cornerPosActions[i])
+            m_cornerPosActions[i]->setText(tr(kCornerNames[i]));
+    }
+
+    if (m_simMenu)
+        m_simMenu->setTitle(tr("模拟平台"));
+    if (m_actParam)
+        m_actParam->setText(tr("参数设置…"));
+
+    for (int i = 0; i < m_groupToggleActions.size() && i < 5; ++i) {
+        if (m_groupToggleActions[i])
+            m_groupToggleActions[i]->setText(tr(kGroupToggleTitles[i]));
+    }
+
+    if (m_imageMenu)
+        m_imageMenu->setTitle(tr("图像"));
+    if (m_actLoadImage)
+        m_actLoadImage->setText(tr("加载图片…"));
+
+    if (m_panelToggleBtn) {
+        const bool show = m_controlPanel && m_controlPanel->isVisible();
+        m_panelToggleBtn->setText(show ? tr("收起 »") : tr("« 展开"));
+    }
+
+    if (m_stack)
+        updateStatusBarForPage(m_stack->currentIndex());
 }
 

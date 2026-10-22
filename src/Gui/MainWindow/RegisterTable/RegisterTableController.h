@@ -37,6 +37,8 @@ public:
     void setStartAddr(int startAddr);
     void setNumberBase(bool hex);
 
+    void retranslateHeaders();
+
 protected:
     // 监听视图视口 resize → 按窗口尺寸重算行列
     bool eventFilter(QObject* obj, QEvent* ev) override;

@@ -20,8 +20,11 @@
 #include "Config/ConfigStore.h"
 #include "MainWorkflow.h"
 #include "Theme/ThemeManager.h"
+#include "I18n/LanguageManager.h"
 
 #include <QtWidgets/QMainWindow>
+#include <QEvent>
+#include <QMenu>
 #include <QVector>
 
 QT_BEGIN_NAMESPACE
@@ -29,6 +32,8 @@ namespace Ui { class MainWindow; };
 class QAction;
 class QLineEdit;
 class QLabel;
+class QToolBar;
+class QPushButton;
 QT_END_NAMESPACE
 
 class SimulationPlatform;
@@ -43,6 +48,7 @@ public:
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
+    void changeEvent(QEvent* event) override;
 
 private:
     // 初始化阶段(构造函数按此顺序调用)
@@ -92,6 +98,8 @@ private:
 
     // 菜单栏相关
     void OnThemeSelected(Theme theme);
+    void OnLanguageSelected(AppLanguage lang);
+    void retranslateDynamicUi();
 
     // 工具栏图标按当前主题前景色重染(初次构建 + 主题切换时调用)
     void updateToolbarIcons();
@@ -118,6 +126,22 @@ private:
     // 手动写入工具栏按钮(主题切换时需重染图标,故持为成员)
     QAction* m_actManualFloat = nullptr;
     QAction* m_actManualInt32 = nullptr;
+
+    // 菜单栏(语言切换时需重设文字)
+    QMenu* m_helpMenu = nullptr;
+    QAction* m_actAbout = nullptr;
+    QAction* m_actChangelog = nullptr;
+    QMenu* m_viewMenu = nullptr;
+    QAction* m_actLightTheme = nullptr;
+    QAction* m_actDarkTheme = nullptr;
+    QMenu* m_platformMenu = nullptr;
+    QMenu* m_themeMenu = nullptr;
+    QMenu* m_langMenu = nullptr;
+    QAction* m_actLangZh = nullptr;
+    QAction* m_actLangEn = nullptr;
+    QMenu* m_fmtMenu = nullptr;
+    QAction* m_actPlatformParams = nullptr;
+    QToolBar* m_platformToolBar = nullptr;
 
     // 子窗口
     std::unique_ptr<QuickPanel> m_subWindow;

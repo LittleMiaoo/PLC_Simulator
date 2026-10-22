@@ -48,9 +48,9 @@ public:
     // 按脚本 index 取当前名称(读名称框);空则脚本段悬浮回退 "脚本 #N"
     void setScriptNameProvider(std::function<QString(int)> provider);
 
-private:
     void refreshAll();
 
+private:
     // 刷新可见值(热路径,仅算紧凑串 + setValue)
     void refreshConnection();
     void refreshClients();

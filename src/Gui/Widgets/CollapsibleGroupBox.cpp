@@ -48,6 +48,20 @@ void CollapsibleGroupBox::refreshTitlePrefix()
     QGroupBox::setTitle(arrow + m_baseTitle);
 }
 
+void CollapsibleGroupBox::setTitle(const QString& title)
+{
+    m_baseTitle = title;
+    m_titleCaptured = true;   // 已显式记录,Polish 时不再从 title() 回捕(否则会把箭头前缀当成原标题)
+    refreshTitlePrefix();
+}
+
+void CollapsibleGroupBox::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange && m_closeButton)
+        m_closeButton->setToolTip(tr("关闭"));
+    QGroupBox::changeEvent(event);
+}
+
 void CollapsibleGroupBox::setCollapsed(bool collapsed)
 {
     if (m_collapsed == collapsed)
@@ -110,7 +124,7 @@ void CollapsibleGroupBox::setClosable(bool closable)
         m_closeButton = new QToolButton(this);
         m_closeButton->setObjectName(QStringLiteral("groupCloseButton"));
         m_closeButton->setText(QStringLiteral("×"));   // ×
-        m_closeButton->setToolTip(QStringLiteral("关闭"));
+        m_closeButton->setToolTip(tr("关闭"));
         m_closeButton->setCursor(Qt::PointingHandCursor);
         m_closeButton->setAutoRaise(true);
         m_closeButton->setFocusPolicy(Qt::NoFocus);

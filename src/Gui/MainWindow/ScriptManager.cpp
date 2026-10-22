@@ -37,8 +37,8 @@ void ScriptManager::runScript(int index)
     const QString path = luaPath(index);
     if (!QFile::exists(path))
     {
-        const QString msg = QString("脚本不存在: %1").arg(path);
-        QMessageBox::critical(m_parentWidget, "Lua执行错误", msg);
+        const QString msg = tr("脚本不存在: %1").arg(path);
+        QMessageBox::critical(m_parentWidget, tr("Lua执行错误"), msg);
         emit logMessage(msg);
         return;
     }
@@ -123,13 +123,13 @@ bool ScriptManager::prepareForNewEditor(int index)
     if (m_pCurrentScriptEditor->isModified())
     {
         QMessageBox msgBox(m_parentWidget);
-        msgBox.setWindowTitle("切换脚本");
-        msgBox.setText("当前脚本有未保存的更改,切换前是否保存?");
+        msgBox.setWindowTitle(tr("切换脚本"));
+        msgBox.setText(tr("当前脚本有未保存的更改,切换前是否保存?"));
         msgBox.setIcon(QMessageBox::Question);
 
-        QPushButton* saveButton = msgBox.addButton("保存", QMessageBox::YesRole);
-        msgBox.addButton("不保存", QMessageBox::NoRole);
-        QPushButton* cancelButton = msgBox.addButton("取消", QMessageBox::RejectRole);
+        QPushButton* saveButton = msgBox.addButton(tr("保存"), QMessageBox::YesRole);
+        msgBox.addButton(tr("不保存"), QMessageBox::NoRole);
+        QPushButton* cancelButton = msgBox.addButton(tr("取消"), QMessageBox::RejectRole);
 
         msgBox.exec();
 

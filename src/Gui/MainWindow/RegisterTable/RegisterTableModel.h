@@ -56,6 +56,8 @@ public:
     void clearEditingIndex();
     bool isEditing() const { return m_editIndex.isValid(); }  // 编辑中(供 resize 重置避让)
 
+    void refreshHeaders();
+
 signals:
     // 闪烁定时器节拍:控制器据此 viewport()->update() 触发重绘
     void flashTick();

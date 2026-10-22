@@ -13,6 +13,7 @@ namespace {
 constexpr auto kCommInfo           = "comm_info";
 constexpr auto kProtocolType       = "protocol_type";
 constexpr auto kTheme              = "theme";
+constexpr auto kLanguage           = "language";
 constexpr auto kScriptNames        = "script_names";
 constexpr auto kSimulationPlatform = "simulation_platform";
 constexpr auto kAxisWriteParams    = "axis_write_params";
@@ -120,6 +121,18 @@ bool ConfigStore::LoadThemePref(int& themeId) const
     if (!m_root.contains(kTheme)) return false;
     themeId = Get(kTheme).toInt(themeId);
     return true;
+}
+
+bool ConfigStore::SaveLanguagePref(const QString& languageCode)
+{
+    return Set(kLanguage, languageCode);
+}
+
+bool ConfigStore::LoadLanguagePref(QString& languageCode) const
+{
+    if (!m_root.contains(kLanguage)) return false;
+    languageCode = Get(kLanguage).toString();
+    return !languageCode.isEmpty();
 }
 
 bool ConfigStore::SaveScriptNames(const QStringList& scriptNames)

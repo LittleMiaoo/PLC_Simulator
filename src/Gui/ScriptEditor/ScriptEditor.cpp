@@ -20,6 +20,7 @@
 #include <QPushButton>
 #include <QAbstractButton>
 #include <QFileInfo>
+#include <QEvent>
 
 ScriptEditor::ScriptEditor(QWidget *parent)
     : QMainWindow(parent)
@@ -29,7 +30,7 @@ ScriptEditor::ScriptEditor(QWidget *parent)
     , m_savedContent("")
 {
     setCentralWidget(editor);
-    setWindowTitle(tr("Lua Script Editor"));
+    setWindowTitle(tr("Lua 脚本编辑器"));
 
     // 设置代码字体:优先现代等宽字体,逐级回退,确保代码对齐
     QFont font;
@@ -46,14 +47,7 @@ ScriptEditor::ScriptEditor(QWidget *parent)
     connect(editor->document(), &QTextDocument::contentsChanged, this, &ScriptEditor::onTextChanged);
 
     // 语言结构模板（与绑定函数同构,统一为 LuaFunctionDoc：name / snippet / description）
-    m_langTemplates = {
-        {"if",             "if (condition1) then\n    \nend", "if 条件分支"},
-        {"while",          "while (condition1) do\n    \nend", "while 循环"},
-        {"for",            "for i = 1, 10 do\n    \nend", "for 循环"},
-        {"if-elseif-else", "if (condition1) then\n    \n"
-                           "elseif (condition2) then\n    \n"
-                           "else\n    \nend", "if-elseif-else 多分支"},
-    };
+    m_langTemplates = langTemplates();
 
     updateFunctionMenu();
 
@@ -86,49 +80,98 @@ QString ScriptEditor::getScriptContent() const
 void ScriptEditor::createMenus()
 {
     // 文件菜单
-    fileMenu = menuBar()->addMenu(tr("&File"));
+    fileMenu = menuBar()->addMenu(tr("文件(&F)"));
 
-    saveAction = new QAction(tr("&Save"), this);
+    saveAction = new QAction(tr("保存(&S)"), this);
     saveAction->setShortcut(tr("Ctrl+S"));
     connect(saveAction, &QAction::triggered, this, &ScriptEditor::saveScript);
     fileMenu->addAction(saveAction);
 
-    saveAsAction = new QAction(tr("Save &As..."), this);
+    saveAsAction = new QAction(tr("另存为(&A)..."), this);
     saveAsAction->setShortcut(tr("Ctrl+Alt+S"));
     connect(saveAsAction, &QAction::triggered, this, &ScriptEditor::saveScriptAs);
     fileMenu->addAction(saveAsAction);
 
-    loadFromAction = new QAction(tr("&Load From..."), this);
+    loadFromAction = new QAction(tr("从文件加载(&L)..."), this);
     loadFromAction->setShortcut(tr("Ctrl+O"));
     connect(loadFromAction, &QAction::triggered, this, &ScriptEditor::loadScriptFrom);
     fileMenu->addAction(loadFromAction);
 
     fileMenu->addSeparator();
 
-    QAction *exitAction = new QAction(tr("&Exit"), this);
+    exitAction = new QAction(tr("退出(&X)"), this);
     exitAction->setShortcut(tr("Ctrl+Q"));
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
     fileMenu->addAction(exitAction);
 
     // 编辑菜单
-    editMenu = menuBar()->addMenu(tr("&Edit"));
+    editMenu = menuBar()->addMenu(tr("编辑(&E)"));
 
-    functionsMenu = editMenu->addMenu(tr("&Insert Function"));
+    functionsMenu = editMenu->addMenu(tr("插入函数(&I)"));
 
     // 脚本菜单
-    scriptMenu = menuBar()->addMenu(tr("&Script"));
+    scriptMenu = menuBar()->addMenu(tr("脚本(&S)"));
 
-    compileAction = new QAction(tr("&Compile Script"), this);
+    compileAction = new QAction(tr("编译脚本(&C)"), this);
     compileAction->setShortcut(tr("F7"));
     connect(compileAction, &QAction::triggered, this, &ScriptEditor::compileScript);
     scriptMenu->addAction(compileAction);
 
     scriptMenu->addSeparator();
 
-    executeAction = new QAction(tr("&Execute Script"), this);
+    executeAction = new QAction(tr("执行脚本(&E)"), this);
     executeAction->setShortcut(tr("F5"));
     connect(executeAction, &QAction::triggered, this, &ScriptEditor::executeScript);
     scriptMenu->addAction(executeAction);
+}
+
+void ScriptEditor::retranslateMenus()
+{
+    setWindowTitle(tr("Lua 脚本编辑器"));
+    updateWindowTitle();
+
+    if (fileMenu)
+        fileMenu->setTitle(tr("文件(&F)"));
+    if (saveAction)
+        saveAction->setText(tr("保存(&S)"));
+    if (saveAsAction)
+        saveAsAction->setText(tr("另存为(&A)..."));
+    if (loadFromAction)
+        loadFromAction->setText(tr("从文件加载(&L)..."));
+    if (exitAction)
+        exitAction->setText(tr("退出(&X)"));
+    if (editMenu)
+        editMenu->setTitle(tr("编辑(&E)"));
+    if (functionsMenu)
+        functionsMenu->setTitle(tr("插入函数(&I)"));
+    if (scriptMenu)
+        scriptMenu->setTitle(tr("脚本(&S)"));
+    if (compileAction)
+        compileAction->setText(tr("编译脚本(&C)"));
+    if (executeAction)
+        executeAction->setText(tr("执行脚本(&E)"));
+
+    m_langTemplates = langTemplates();
+    updateFunctionMenu();
+}
+
+QList<LuaFunctionDoc> ScriptEditor::langTemplates()
+{
+    return {
+        {"if",             "if (condition1) then\n    \nend", tr("if 条件分支")},
+        {"while",          "while (condition1) do\n    \nend", tr("while 循环")},
+        {"for",            "for i = 1, 10 do\n    \nend", tr("for 循环")},
+        {"if-elseif-else", "if (condition1) then\n    \n"
+                           "elseif (condition2) then\n    \n"
+                           "else\n    \nend", tr("if-elseif-else 多分支")},
+    };
+}
+
+void ScriptEditor::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        retranslateMenus();
+    QMainWindow::changeEvent(event);
 }
 
 void ScriptEditor::setupHighlighter()
@@ -185,17 +228,17 @@ void ScriptEditor::addFunctionMenuGroup(const QList<LuaFunctionDoc>& docs)
 void ScriptEditor::saveScript()
 {
     if (scriptFileName.isEmpty()) {
-        scriptFileName = QFileDialog::getSaveFileName(this, tr("Save Script"),
+        scriptFileName = QFileDialog::getSaveFileName(this, tr("保存脚本"),
                                                      QDir::homePath(),
-                                                     tr("Lua Scripts (*.lua);;All Files (*)"));
+                                                     tr("Lua 脚本 (*.lua);;所有文件 (*)"));
         if (scriptFileName.isEmpty())
             return;
     }
 
     QFile file(scriptFileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Error"),
-                             tr("Cannot write file %1:\n%2.")
+        QMessageBox::warning(this, tr("错误"),
+                             tr("无法写入文件 %1:\n%2。")
                              .arg(scriptFileName)
                              .arg(file.errorString()));
         return;
@@ -225,20 +268,20 @@ void ScriptEditor::compileScript()
     QString strError;
     QString scriptContent = editor->toPlainText();
     if (!m_checkFn) {
-        QMessageBox::warning(this, tr("Compile"), tr("Syntax checker not available."));
+        QMessageBox::warning(this, tr("编译"), tr("语法检查器不可用。"));
         return;
     }
     if (m_checkFn(scriptContent, strError)) {
-        QMessageBox::information(this, tr("Compile"), tr("Script compiled successfully."));
+        QMessageBox::information(this, tr("编译"), tr("脚本编译成功。"));
     } else {
-        QMessageBox::critical(this, tr("Compile Error"), strError);
+        QMessageBox::critical(this, tr("编译错误"), strError);
     }
 }
 
 void ScriptEditor::executeScript()
 {
     if (!m_runFn) {
-        QMessageBox::warning(this, tr("Error"), tr("Script runner not configured."));
+        QMessageBox::warning(this, tr("错误"), tr("未配置脚本运行器。"));
         return;
     }
 
@@ -255,7 +298,7 @@ void ScriptEditor::executeScript()
     QString scriptContent = editor->toPlainText();
     QString strError;
     if (m_checkFn && !m_checkFn(scriptContent, strError)) {
-        QMessageBox::critical(this, tr("Compile Error"), strError);
+        QMessageBox::critical(this, tr("编译错误"), strError);
         return;
     }
 
@@ -276,9 +319,9 @@ void ScriptEditor::onRunFinished(bool ok, const QString& err)
     m_bExecuting = false;
 
     if (ok)
-        QMessageBox::information(this, tr("Execute"), tr("Script executed successfully."));
+        QMessageBox::information(this, tr("执行"), tr("脚本执行成功。"));
     else
-        QMessageBox::critical(this, tr("Execution Error"), err);
+        QMessageBox::critical(this, tr("执行错误"), err);
 }
 
 void ScriptEditor::showRunningDialog()
@@ -287,13 +330,13 @@ void ScriptEditor::showRunningDialog()
 
     // 创建不可关闭的对话框
     m_pRunningDialog = new QDialog(this);
-    m_pRunningDialog->setWindowTitle(tr("Script Running"));
+    m_pRunningDialog->setWindowTitle(tr("脚本运行中"));
     m_pRunningDialog->setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint);
     m_pRunningDialog->setModal(true);
     m_pRunningDialog->setFixedSize(280, 80);
 
     // 创建标签
-    m_pRunningLabel = new QLabel(tr("Lua is Running, Use-Time: 0 s......"), m_pRunningDialog);
+    m_pRunningLabel = new QLabel(tr("Lua 运行中，用时: 0 秒......"), m_pRunningDialog);
     m_pRunningLabel->setAlignment(Qt::AlignCenter);
 
     QVBoxLayout* layout = new QVBoxLayout(m_pRunningDialog);
@@ -330,7 +373,7 @@ void ScriptEditor::updateRunningTime()
 {
     m_nRunningSeconds++;
     if (m_pRunningLabel) {
-        m_pRunningLabel->setText(tr("Lua Running, UseTime: %1 s......").arg(m_nRunningSeconds));
+        m_pRunningLabel->setText(tr("Lua 运行中，用时: %1 秒......").arg(m_nRunningSeconds));
     }
 }
 
@@ -434,7 +477,7 @@ void ScriptEditor::onTextChanged()
 
 void ScriptEditor::updateWindowTitle()
 {
-    const QString appName = tr("Lua Script Editor");
+    const QString appName = tr("Lua 脚本编辑器");
     QString title;
 
     if (!scriptFileName.isEmpty()) {
@@ -460,9 +503,9 @@ void ScriptEditor::saveScriptAs()
     }
 
     // 弹出文件保存对话框
-    QString newFileName = QFileDialog::getSaveFileName(this, tr("Save Script As"),
+    QString newFileName = QFileDialog::getSaveFileName(this, tr("另存为脚本"),
                                                       defaultPath,
-                                                      tr("Lua Scripts (*.lua)"));
+                                                      tr("Lua 脚本 (*.lua)"));
     if (newFileName.isEmpty()) {
         return;  // 用户取消
     }
@@ -470,8 +513,8 @@ void ScriptEditor::saveScriptAs()
     // 保存到新文件
     QFile file(newFileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Error"),
-                             tr("Cannot write file %1:\n%2.")
+        QMessageBox::warning(this, tr("错误"),
+                             tr("无法写入文件 %1:\n%2。")
                              .arg(newFileName)
                              .arg(file.errorString()));
         return;
@@ -489,7 +532,7 @@ void ScriptEditor::saveScriptAs()
     m_isModified = false;
     updateWindowTitle();
 
-    QMessageBox::information(this, tr("Success"), tr("Script saved successfully."));
+    QMessageBox::information(this, tr("成功"), tr("脚本保存成功。"));
 }
 
 void ScriptEditor::loadScriptFrom()
@@ -502,9 +545,9 @@ void ScriptEditor::loadScriptFrom()
     }
 
     // 弹出文件选择对话框
-    QString loadFileName = QFileDialog::getOpenFileName(this, tr("Load Script From"),
+    QString loadFileName = QFileDialog::getOpenFileName(this, tr("从文件加载脚本"),
                                                        defaultPath,
-                                                       tr("Lua Scripts (*.lua)"));
+                                                       tr("Lua 脚本 (*.lua)"));
     if (loadFileName.isEmpty()) {
         return;  // 用户取消
     }
@@ -512,8 +555,8 @@ void ScriptEditor::loadScriptFrom()
     // 读取文件内容
     QFile file(loadFileName);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("Error"),
-                             tr("Cannot read file %1:\n%2.")
+        QMessageBox::warning(this, tr("错误"),
+                             tr("无法读取文件 %1:\n%2。")
                              .arg(loadFileName)
                              .arg(file.errorString()));
         return;

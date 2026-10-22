@@ -1,7 +1,8 @@
 #include "QuickPanel.h"
 #include <QCoreApplication>
 #include <QFrame>
-
+#include <QCloseEvent>
+#include <QEvent>
 QuickPanel::QuickPanel(QWidget* parent)
     : QDialog(parent)
 {
@@ -31,7 +32,7 @@ QuickPanel::QuickPanel(QWidget* parent)
     mainLayout->addSpacing(4);
 
     // 创建退出小窗的按钮（置于底部）
-    btnExit = new QPushButton("退出小窗", this);
+    btnExit = new QPushButton(tr("退出小窗"), this);
     mainLayout->addWidget(btnExit);
 
 	// 退出按钮点击：隐藏小窗并显示主窗口（通过信号通知主窗口）
@@ -53,4 +54,17 @@ void QuickPanel::setButtonTexts(const QStringList& texts)
 {
     for (int i = 0; i < btn.size() && i < texts.size(); ++i)
         btn[i]->setText(texts[i]);
+}
+
+void QuickPanel::closeEvent(QCloseEvent* event)
+{
+    Q_UNUSED(event);
+    qApp->quit(); // 退出整个应用程序
+}
+
+void QuickPanel::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange && btnExit)
+        btnExit->setText(tr("退出小窗"));
+    QDialog::changeEvent(event);
 }

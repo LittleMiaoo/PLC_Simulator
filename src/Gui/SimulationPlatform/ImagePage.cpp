@@ -86,8 +86,8 @@ void ImagePage::loadImage()
     }
 
     // 打开文件对话框
-    QString filter = "图像文件 (*.bmp *.png *.jpg *.jpeg *.tiff *.tif)";
-    QString filePath = QFileDialog::getOpenFileName(this, "选择图像", configDir, filter);
+    QString filter = tr("图像文件 (*.bmp *.png *.jpg *.jpeg *.tiff *.tif)");
+    QString filePath = QFileDialog::getOpenFileName(this, tr("选择图像"), configDir, filter);
 
     if (filePath.isEmpty())
     {
@@ -98,7 +98,7 @@ void ImagePage::loadImage()
     QImage image(filePath);
     if (image.isNull())
     {
-        QMessageBox::warning(this, "错误", "无法加载所选图像文件。");
+        QMessageBox::warning(this, tr("错误"), tr("无法加载所选图像文件。"));
         return;
     }
 
@@ -125,7 +125,7 @@ void ImagePage::loadImage()
         // 如果复制失败，尝试直接保存
         if (!image.save(destPath))
         {
-            QMessageBox::warning(this, "警告", "图像加载成功，但无法保存到配置目录。");
+            QMessageBox::warning(this, tr("警告"), tr("图像加载成功，但无法保存到配置目录。"));
         }
     }
 }

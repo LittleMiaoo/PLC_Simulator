@@ -22,7 +22,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}/bin/$<CONFIG>)
 
 # 查找Qt包 - 使用与VS项目相同的版本
 set(QT_VERSION 6)
-find_package(Qt${QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets Network SerialPort)
+find_package(Qt${QT_VERSION} REQUIRED COMPONENTS Core Gui Widgets Network SerialPort LinguistTools)
 
 # 启用Qt自动处理
 set(CMAKE_AUTOMOC ON)

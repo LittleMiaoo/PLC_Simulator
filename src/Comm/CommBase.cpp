@@ -7,6 +7,7 @@
  */
 
 #include "CommBase.h"
+#include <QCoreApplication>
 #include <QMetaObject>
 
 CommBase::CommBase(QObject* pParent)
@@ -22,7 +23,7 @@ void CommBase::AddToRequestQueue(const QString& endpointId,QByteArray&& data)
 	{
 		QMutexLocker locker(&m_queueMutex);
 		if (m_endpointQueues[endpointId].size() >= m_maxQueueSizePerEndpoint) {
-			emit logRecord(QString("队列溢出，丢弃请求: %1").arg(endpointId));
+			emit logRecord(QCoreApplication::translate("CommBase", "队列溢出，丢弃请求: %1").arg(endpointId));
 			return;
 		}
 		PendingRequest request;
@@ -54,7 +55,7 @@ void CommBase::ProcessNextForEndpoint(const QString& endpointId)
 	}
 	// 超时检查
 	if (request.timestamp.msecsTo(QDateTime::currentDateTime()) > request.timeoutMs) {
-		emit logRecord(QString("请求超时，跳过: %1").arg(endpointId));
+		emit logRecord(QCoreApplication::translate("CommBase", "请求超时，跳过: %1").arg(endpointId));
 		emit commTimeout(endpointId);	//状态栏:超时计数
 		QMetaObject::invokeMethod(this, "OnTaskFinished", Qt::QueuedConnection, Q_ARG(QString, endpointId));
 		return;

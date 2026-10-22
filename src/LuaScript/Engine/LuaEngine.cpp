@@ -8,6 +8,7 @@
 
 #include "Lua.hpp"
 #include "LuaEngine.h"
+#include <QCoreApplication>
 #include "ILuaBinding.h"
 
 #include <QFile>
@@ -34,10 +35,11 @@ int SleepReal(lua_State* L)
 }
 
 // 内建单一来源:注册/文档均由此表派生
+// description 以 QT_TRANSLATE_NOOP 标记供 lupdate 提取,builtinFunctionDocs 中再按当前语言翻译
 struct Builtin { const char* name; lua_CFunction real; const char* snippet; const char* description; };
 const Builtin kBuiltins[] = {
-	{"IsLoopValid", IsLoopValidReal, "IsLoopValid()", "获取循环是否有效"},
-	{"sleep",       SleepReal,       "sleep(500)",    "睡眠,毫秒"},
+	{"IsLoopValid", IsLoopValidReal, "IsLoopValid()", QT_TRANSLATE_NOOP("LuaEngine", "获取循环是否有效")},
+	{"sleep",       SleepReal,       "sleep(500)",    QT_TRANSLATE_NOOP("LuaEngine", "睡眠,毫秒")},
 };
 } // namespace
 
@@ -69,7 +71,7 @@ bool LuaEngine::RunLuaScript(const QString& strLuaFile,QString& errorMsg)
 	QFile file(strLuaFile);  // QFile 原生支持中文路径,避开 fopen/ANSI
 	if (!file.open(QIODevice::ReadOnly))
 	{
-		errorMsg = QStringLiteral("无法打开脚本文件: %1").arg(strLuaFile);
+		errorMsg = QCoreApplication::translate("LuaEngine", "无法打开脚本文件: %1").arg(strLuaFile);
 		return false;
 	}
 	QByteArray code = file.readAll();  // 磁盘按 UTF-8 保存(ScriptManager 约定)
@@ -125,7 +127,8 @@ QList<LuaFunctionDoc> LuaEngine::builtinFunctionDocs()
 {
 	QList<LuaFunctionDoc> docs;
 	for (const Builtin& b : kBuiltins) {
-		docs.append({QString::fromUtf8(b.name), QString::fromUtf8(b.snippet), QString::fromUtf8(b.description)});
+		docs.append({QString::fromUtf8(b.name), QString::fromUtf8(b.snippet),
+		             QCoreApplication::translate("LuaEngine", b.description)});
 	}
 	return docs;
 }

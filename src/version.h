@@ -11,8 +11,8 @@
 
 // 版本号定义
 #define APP_VERSION_MAJOR   1
-#define APP_VERSION_MINOR   12
-#define APP_VERSION_PATCH   1
+#define APP_VERSION_MINOR   13
+#define APP_VERSION_PATCH   0
 #define APP_VERSION_BUILD   0
 
 // 版本字符串拼接宏
@@ -32,15 +32,17 @@
 #define APP_ORGANIZATION    "WangMao"
 
 // 以下定义仅供 C/C++ 代码使用，RC 编译器不支持中文
+// APP_NAME / APP_DESCRIPTION 以 QT_TRANSLATE_NOOP 标记(展开即原字面量)供 lupdate 提取,
+// 界面显示处用 QCoreApplication::translate("AppInfo", ...) 取译文;使用处须已包含 Qt 头文件
 #ifndef RC_INVOKED
-#define APP_NAME            "PLC通信模拟器"
+#define APP_NAME            QT_TRANSLATE_NOOP("AppInfo", "PLC通信模拟器")
 #define APP_VERSION         APP_VERSION_STRING
 #define APP_AUTHOR          APP_ORGANIZATION
 #define APP_DOMAIN          "https://github.com/LittleMiaoo/PLC_Simulator"
-#define APP_DESCRIPTION     "一个基于Qt6的PLC模拟通信测试软件.\n"\
+#define APP_DESCRIPTION     QT_TRANSLATE_NOOP("AppInfo", "一个基于Qt6的PLC模拟通信测试软件.\n"\
                             "支持基恩士上位链路协议&三菱Q系列MC协议二进制通信.\n"\
                             "支持通过Lua脚本语言实现自动化.\n"\
-                            "本软件采用 MIT 许可证发布,详情查看 LICENSE 文件."
+                            "本软件采用 MIT 许可证发布,详情查看 LICENSE 文件.")
 
 // 编译时间（自动生成）
 #define APP_COMPILE_DATE    __DATE__
