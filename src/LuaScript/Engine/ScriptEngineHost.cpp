@@ -28,7 +28,7 @@ ScriptEngineHost::ScriptEngineHost(RegisterStore* store, int engineCount, QObjec
 
     // 任一脚本完成后:失败统一转发到脚本日志(主窗口监听 scriptLog);编辑器结果另由其自身收尾。
     connect(this, &ScriptEngineHost::scriptFinished, this, [this](int, bool ok, const QString& err){
-        if (!ok) emit scriptLog(QString("Lua执行失败:%1").arg(err));
+        if (!ok) emit scriptLog(tr("Lua执行失败:%1").arg(err));
     });
 
     // 绑定一律由构造后的 installModule() 注入(其会装入所有已建引擎);此处仅创建引擎与各自的互斥锁。

@@ -31,6 +31,27 @@
 #include <QEvent>
 #include <QScreen>
 
+namespace
+{
+// 窗口位置菜单项(下标即 moveToScreenCorner 的 corner);QT_TRANSLATE_NOOP 供 lupdate 提取,构建与语言切换共用
+const char* const kCornerNames[] = {
+    QT_TRANSLATE_NOOP("SimulationPlatform", "左上"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "右上"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "左下"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "右下"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "居中"),
+};
+
+// "模拟平台"菜单中控制面板分组的开关项(顺序同 buildMenuBar 中 bindGroupToggle 调用),构建与语言切换共用
+const char* const kGroupToggleTitles[] = {
+    QT_TRANSLATE_NOOP("SimulationPlatform", "基准平台"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "实时平台"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "基准Mark"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "实时Mark"),
+    QT_TRANSLATE_NOOP("SimulationPlatform", "虚拟Mark"),
+};
+} // namespace
+
 SimulationPlatform::SimulationPlatform(QWidget *parent)
     : QMainWindow(parent)
     , m_simMenu(nullptr)
@@ -199,14 +220,9 @@ void SimulationPlatform::buildMenuBar()
     m_posMenu = posMenu;
     QActionGroup* posGroup = new QActionGroup(this);
     posGroup->setExclusive(true);
-    const char* names[5] = { QT_TRANSLATE_NOOP("SimulationPlatform", "左上"),
-                             QT_TRANSLATE_NOOP("SimulationPlatform", "右上"),
-                             QT_TRANSLATE_NOOP("SimulationPlatform", "左下"),
-                             QT_TRANSLATE_NOOP("SimulationPlatform", "右下"),
-                             QT_TRANSLATE_NOOP("SimulationPlatform", "居中") };
     for (int i = 0; i < 5; ++i)
     {
-        QAction* a = posMenu->addAction(tr(names[i]));
+        QAction* a = posMenu->addAction(tr(kCornerNames[i]));
         m_cornerPosActions[i] = a;
         a->setCheckable(true);
         posGroup->addAction(a);
@@ -219,12 +235,13 @@ void SimulationPlatform::buildMenuBar()
     m_actParam = m_simMenu->addAction(tr("参数设置…"));
     connect(m_actParam, &QAction::triggered, this, &SimulationPlatform::openParamDialog);
     m_simMenu->addSeparator();
-    bindGroupToggle(m_controlPanel->baseGroup(),        tr("基准平台"));
-    bindGroupToggle(m_controlPanel->liveGroup(),        tr("实时平台"));
-    bindGroupToggle(m_controlPanel->baseMarkGroup(),    tr("基准Mark"));
-    bindGroupToggle(m_controlPanel->liveMarkGroup(),    tr("实时Mark"));
-    bindGroupToggle(m_controlPanel->virtualMarkGroup(), tr("虚拟Mark"), false);
+    bindGroupToggle(m_controlPanel->baseGroup(),        tr(kGroupToggleTitles[0]));
+    bindGroupToggle(m_controlPanel->liveGroup(),        tr(kGroupToggleTitles[1]));
+    bindGroupToggle(m_controlPanel->baseMarkGroup(),    tr(kGroupToggleTitles[2]));
+    bindGroupToggle(m_controlPanel->liveMarkGroup(),    tr(kGroupToggleTitles[3]));
+    bindGroupToggle(m_controlPanel->virtualMarkGroup(), tr(kGroupToggleTitles[4]), false);  // 虚拟Mark 默认不显示
 
+    // ===== 图像(仅图片页可用)=====
     m_imageMenu = mbar->addMenu(tr("图像"));
     m_actLoadImage = m_imageMenu->addAction(tr("加载图片…"));
     connect(m_actLoadImage, &QAction::triggered, m_imagePage, &ImagePage::loadImage);
@@ -347,14 +364,9 @@ void SimulationPlatform::retranslateUi()
     if (m_posMenu)
         m_posMenu->setTitle(tr("窗口位置"));
 
-    const char* cornerNames[5] = { QT_TRANSLATE_NOOP("SimulationPlatform", "左上"),
-                                   QT_TRANSLATE_NOOP("SimulationPlatform", "右上"),
-                                   QT_TRANSLATE_NOOP("SimulationPlatform", "左下"),
-                                   QT_TRANSLATE_NOOP("SimulationPlatform", "右下"),
-                                   QT_TRANSLATE_NOOP("SimulationPlatform", "居中") };
     for (int i = 0; i < 5; ++i) {
         if (m_cornerPosActions[i])
-            m_cornerPosActions[i]->setText(tr(cornerNames[i]));
+            m_cornerPosActions[i]->setText(tr(kCornerNames[i]));
     }
 
     if (m_simMenu)
@@ -362,10 +374,9 @@ void SimulationPlatform::retranslateUi()
     if (m_actParam)
         m_actParam->setText(tr("参数设置…"));
 
-    const char* groupTitles[] = { "基准平台", "实时平台", "基准Mark", "实时Mark", "虚拟Mark" };
     for (int i = 0; i < m_groupToggleActions.size() && i < 5; ++i) {
         if (m_groupToggleActions[i])
-            m_groupToggleActions[i]->setText(tr(groupTitles[i]));
+            m_groupToggleActions[i]->setText(tr(kGroupToggleTitles[i]));
     }
 
     if (m_imageMenu)

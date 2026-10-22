@@ -21,7 +21,7 @@ enum class AppLanguage {
 QString languageToCode(AppLanguage lang);
 AppLanguage languageFromCode(const QString& code);
 
-/// Saved preference in config, else system locale.
+// 启动语言:有语言配置用配置;无语言配置时老用户(已有其他配置)用中文,全新安装中文系统用中文、其他用英文
 AppLanguage resolveStartupLanguage();
 
 AppLanguage currentLanguage();

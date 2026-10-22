@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>PLC_Simulator</string>
+   <string notr="true">PLC_Simulator</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -51,7 +51,7 @@
              </size>
             </property>
             <property name="text">
-             <string>20007</string>
+             <string notr="true">20007</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -141,7 +141,7 @@
              </size>
             </property>
             <property name="text">
-             <string>127.0.0.1</string>
+             <string notr="true">127.0.0.1</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -215,7 +215,7 @@
                </size>
               </property>
               <property name="text">
-               <string>0</string>
+               <string notr="true">0</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -510,7 +510,7 @@
                </size>
               </property>
               <property name="text">
-               <string>脚本2</string>
+               <string notr="true">脚本2</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -526,7 +526,7 @@
                </size>
               </property>
               <property name="text">
-               <string>脚本4</string>
+               <string notr="true">脚本4</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -555,7 +555,7 @@
                </size>
               </property>
               <property name="text">
-               <string>脚本5</string>
+               <string notr="true">脚本5</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -571,7 +571,7 @@
                </size>
               </property>
               <property name="text">
-               <string>脚本6</string>
+               <string notr="true">脚本6</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -600,7 +600,7 @@
                </size>
               </property>
               <property name="text">
-               <string>脚本3</string>
+               <string notr="true">脚本3</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -616,7 +616,7 @@
                </size>
               </property>
               <property name="text">
-               <string>脚本1</string>
+               <string notr="true">脚本1</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>

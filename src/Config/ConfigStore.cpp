@@ -135,29 +135,6 @@ bool ConfigStore::LoadLanguagePref(QString& languageCode) const
     return !languageCode.isEmpty();
 }
 
-bool ConfigStore::PeekLanguagePref(QString& languageCode)
-{
-    const QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/Config/app_config.json");
-    QFile file(path);
-    if (!file.exists())
-        return false;
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return false;
-
-    QJsonParseError err;
-    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
-    file.close();
-    if (err.error != QJsonParseError::NoError)
-        return false;
-
-    const QString code = doc.object().value(kLanguage).toString();
-    if (code.isEmpty())
-        return false;
-
-    languageCode = code;
-    return true;
-}
-
 bool ConfigStore::SaveScriptNames(const QStringList& scriptNames)
 {
     QJsonArray arr;

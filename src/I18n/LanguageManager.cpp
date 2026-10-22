@@ -10,11 +10,9 @@
 #include "Config/ConfigStore.h"
 
 #include <QApplication>
-#include <QEvent>
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QTranslator>
-#include <QWidget>
 
 namespace {
 QTranslator s_appTranslator;
@@ -54,16 +52,6 @@ void installTranslatorsFor(QApplication& app, AppLanguage lang)
         s_qtTranslatorInstalled = true;
     }
 }
-
-void broadcastLanguageChange()
-{
-    QEvent event(QEvent::LanguageChange);
-    const auto widgets = QApplication::allWidgets();
-    for (QWidget* widget : widgets) {
-        if (widget)
-            QApplication::sendEvent(widget, &event);
-    }
-}
 } // namespace
 
 QString languageToCode(AppLanguage lang)
@@ -80,13 +68,18 @@ AppLanguage languageFromCode(const QString& code)
 
 AppLanguage resolveStartupLanguage()
 {
+    const ConfigStore store;   // 仅读取(ConfigStore 改一项写一次,析构不写盘)
     QString code;
-    if (ConfigStore::PeekLanguagePref(code))
+    if (store.LoadLanguagePref(code))
         return languageFromCode(code);
 
-    return QLocale::system().language() == QLocale::English
-               ? AppLanguage::English
-               : AppLanguage::Chinese;
+    // 无语言配置:已有其他配置的老用户保持升级前的中文界面,不因系统语言突变;
+    // 全新安装按系统语言——中文系统用中文,其他一律英文
+    if (!store.IsEmpty())
+        return AppLanguage::Chinese;
+    return QLocale::system().language() == QLocale::Chinese
+               ? AppLanguage::Chinese
+               : AppLanguage::English;
 }
 
 AppLanguage currentLanguage()
@@ -106,6 +99,6 @@ void switchLanguage(QApplication& app, AppLanguage lang)
         return;
 
     s_currentLanguage = lang;
+    // 安装/移除翻译器时 Qt 会向所有顶层窗口投递 LanguageChange 并逐级传给子控件,无需手动广播
     installTranslatorsFor(app, lang);
-    broadcastLanguageChange();
 }

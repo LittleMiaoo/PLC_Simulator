@@ -66,6 +66,7 @@ protected:
 private:
     void createMenus();
     void retranslateMenus();
+    static QList<LuaFunctionDoc> langTemplates();   // 语言结构模板(按当前语言翻译说明),构造与语言切换共用
     void setupHighlighter();
     void updateFunctionMenu();
     void addFunctionMenuGroup(const QList<LuaFunctionDoc>& docs);  // 向函数菜单添加一组(绑定/语言结构)
@@ -84,6 +85,7 @@ private:
     QAction *saveAction;
     QAction *saveAsAction;
     QAction *loadFromAction;
+    QAction *exitAction;
     QAction *compileAction;
     QAction *executeAction;
 

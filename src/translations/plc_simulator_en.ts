@@ -239,19 +239,19 @@ See THIRD_PARTY_LICENSES.txt for details.</translation>
     </message>
     <message>
         <source>帮助(&amp;H)</source>
-        <translation>Help(&amp;H)</translation>
+        <translation>&amp;Help</translation>
     </message>
     <message>
         <source>关于(&amp;A)</source>
-        <translation>About(&amp;A)</translation>
+        <translation>&amp;About</translation>
     </message>
     <message>
         <source>更新日志(&amp;U)</source>
-        <translation>Changelog(&amp;U)</translation>
+        <translation>&amp;Changelog</translation>
     </message>
     <message>
         <source>视图(&amp;V)</source>
-        <translation>View(&amp;V)</translation>
+        <translation>&amp;View</translation>
     </message>
     <message>
         <source>主题</source>
@@ -271,7 +271,7 @@ See THIRD_PARTY_LICENSES.txt for details.</translation>
     </message>
     <message>
         <source>平台(&amp;P)</source>
-        <translation>Platform(&amp;P)</translation>
+        <translation>&amp;Platform</translation>
     </message>
     <message>
         <source>显示平台</source>
@@ -414,28 +414,12 @@ See THIRD_PARTY_LICENSES.txt for details.</translation>
         <translation>Run</translation>
     </message>
     <message>
-        <source>脚本1</source>
-        <translation>Script 1</translation>
+        <source>IP:</source>
+        <translation>IP:</translation>
     </message>
     <message>
-        <source>脚本2</source>
-        <translation>Script 2</translation>
-    </message>
-    <message>
-        <source>脚本3</source>
-        <translation>Script 3</translation>
-    </message>
-    <message>
-        <source>脚本4</source>
-        <translation>Script 4</translation>
-    </message>
-    <message>
-        <source>脚本5</source>
-        <translation>Script 5</translation>
-    </message>
-    <message>
-        <source>脚本6</source>
-        <translation>Script 6</translation>
+        <source>脚本%1</source>
+        <translation>Script %1</translation>
     </message>
 </context>
 <context>
@@ -683,10 +667,6 @@ See THIRD_PARTY_LICENSES.txt for details.</translation>
         <translation>Error</translation>
     </message>
     <message>
-        <source>无法写入文件 %1:\n%2。</source>
-        <translation>Cannot write file %1:\n%2.</translation>
-    </message>
-    <message>
         <source>编译</source>
         <translation>Compile</translation>
     </message>
@@ -751,10 +731,6 @@ See THIRD_PARTY_LICENSES.txt for details.</translation>
         <translation>Load Script From</translation>
     </message>
     <message>
-        <source>无法读取文件 %1:\n%2。</source>
-        <translation>Cannot read file %1:\n%2.</translation>
-    </message>
-    <message>
         <source>文件未保存</source>
         <translation>Unsaved File</translation>
     </message>
@@ -789,6 +765,53 @@ See THIRD_PARTY_LICENSES.txt for details.</translation>
     <message>
         <source>if-elseif-else 多分支</source>
         <translation>if-elseif-else multi-branch</translation>
+    </message>
+    <message>
+        <source>Ctrl+S</source>
+        <translation>Ctrl+S</translation>
+    </message>
+    <message>
+        <source>Ctrl+Alt+S</source>
+        <translation>Ctrl+Alt+S</translation>
+    </message>
+    <message>
+        <source>Ctrl+O</source>
+        <translation>Ctrl+O</translation>
+    </message>
+    <message>
+        <source>Ctrl+Q</source>
+        <translation>Ctrl+Q</translation>
+    </message>
+    <message>
+        <source>F7</source>
+        <translation>F7</translation>
+    </message>
+    <message>
+        <source>F5</source>
+        <translation>F5</translation>
+    </message>
+    <message>
+        <source>无法写入文件 %1:
+%2。</source>
+        <translation>Cannot write file %1:
+%2.</translation>
+    </message>
+    <message>
+        <source>%1[*] - %2</source>
+        <translation>%1[*] - %2</translation>
+    </message>
+    <message>
+        <source>无法读取文件 %1:
+%2。</source>
+        <translation>Cannot read file %1:
+%2.</translation>
+    </message>
+</context>
+<context>
+    <name>ScriptEngineHost</name>
+    <message>
+        <source>Lua执行失败:%1</source>
+        <translation>Lua execution failed: %1</translation>
     </message>
 </context>
 <context>

@@ -35,10 +35,11 @@ int SleepReal(lua_State* L)
 }
 
 // 内建单一来源:注册/文档均由此表派生
+// description 以 QT_TRANSLATE_NOOP 标记供 lupdate 提取,builtinFunctionDocs 中再按当前语言翻译
 struct Builtin { const char* name; lua_CFunction real; const char* snippet; const char* description; };
 const Builtin kBuiltins[] = {
-	{"IsLoopValid", IsLoopValidReal, "IsLoopValid()", "获取循环是否有效"},
-	{"sleep",       SleepReal,       "sleep(500)",    "睡眠,毫秒"},
+	{"IsLoopValid", IsLoopValidReal, "IsLoopValid()", QT_TRANSLATE_NOOP("LuaEngine", "获取循环是否有效")},
+	{"sleep",       SleepReal,       "sleep(500)",    QT_TRANSLATE_NOOP("LuaEngine", "睡眠,毫秒")},
 };
 } // namespace
 

@@ -38,17 +38,18 @@ static RegisterBinding* prologue(lua_State* L, int& nAddr)
     return b;
 }
 
+// description 以 QT_TRANSLATE_NOOP 标记供 lupdate 提取,functions() 中再按当前语言翻译
 const RegisterBinding::Fn RegisterBinding::kFns[] = {
-    {"SetInt16",  &RegisterBinding::SetInt16Wrapper,  "SetInt16(\"D100\", 123)",      "设置寄存器值,单字"},
-    {"SetInt32",  &RegisterBinding::SetInt32Wrapper,  "SetInt32(\"D100\", 123)",      "设置寄存器值,双字"},
-    {"SetFloat",  &RegisterBinding::SetFloatWrapper,  "SetFloat(\"D100\", 123.45)",   "设置寄存器值,浮点数"},
-    {"SetDouble", &RegisterBinding::SetDoubleWrapper, "SetDouble(\"D100\", 123.45)",  "设置寄存器值,双精度浮点数"},
-    {"SetString", &RegisterBinding::SetStringWrapper, "SetString(\"D100\", \"AB\")",  "设置寄存器字符串"},
-    {"GetInt16",  &RegisterBinding::GetInt16Wrapper,  "GetInt16(\"D100\")",           "读取寄存器值,单字"},
-    {"GetInt32",  &RegisterBinding::GetInt32Wrapper,  "GetInt32(\"D100\")",           "读取寄存器值,双字"},
-    {"GetFloat",  &RegisterBinding::GetFloatWrapper,  "GetFloat(\"D100\")",           "读取寄存器值,浮点数"},
-    {"GetDouble", &RegisterBinding::GetDoubleWrapper, "GetDouble(\"D100\")",          "读取寄存器值,双精度浮点数"},
-    {"GetString", &RegisterBinding::GetStringWrapper, "GetString(\"D100\")",          "读取寄存器字符串"},
+    {"SetInt16",  &RegisterBinding::SetInt16Wrapper,  "SetInt16(\"D100\", 123)",      QT_TRANSLATE_NOOP("RegisterBinding", "设置寄存器值,单字")},
+    {"SetInt32",  &RegisterBinding::SetInt32Wrapper,  "SetInt32(\"D100\", 123)",      QT_TRANSLATE_NOOP("RegisterBinding", "设置寄存器值,双字")},
+    {"SetFloat",  &RegisterBinding::SetFloatWrapper,  "SetFloat(\"D100\", 123.45)",   QT_TRANSLATE_NOOP("RegisterBinding", "设置寄存器值,浮点数")},
+    {"SetDouble", &RegisterBinding::SetDoubleWrapper, "SetDouble(\"D100\", 123.45)",  QT_TRANSLATE_NOOP("RegisterBinding", "设置寄存器值,双精度浮点数")},
+    {"SetString", &RegisterBinding::SetStringWrapper, "SetString(\"D100\", \"AB\")",  QT_TRANSLATE_NOOP("RegisterBinding", "设置寄存器字符串")},
+    {"GetInt16",  &RegisterBinding::GetInt16Wrapper,  "GetInt16(\"D100\")",           QT_TRANSLATE_NOOP("RegisterBinding", "读取寄存器值,单字")},
+    {"GetInt32",  &RegisterBinding::GetInt32Wrapper,  "GetInt32(\"D100\")",           QT_TRANSLATE_NOOP("RegisterBinding", "读取寄存器值,双字")},
+    {"GetFloat",  &RegisterBinding::GetFloatWrapper,  "GetFloat(\"D100\")",           QT_TRANSLATE_NOOP("RegisterBinding", "读取寄存器值,浮点数")},
+    {"GetDouble", &RegisterBinding::GetDoubleWrapper, "GetDouble(\"D100\")",          QT_TRANSLATE_NOOP("RegisterBinding", "读取寄存器值,双精度浮点数")},
+    {"GetString", &RegisterBinding::GetStringWrapper, "GetString(\"D100\")",          QT_TRANSLATE_NOOP("RegisterBinding", "读取寄存器字符串")},
 };
 
 void RegisterBinding::install(lua_State* L)

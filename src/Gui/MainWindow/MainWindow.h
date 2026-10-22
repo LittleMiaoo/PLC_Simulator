@@ -127,7 +127,14 @@ private:
     QAction* m_actManualFloat = nullptr;
     QAction* m_actManualInt32 = nullptr;
 
-    // 视图菜单(语言切换时需重设标题)
+    // 菜单栏(语言切换时需重设文字)
+    QMenu* m_helpMenu = nullptr;
+    QAction* m_actAbout = nullptr;
+    QAction* m_actChangelog = nullptr;
+    QMenu* m_viewMenu = nullptr;
+    QAction* m_actLightTheme = nullptr;
+    QAction* m_actDarkTheme = nullptr;
+    QMenu* m_platformMenu = nullptr;
     QMenu* m_themeMenu = nullptr;
     QMenu* m_langMenu = nullptr;
     QAction* m_actLangZh = nullptr;

@@ -35,13 +35,14 @@ bool PlatformBinding::parseThreeAddr(lua_State* L, int& nX, int& nY, int& nA)
     return true;
 }
 
+// description 以 QT_TRANSLATE_NOOP 标记供 lupdate 提取,functions() 中再按当前语言翻译
 const PlatformBinding::Fn PlatformBinding::kFns[] = {
-    {"MoveAbsInt32",         &PlatformBinding::MoveAbsInt32Wrapper,         "MoveAbsInt32(\"D100\", \"D102\", \"D104\")",         "平台绝对移动,双字"},
-    {"MoveAbsFloat",         &PlatformBinding::MoveAbsFloatWrapper,         "MoveAbsFloat(\"D100\", \"D102\", \"D104\")",         "平台绝对移动,浮点数"},
-    {"MoveRelativeInt32",    &PlatformBinding::MoveRelativeInt32Wrapper,    "MoveRelativeInt32(\"D100\", \"D102\", \"D104\")",    "平台相对移动,双字"},
-    {"MoveRelativeFloat",    &PlatformBinding::MoveRelativeFloatWrapper,    "MoveRelativeFloat(\"D100\", \"D102\", \"D104\")",    "平台相对移动,浮点数"},
-    {"WriteCurrentPosInt32", &PlatformBinding::WriteCurrentPosInt32Wrapper, "WriteCurrentPosInt32(\"D100\", \"D102\", \"D104\")", "写入当前位置,双字"},
-    {"WriteCurrentPosFloat", &PlatformBinding::WriteCurrentPosFloatWrapper, "WriteCurrentPosFloat(\"D100\", \"D102\", \"D104\")", "写入当前位置,浮点数"},
+    {"MoveAbsInt32",         &PlatformBinding::MoveAbsInt32Wrapper,         "MoveAbsInt32(\"D100\", \"D102\", \"D104\")",         QT_TRANSLATE_NOOP("PlatformBinding", "平台绝对移动,双字")},
+    {"MoveAbsFloat",         &PlatformBinding::MoveAbsFloatWrapper,         "MoveAbsFloat(\"D100\", \"D102\", \"D104\")",         QT_TRANSLATE_NOOP("PlatformBinding", "平台绝对移动,浮点数")},
+    {"MoveRelativeInt32",    &PlatformBinding::MoveRelativeInt32Wrapper,    "MoveRelativeInt32(\"D100\", \"D102\", \"D104\")",    QT_TRANSLATE_NOOP("PlatformBinding", "平台相对移动,双字")},
+    {"MoveRelativeFloat",    &PlatformBinding::MoveRelativeFloatWrapper,    "MoveRelativeFloat(\"D100\", \"D102\", \"D104\")",    QT_TRANSLATE_NOOP("PlatformBinding", "平台相对移动,浮点数")},
+    {"WriteCurrentPosInt32", &PlatformBinding::WriteCurrentPosInt32Wrapper, "WriteCurrentPosInt32(\"D100\", \"D102\", \"D104\")", QT_TRANSLATE_NOOP("PlatformBinding", "写入当前位置,双字")},
+    {"WriteCurrentPosFloat", &PlatformBinding::WriteCurrentPosFloatWrapper, "WriteCurrentPosFloat(\"D100\", \"D102\", \"D104\")", QT_TRANSLATE_NOOP("PlatformBinding", "写入当前位置,浮点数")},
 };
 
 void PlatformBinding::install(lua_State* L)

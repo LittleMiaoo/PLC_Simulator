@@ -56,8 +56,8 @@ public:
     // 加载界面语言(无配置时保持入参不变)
     bool LoadLanguagePref(QString& languageCode) const;
 
-    // 启动时读取语言偏好(无需实例)
-    static bool PeekLanguagePref(QString& languageCode);
+    // 是否尚无任何已存配置(首次运行;配置文件读取/解析失败亦视为空)
+    bool IsEmpty() const { return m_root.isEmpty(); }
 
     // ==================== 脚本名称相关接口 ====================
 

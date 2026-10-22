@@ -59,7 +59,7 @@ void QuickPanel::setButtonTexts(const QStringList& texts)
 void QuickPanel::closeEvent(QCloseEvent* event)
 {
     Q_UNUSED(event);
-    qApp->quit();
+    qApp->quit(); // 退出整个应用程序
 }
 
 void QuickPanel::changeEvent(QEvent* event)

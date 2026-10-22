@@ -131,6 +131,14 @@ MainWindow::~MainWindow()
 
 void MainWindow::loadConfigs()
 {
+	// 脚本默认名随启动语言;有持久化名称时下方覆盖。
+	// .ui 中名称框/IP/端口/地址文本标为 notr:否则切换语言时 retranslateUi 会把用户值写回默认值
+	{
+		const QVector<QLineEdit*> nameEdits = scriptNameEdits();
+		for (int i = 0; i < nameEdits.size(); ++i)
+			nameEdits[i]->setText(tr("脚本%1").arg(i + 1));
+	}
+
 	// 加载之前保存的配置
 	if (m_configStore)
 	{
@@ -379,18 +387,24 @@ void MainWindow::buildMenus()
 {
 	// 初始化菜单栏
 	QMenu *helpMenu = ui->menuBar->addMenu(tr("帮助(&H)"));
+	m_helpMenu = helpMenu;
 	QAction *aboutAction = helpMenu->addAction(tr("关于(&A)"));
+	m_actAbout = aboutAction;
 	QAction *changelogAction = helpMenu->addAction(tr("更新日志(&U)"));
+	m_actChangelog = changelogAction;
 	connect(aboutAction, &QAction::triggered, this, [this]() { AuxDialogs::showAbout(this); });
 	connect(changelogAction, &QAction::triggered, this, [this]() { AuxDialogs::showChangeLog(this); });
 
 	// 视图菜单:主题切换
 	QMenu* viewMenu = ui->menuBar->addMenu(tr("视图(&V)"));
+	m_viewMenu = viewMenu;
 	ui->menuBar->insertMenu(helpMenu->menuAction(), viewMenu);
 	QMenu* themeMenu = viewMenu->addMenu(tr("主题"));
 	m_themeMenu = themeMenu;
 	QAction* lightThemeAction = themeMenu->addAction(tr("浅色"));
 	QAction* darkThemeAction = themeMenu->addAction(tr("深色"));
+	m_actLightTheme = lightThemeAction;
+	m_actDarkTheme = darkThemeAction;
 	lightThemeAction->setCheckable(true);
 	darkThemeAction->setCheckable(true);
 	QActionGroup* themeGroup = new QActionGroup(this);
@@ -423,6 +437,7 @@ void MainWindow::buildMenus()
 
 	// 平台菜单(顺序:视图 | 平台 | 帮助)
 	QMenu* platformMenu = new QMenu(tr("平台(&P)"), this);
+	m_platformMenu = platformMenu;
 	ui->menuBar->insertMenu(helpMenu->menuAction(), platformMenu);
 
 	m_actShowPlatform = platformMenu->addAction(tr("显示平台"));
@@ -946,6 +961,20 @@ void MainWindow::retranslateDynamicUi()
 
 	setCommControlsEnabled(ui->edit_IP->isEnabled());
 
+	if (m_helpMenu)
+		m_helpMenu->setTitle(tr("帮助(&H)"));
+	if (m_actAbout)
+		m_actAbout->setText(tr("关于(&A)"));
+	if (m_actChangelog)
+		m_actChangelog->setText(tr("更新日志(&U)"));
+	if (m_viewMenu)
+		m_viewMenu->setTitle(tr("视图(&V)"));
+	if (m_actLightTheme)
+		m_actLightTheme->setText(tr("浅色"));
+	if (m_actDarkTheme)
+		m_actDarkTheme->setText(tr("深色"));
+	if (m_platformMenu)
+		m_platformMenu->setTitle(tr("平台(&P)"));
 	if (m_themeMenu)
 		m_themeMenu->setTitle(tr("主题"));
 	if (m_langMenu)

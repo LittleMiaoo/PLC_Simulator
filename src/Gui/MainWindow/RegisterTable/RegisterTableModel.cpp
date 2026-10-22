@@ -11,7 +11,6 @@
 #include "Theme/ThemeManager.h"
 
 #include <QMessageBox>
-#include <QCoreApplication>
 #include <QRegularExpression>
 #include <QTimer>
 #include <cfloat>
@@ -19,11 +18,6 @@
 
 namespace
 {
-QString trRT(const char* text)
-{
-    return QCoreApplication::translate("RegisterTableModel", text);
-}
-
 // 浮点显示/录入的有效数字位数:贴近各自类型真实精度,受列宽约束做的折中
 constexpr int kFloatSigDigits = 7;    // float 约 7 位有效数字
 constexpr int kDoubleSigDigits = 15;  // double 约 15-16 位,取 15
@@ -82,11 +76,11 @@ struct ValidationResult
 ValidationResult validateChar(const QString& text)
 {
     if (text.isEmpty())  // 空串:拒写保留原值(与 integer/real 一致;空格是合法字符故不 trim)
-        return { false, QString(), trRT("输入非法"),
-                 trRT("输入为空,已保留原值!") };
+        return { false, QString(), RegisterTableModel::tr("输入非法"),
+                 RegisterTableModel::tr("输入为空,已保留原值!") };
     if (text.length() > 2)
-        return { true, text.left(2), trRT("输入截断"),
-                 trRT("输入值 %1 长度超过2,只保留前2位!").arg(text) };
+        return { true, text.left(2), RegisterTableModel::tr("输入截断"),
+                 RegisterTableModel::tr("输入值 %1 长度超过2,只保留前2位!").arg(text) };
     return { true, text, QString(), QString() };
 }
 
@@ -97,24 +91,24 @@ ValidationResult validateInteger(const QString& text, const TypeTrait& t, int in
     {
         QRegularExpression hexRe("^[0-9A-Fa-f]+$");  // 至少一位:空串落入非法→拒写保留原值(与 dec/real 一致)
         if (!hexRe.match(s).hasMatch())
-            return { false, QString(), trRT("输入非法"),
-                     trRT("输入值 %1 非十六进制数").arg(s) };
+            return { false, QString(), RegisterTableModel::tr("输入非法"),
+                     RegisterTableModel::tr("输入值 %1 非十六进制数").arg(s) };
         if (s.length() > t.hexDigits)  // 超位宽:截断后接受
-            return { true, s.left(t.hexDigits).toUpper(), trRT("输入截断"),
-                     trRT("输入值 %1 超过范围,将截断输入数据!").arg(s) };
+            return { true, s.left(t.hexDigits).toUpper(), RegisterTableModel::tr("输入截断"),
+                     RegisterTableModel::tr("输入值 %1 超过范围,将截断输入数据!").arg(s) };
         return { true, s.toUpper().rightJustified(t.hexDigits, '0'), QString(), QString() };
     }
 
     // 十进制(放宽:接受前导零/正号)
     QRegularExpression decRe("^[+-]?\\d+$");
     if (!decRe.match(s).hasMatch())
-        return { false, QString(), trRT("输入非法"),
-                 trRT("输入值 %1 非整型数").arg(s) };
+        return { false, QString(), RegisterTableModel::tr("输入非法"),
+                 RegisterTableModel::tr("输入值 %1 非整型数").arg(s) };
     bool ok = false;
     long long v = s.toLongLong(&ok);  // 超 long long 也会 !ok → 判超范围
     if (!ok || v < t.intMin || v > t.intMax)
-        return { false, QString(), trRT("输入超范围"),
-                 trRT("输入值 %1 超过范围(%2 ~ %3)").arg(s).arg(t.intMin).arg(t.intMax) };
+        return { false, QString(), RegisterTableModel::tr("输入超范围"),
+                 RegisterTableModel::tr("输入值 %1 超过范围(%2 ~ %3)").arg(s).arg(t.intMin).arg(t.intMax) };
     return { true, QString::number(v), QString(), QString() };  // 规范化(去前导零/正号)
 }
 
@@ -124,12 +118,12 @@ ValidationResult validateReal(const QString& text, const TypeTrait& t)
     // 放宽:接受前导零/正号/.5/5.;不含科学计数法
     QRegularExpression re("^[+-]?(\\d+\\.?\\d*|\\.\\d+)$");
     if (!re.match(s).hasMatch())
-        return { false, QString(), trRT("输入非法"),
-                 trRT("输入值 %1 非浮点数").arg(s) };
+        return { false, QString(), RegisterTableModel::tr("输入非法"),
+                 RegisterTableModel::tr("输入值 %1 非浮点数").arg(s) };
     double v = s.toDouble();
     if (v < t.realMin || v > t.realMax)
-        return { false, QString(), trRT("输入超范围"),
-                 trRT("输入值 %1 超过浮点数范围").arg(s) };
+        return { false, QString(), RegisterTableModel::tr("输入超范围"),
+                 RegisterTableModel::tr("输入值 %1 超过浮点数范围").arg(s) };
     return { true, formatReal(v, t.sigDigits), QString(), QString() };
 }
 

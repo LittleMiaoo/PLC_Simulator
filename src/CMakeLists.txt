@@ -235,9 +235,13 @@ add_executable(${TARGET_NAME}
     ${RESOURCE_FILES}
 )
 
+# 界面翻译:构建时 lrelease 生成 .qm 并以 :/i18n 前缀嵌入资源。
+# 新增/修改 tr() 文案后执行 cmake --build <构建目录> --target update_translations 更新 .ts,再用 Qt Linguist 补译文;
+# -locations none:.ts 不记源码行号,避免代码行变动造成 .ts 无关改动
 qt_add_translations(${TARGET_NAME}
     TS_FILES translations/plc_simulator_en.ts
     RESOURCE_PREFIX "/i18n"
+    LUPDATE_OPTIONS -locations none
 )
 
 # 设置目标属性

@@ -48,6 +48,20 @@ void CollapsibleGroupBox::refreshTitlePrefix()
     QGroupBox::setTitle(arrow + m_baseTitle);
 }
 
+void CollapsibleGroupBox::setTitle(const QString& title)
+{
+    m_baseTitle = title;
+    m_titleCaptured = true;   // 已显式记录,Polish 时不再从 title() 回捕(否则会把箭头前缀当成原标题)
+    refreshTitlePrefix();
+}
+
+void CollapsibleGroupBox::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange && m_closeButton)
+        m_closeButton->setToolTip(tr("关闭"));
+    QGroupBox::changeEvent(event);
+}
+
 void CollapsibleGroupBox::setCollapsed(bool collapsed)
 {
     if (m_collapsed == collapsed)

@@ -296,7 +296,7 @@ QString StatusBarController::buildScriptDetail() const
     for (int i : idxs)
     {
         const QString name = m_scriptNameProvider ? m_scriptNameProvider(i).trimmed() : QString();
-        items << (name.isEmpty() ? tr("脚本 #%1").arg(i + 1)
+        items << (name.isEmpty() ? tr("脚本 #%1").arg(i + 1)   // 空名回退到 LuaFile{index+1}
                                  : name.toHtmlEscaped());           // 用户文本,转义防破坏 HTML 悬浮
     }
     return titledList(tr("运行中脚本 (%1)").arg(idxs.size()), items);

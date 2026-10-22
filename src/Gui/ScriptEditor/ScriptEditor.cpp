@@ -47,14 +47,7 @@ ScriptEditor::ScriptEditor(QWidget *parent)
     connect(editor->document(), &QTextDocument::contentsChanged, this, &ScriptEditor::onTextChanged);
 
     // 语言结构模板（与绑定函数同构,统一为 LuaFunctionDoc：name / snippet / description）
-    m_langTemplates = {
-        {"if",             "if (condition1) then\n    \nend", tr("if 条件分支")},
-        {"while",          "while (condition1) do\n    \nend", tr("while 循环")},
-        {"for",            "for i = 1, 10 do\n    \nend", tr("for 循环")},
-        {"if-elseif-else", "if (condition1) then\n    \n"
-                           "elseif (condition2) then\n    \n"
-                           "else\n    \nend", tr("if-elseif-else 多分支")},
-    };
+    m_langTemplates = langTemplates();
 
     updateFunctionMenu();
 
@@ -106,7 +99,7 @@ void ScriptEditor::createMenus()
 
     fileMenu->addSeparator();
 
-    QAction *exitAction = new QAction(tr("退出(&X)"), this);
+    exitAction = new QAction(tr("退出(&X)"), this);
     exitAction->setShortcut(tr("Ctrl+Q"));
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
     fileMenu->addAction(exitAction);
@@ -145,6 +138,8 @@ void ScriptEditor::retranslateMenus()
         saveAsAction->setText(tr("另存为(&A)..."));
     if (loadFromAction)
         loadFromAction->setText(tr("从文件加载(&L)..."));
+    if (exitAction)
+        exitAction->setText(tr("退出(&X)"));
     if (editMenu)
         editMenu->setTitle(tr("编辑(&E)"));
     if (functionsMenu)
@@ -156,7 +151,13 @@ void ScriptEditor::retranslateMenus()
     if (executeAction)
         executeAction->setText(tr("执行脚本(&E)"));
 
-    m_langTemplates = {
+    m_langTemplates = langTemplates();
+    updateFunctionMenu();
+}
+
+QList<LuaFunctionDoc> ScriptEditor::langTemplates()
+{
+    return {
         {"if",             "if (condition1) then\n    \nend", tr("if 条件分支")},
         {"while",          "while (condition1) do\n    \nend", tr("while 循环")},
         {"for",            "for i = 1, 10 do\n    \nend", tr("for 循环")},
@@ -164,7 +165,6 @@ void ScriptEditor::retranslateMenus()
                            "elseif (condition2) then\n    \n"
                            "else\n    \nend", tr("if-elseif-else 多分支")},
     };
-    updateFunctionMenu();
 }
 
 void ScriptEditor::changeEvent(QEvent* event)

@@ -11,6 +11,9 @@
 
 #include <QMainWindow>
 #include <QEvent>
+#include <QSize>
+#include <QString>
+#include <QVariantMap>
 #include <QVector>
 #include "Core/PlatformTypes.h"   // 信号参数 Pose / Platform
 
